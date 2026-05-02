@@ -63,7 +63,7 @@ select{width:100%;padding:12px;border-radius:10px;border:1px solid #2a3c54;backg
 
   <div class="main">
     <div>
-      <div class="price" id="price"XAU/USD:" --</div>
+      <div class="price" id="price">XAU/USD: --</div>
       <div class="signal wait" id="signal">WAIT</div>
 
       <div class="tabs">
@@ -99,7 +99,7 @@ select{width:100%;padding:12px;border-radius:10px;border:1px solid #2a3c54;backg
 
   <div id="chart" class="chart">
     <iframe
-      src="https://www.tradingview.com/widgetembed/?symbol=COMEX:GC1!&interval=15&theme=dark"
+      src="https://www.tradingview.com/widgetembed/?symbol=OANDA:XAUUSD&interval=15&theme=dark"
       width="100%"
       height="420"
       frameborder="0">
@@ -197,9 +197,9 @@ function analyze(price){
 
   let bias = 0;
 
-  if(price > 4600) bias += 1;
-  if(price > 4640) bias += 1;
-  if(price < 4610) bias -= 1;
+  if(price > 2300) bias += 1;
+  if(price > 2340) bias += 1;
+  if(price < 2320) bias -= 1;
   if(minute % 2 === 0) bias += 1;
   if(hour >= 19 || hour <= 2) bias += 1;
 
@@ -245,14 +245,23 @@ async function loadSignal(){
     const data = await res.json();
 
     const price = Number(data.price);
+
+    if (!data.ok || !price || isNaN(price)) {
+      document.getElementById("price").innerText = "API Error";
+      document.getElementById("signal").innerText = "WAIT";
+      document.getElementById("signal").className = "signal wait";
+      alert("API ดึงราคาทองไม่ได้");
+      return;
+    }
+
     const result = analyze(price);
 
-    document.getElementById("price").innerText = "GOLD FUTURES: " + price.toFixed(2);
+    document.getElementById("price").innerText = "XAU/USD: " + price.toFixed(2);
 
     const sig = document.getElementById("signal");
     sig.innerText = result.signal;
-    sig.className = "signal " + 
-      (result.signal === "BUY" ? "buy" : result.signal === "SELL" ? "sell" : "wait");
+    sig.className =
+      "signal " + (result.signal === "BUY" ? "buy" : result.signal === "SELL" ? "sell" : "wait");
 
     document.getElementById("entry").innerText = result.entry.toFixed(2);
     document.getElementById("sl").innerText = result.sl.toFixed(2);
@@ -278,7 +287,8 @@ async function loadSignal(){
 
   }catch(e){
     console.log(e);
-    document.getElementById("price").innerText = "Error API";
+    document.getElementById("price").innerText = "API Error";
+    alert("API Error: เปิด Worker ดูก่อนว่ามี price หรือไม่");
   }
 }
 
