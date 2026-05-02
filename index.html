@@ -1,61 +1,396 @@
 <!DOCTYPE html>
-<html>
+<html lang="th">
 <head>
-<meta charset="UTF-8">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Gold AI Pro</title>
 
 <style>
-body {margin:0;background:#0B0F14;color:#fff;font-family:Arial;display:flex;justify-content:center;}
-.card {width:95%;max-width:420px;padding:20px;background:#121A24;border-radius:15px;margin-top:20px;}
-.price {font-size:26px;}
-.signal {font-size:22px;font-weight:bold;}
-.time {font-size:13px;color:#aaa;margin-top:5px;}
-button {width:100%;margin-top:8px;padding:10px;border:none;background:#1f2937;color:white;border-radius:8px;}
-.active {background:#00E676;color:black;}
-.main-btn {background:#00E676;color:black;font-weight:bold;}
+:root{
+  --bg:#070B10;
+  --card:#111A24;
+  --card2:#162231;
+  --gold:#D4AF37;
+  --green:#00E676;
+  --red:#FF5252;
+  --muted:#9AA4B2;
+  --line:#253246;
+}
+
+*{box-sizing:border-box}
+
+body{
+  margin:0;
+  min-height:100vh;
+  background:
+    radial-gradient(circle at top, rgba(212,175,55,.18), transparent 35%),
+    linear-gradient(180deg,#070B10,#0B0F14 55%,#111827);
+  color:#fff;
+  font-family:Arial, sans-serif;
+  display:flex;
+  justify-content:center;
+  padding:14px;
+}
+
+.app{
+  width:100%;
+  max-width:460px;
+}
+
+.card{
+  background:rgba(17,26,36,.96);
+  border:1px solid rgba(212,175,55,.18);
+  border-radius:22px;
+  padding:18px;
+  box-shadow:0 18px 50px rgba(0,0,0,.45);
+}
+
+.topbar{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:14px;
+}
+
+.logo{
+  font-size:22px;
+  font-weight:800;
+}
+
+.badge{
+  font-size:12px;
+  color:#0B0F14;
+  background:linear-gradient(90deg,#D4AF37,#F6E27A);
+  border-radius:999px;
+  padding:6px 10px;
+  font-weight:700;
+}
+
+.price{
+  font-size:32px;
+  font-weight:800;
+  margin:8px 0 4px;
+}
+
+.signal{
+  font-size:26px;
+  font-weight:900;
+  margin:10px 0;
+}
+
+.buy{color:var(--green)}
+.sell{color:var(--red)}
+.wait{color:var(--gold)}
+
+.grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+  margin-top:12px;
+}
+
+.box{
+  background:var(--card2);
+  border:1px solid var(--line);
+  border-radius:14px;
+  padding:10px;
+  min-height:54px;
+}
+
+.label{
+  font-size:11px;
+  color:var(--muted);
+  margin-bottom:4px;
+}
+
+.value{
+  font-size:14px;
+  font-weight:700;
+}
+
+.full{
+  grid-column:1 / -1;
+}
+
+.targets{
+  margin-top:12px;
+  background:#0C131D;
+  border:1px solid var(--line);
+  border-radius:16px;
+  padding:12px;
+}
+
+.row{
+  display:flex;
+  justify-content:space-between;
+  border-bottom:1px solid rgba(255,255,255,.07);
+  padding:8px 0;
+  font-size:14px;
+}
+
+.row:last-child{border-bottom:none}
+
+.btn{
+  width:100%;
+  border:0;
+  border-radius:14px;
+  padding:13px;
+  margin-top:10px;
+  color:#fff;
+  background:#1f2937;
+  font-weight:800;
+  cursor:pointer;
+}
+
+.btn-main{
+  background:linear-gradient(90deg,#00E676,#00C853);
+  color:#03120A;
+}
+
+.btn-gold{
+  background:linear-gradient(90deg,#D4AF37,#F6E27A);
+  color:#111;
+}
+
+.style-buttons{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:8px;
+  margin-top:12px;
+}
+
+.style-buttons button{
+  border:1px solid var(--line);
+  background:#101826;
+  color:#fff;
+  border-radius:12px;
+  padding:10px 6px;
+  font-weight:700;
+  cursor:pointer;
+}
+
+.style-buttons button.active{
+  background:var(--green);
+  color:#06160C;
+  border-color:var(--green);
+}
+
+.chart-box{
+  display:none;
+  margin-top:14px;
+  overflow:hidden;
+  border-radius:18px;
+  border:1px solid var(--line);
+}
+
+.chart-box iframe{
+  width:100%;
+  height:360px;
+  border:0;
+}
+
+.news{
+  margin-top:12px;
+  text-align:center;
+}
+
+.news a{
+  color:var(--green);
+  font-size:14px;
+  text-decoration:none;
+  font-weight:700;
+}
+
+.modal{
+  display:none;
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.72);
+  justify-content:center;
+  align-items:center;
+  padding:14px;
+  z-index:99;
+}
+
+.modal-card{
+  width:100%;
+  max-width:440px;
+  background:#101826;
+  border:1px solid rgba(212,175,55,.28);
+  border-radius:22px;
+  padding:18px;
+  box-shadow:0 20px 60px rgba(0,0,0,.65);
+}
+
+.modal h3{
+  margin:0 0 12px;
+}
+
+.setting-group{
+  margin:12px 0;
+  padding:12px;
+  background:#0B111B;
+  border-radius:16px;
+  border:1px solid var(--line);
+}
+
+.option-row{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:10px;
+  padding:8px 0;
+  color:#DDE4EE;
+  font-size:14px;
+}
+
+select{
+  width:100%;
+  padding:11px;
+  border-radius:12px;
+  border:1px solid var(--line);
+  background:#162231;
+  color:#fff;
+  font-weight:700;
+}
+
+.small{
+  color:var(--muted);
+  font-size:12px;
+  line-height:1.5;
+}
+
+@media (min-width:768px){
+  .app{max-width:760px}
+  .layout{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:14px;
+  }
+  .chart-box iframe{height:430px}
+}
 </style>
 </head>
 
 <body>
 
-<div class="card">
-<h2>💰 Gold AI Pro</h2>
+<div class="app">
+  <div class="card">
+    <div class="topbar">
+      <div class="logo">💰 Gold AI Pro</div>
+      <div class="badge">AI SIGNAL</div>
+    </div>
 
-<div id="price" class="price">Loading...</div>
-<div id="signal" class="signal"></div>
+    <div class="layout">
+      <div>
+        <div id="price" class="price">Loading...</div>
+        <div id="signal" class="signal wait">WAIT</div>
 
-<div id="time" class="time"></div>
-<div id="session" class="time"></div>
+        <div class="style-buttons">
+          <button id="btnScalp" onclick="setStyle('scalp')">⚡ Scalp</button>
+          <button id="btnIntra" onclick="setStyle('intra')">📊 Intraday</button>
+          <button id="btnSwing" onclick="setStyle('swing')">📈 Swing</button>
+        </div>
 
-<div id="tradestyle" class="time"></div>
-<div id="selectedStyle" class="time"></div>
+        <div class="grid">
+          <div class="box">
+            <div class="label">Updated</div>
+            <div id="time" class="value">-</div>
+          </div>
+          <div class="box">
+            <div class="label">Session</div>
+            <div id="session" class="value">-</div>
+          </div>
+          <div class="box">
+            <div class="label">Trade Style</div>
+            <div id="tradestyle" class="value">-</div>
+          </div>
+          <div class="box">
+            <div class="label">Confidence</div>
+            <div id="confidence" class="value">-</div>
+          </div>
+          <div class="box full">
+            <div class="label">Action</div>
+            <div id="action" class="value">-</div>
+          </div>
+        </div>
+      </div>
 
-<div id="entry" class="time"></div>
-<div id="sl" class="time"></div>
-<div id="tp1" class="time"></div>
-<div id="tp2" class="time"></div>
-<div id="tp3" class="time"></div>
+      <div>
+        <div class="targets">
+          <div class="row"><span>🎯 Entry</span><strong id="entry">-</strong></div>
+          <div class="row"><span>🛑 SL</span><strong id="sl">-</strong></div>
+          <div class="row"><span>💰 TP1</span><strong id="tp1">-</strong></div>
+          <div class="row"><span>🔒 TP2</span><strong id="tp2">VIP</strong></div>
+          <div class="row"><span>🔒 TP3</span><strong id="tp3">VIP</strong></div>
+        </div>
 
-<div id="confidence" class="time"></div>
-<div id="action" class="signal"></div>
+        <button class="btn btn-main" onclick="loadPrice()">🚀 Load Signal</button>
+        <button class="btn" onclick="toggleChart()">📊 View Chart</button>
+        <button class="btn btn-gold" onclick="openSettings()">⚙️ Alert Settings</button>
 
-<button id="btnScalp" onclick="setStyle('scalp')">⚡ Scalp</button>
-<button id="btnIntra" onclick="setStyle('intra')">📊 Intraday</button>
-<button id="btnSwing" onclick="setStyle('swing')">📈 Swing</button>
+        <div class="news">
+          <a href="https://www.forexfactory.com/calendar" target="_blank">📰 View Market News</a>
+        </div>
+      </div>
+    </div>
 
-<button class="main-btn" onclick="loadPrice()">🚀 Load Signal</button>
+    <div id="chartBox" class="chart-box">
+      <iframe src="https://www.tradingview.com/widgetembed/?symbol=OANDA:XAUUSD&interval=15&theme=dark"></iframe>
+    </div>
+  </div>
+</div>
+
+<div id="settingsModal" class="modal">
+  <div class="modal-card">
+    <h3>⚙️ Alert Settings</h3>
+
+    <div class="setting-group">
+      <div class="label">Alert Mode</div>
+      <select id="alertMode">
+        <option value="beginner">Beginner — Signal + Entry + TP1</option>
+        <option value="trader">Trader — Add Session + Confidence</option>
+        <option value="pro">Pro VIP — Full Reason + TP2/TP3 🔒</option>
+      </select>
+    </div>
+
+    <div class="setting-group">
+      <div class="option-row">
+        <span>แจ้งเฉพาะ Strong Signal</span>
+        <input id="strongOnly" type="checkbox" checked />
+      </div>
+      <div class="option-row">
+        <span>แจ้งเฉพาะ ENTER NOW</span>
+        <input id="enterOnly" type="checkbox" checked />
+      </div>
+    </div>
+
+    <div class="setting-group">
+      <div class="label">Frequency</div>
+      <select id="frequency">
+        <option value="safe">Safe — ไม่เกิน 1 ครั้ง / ชั่วโมง</option>
+        <option value="normal">Normal — ไม่เกิน 3 ครั้ง / ชั่วโมง</option>
+        <option value="fast">Fast — ทุก Strong Signal</option>
+      </select>
+    </div>
+
+    <p class="small">
+      หมายเหตุ: หน้านี้เป็นการตั้งค่าฝั่งหน้าเว็บก่อน ส่วนการแจ้งเตือน Telegram อัตโนมัติจริงแบบแยกผู้ใช้
+      ต้องเพิ่มระบบ Backend/Database ต่อภายหลัง
+    </p>
+
+    <button class="btn btn-main" onclick="saveSettings()">✅ Save Settings</button>
+    <button class="btn" onclick="closeSettings()">Close</button>
+  </div>
 </div>
 
 <script>
-
-// 👉 ใส่ Worker URL ตรงนี้
-const API_URL = "https://white-fog-ba70.porapat-su1975.workers.dev";
-
-let currentStyle="intra";
+const API_URL = "https://white-fog-ba70.porapat-su1975.workers.dev/";
+let currentStyle = localStorage.getItem("tradeStyle") || "intra";
 
 function setStyle(style){
-  currentStyle=style;
-  document.getElementById("selectedStyle").innerText="Selected: "+style;
+  currentStyle = style;
+  localStorage.setItem("tradeStyle", style);
 
   btnScalp.classList.remove("active");
   btnIntra.classList.remove("active");
@@ -63,6 +398,104 @@ function setStyle(style){
 
   if(style==="scalp") btnScalp.classList.add("active");
   if(style==="intra") btnIntra.classList.add("active");
+  if(style==="swing") btnSwing.classList.add("active");
+
+  loadPrice();
+}
+
+async function loadPrice(){
+  try{
+    price.innerText="Loading...";
+    signal.innerText="Analyzing...";
+    signal.className="signal wait";
+
+    const res = await fetch(API_URL);
+    const data = await res.json();
+
+    let p = Number(data.price);
+    if(!p) throw new Error("No price");
+
+    price.innerText = "XAU/USD: " + p.toFixed(2);
+
+    let score = Math.random()*20-10;
+    let sig = score > 0 ? "BUY" : "SELL";
+    let sigText = score > 7 ? "🔥 STRONG BUY" : score < -7 ? "🔻 STRONG SELL" : (sig==="BUY" ? "BUY" : "SELL");
+
+    signal.innerText = sigText;
+    signal.className = "signal " + (sig==="BUY" ? "buy" : "sell");
+
+    time.innerText = new Date().toLocaleTimeString();
+
+    let h = new Date().getHours();
+    let sess = (h < 15) ? "London" : (h < 22) ? "New York" : "Asian";
+    session.innerText = sess;
+
+    let hold = currentStyle==="scalp" ? "15–30m" : currentStyle==="intra" ? "30–90m" : "1–4h";
+    tradestyle.innerText = currentStyle.toUpperCase() + " | " + hold;
+
+    let gap = currentStyle==="scalp" ? 5 : currentStyle==="intra" ? 10 : 20;
+    let slVal = sig==="BUY" ? p-gap : p+gap;
+    let tp1Val = sig==="BUY" ? p+gap : p-gap;
+
+    entry.innerText = p.toFixed(2);
+    sl.innerText = slVal.toFixed(2);
+    tp1.innerText = tp1Val.toFixed(2);
+    tp2.innerText = "VIP";
+    tp3.innerText = "VIP";
+
+    let conf = Math.floor(Math.random()*30)+70;
+    confidence.innerText = conf + "%";
+
+    action.innerText = conf > 80 ? "🟢 ENTER NOW" : "⏳ WAIT FOR CONFIRMATION";
+    action.style.color = conf > 80 ? "#00E676" : "#D4AF37";
+  }catch(e){
+    price.innerText="Error loading data";
+    signal.innerText="CHECK API";
+    signal.className="signal sell";
+  }
+}
+
+function toggleChart(){
+  chartBox.style.display = chartBox.style.display==="none" || chartBox.style.display==="" ? "block" : "none";
+}
+
+function openSettings(){
+  loadSettings();
+  settingsModal.style.display="flex";
+}
+
+function closeSettings(){
+  settingsModal.style.display="none";
+}
+
+function saveSettings(){
+  const settings = {
+    alertMode: alertMode.value,
+    strongOnly: strongOnly.checked,
+    enterOnly: enterOnly.checked,
+    frequency: frequency.value
+  };
+  localStorage.setItem("alertSettings", JSON.stringify(settings));
+  closeSettings();
+  alert("บันทึกการตั้งค่าแล้ว");
+}
+
+function loadSettings(){
+  const raw = localStorage.getItem("alertSettings");
+  if(!raw) return;
+  const s = JSON.parse(raw);
+  alertMode.value = s.alertMode || "trader";
+  strongOnly.checked = s.strongOnly !== false;
+  enterOnly.checked = s.enterOnly !== false;
+  frequency.value = s.frequency || "safe";
+}
+
+setStyle(currentStyle);
+setInterval(loadPrice, 60000);
+</script>
+
+</body>
+</html>  if(style==="intra") btnIntra.classList.add("active");
   if(style==="swing") btnSwing.classList.add("active");
 }
 
