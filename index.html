@@ -5,45 +5,20 @@
 <title>Gold AI Pro</title>
 
 <style>
-body {
-  margin:0;
-  background:#0B0F14;
-  color:#fff;
-  font-family:Arial;
-  display:flex;
-  justify-content:center;
-}
-
-.card {
-  width:95%;
-  max-width:420px;
-  padding:20px;
-  background:#121A24;
-  border-radius:15px;
-  margin-top:20px;
-}
-
+body {margin:0;background:#0B0F14;color:#fff;font-family:Arial;display:flex;justify-content:center;}
+.card {width:95%;max-width:420px;padding:20px;background:#121A24;border-radius:15px;margin-top:20px;}
 .price {font-size:26px;}
 .signal {font-size:22px;font-weight:bold;}
 .time {font-size:13px;color:#aaa;margin-top:5px;}
-
-button {
-  width:100%;
-  margin-top:10px;
-  padding:10px;
-  border:none;
-  background:#00E676;
-  font-weight:bold;
-  border-radius:8px;
-}
-
+button {width:100%;margin-top:8px;padding:10px;border:none;background:#1f2937;color:white;border-radius:8px;}
+.active {background:#00E676;color:black;}
+.main-btn {background:#00E676;color:black;font-weight:bold;}
 </style>
 </head>
 
 <body>
 
 <div class="card">
-
 <h2>💰 Gold AI Pro</h2>
 
 <div id="price" class="price">Loading...</div>
@@ -52,8 +27,8 @@ button {
 <div id="time" class="time"></div>
 <div id="session" class="time"></div>
 
-<div id="primary" class="time"></div>
-<div id="alt" class="time"></div>
+<div id="tradestyle" class="time"></div>
+<div id="selectedStyle" class="time"></div>
 
 <div id="entry" class="time"></div>
 <div id="sl" class="time"></div>
@@ -64,83 +39,110 @@ button {
 <div id="confidence" class="time"></div>
 <div id="action" class="signal"></div>
 
-<button onclick="loadPrice()">🚀 Load</button>
-<button onclick="subscribeVIP()">💰 Unlock VIP</button>
+<button id="btnScalp" onclick="setStyle('scalp')">⚡ Scalp</button>
+<button id="btnIntra" onclick="setStyle('intra')">📊 Intraday</button>
+<button id="btnSwing" onclick="setStyle('swing')">📈 Swing</button>
 
+<button class="main-btn" onclick="loadPrice()">🚀 Load Signal</button>
 </div>
 
 <script>
 
+// 👉 ใส่ Worker URL ตรงนี้
+const API_URL = "https://YOUR-WORKER-URL";
+
+let currentStyle="intra";
+
+function setStyle(style){
+  currentStyle=style;
+  document.getElementById("selectedStyle").innerText="Selected: "+style;
+
+  btnScalp.classList.remove("active");
+  btnIntra.classList.remove("active");
+  btnSwing.classList.remove("active");
+
+  if(style==="scalp") btnScalp.classList.add("active");
+  if(style==="intra") btnIntra.classList.add("active");
+  if(style==="swing") btnSwing.classList.add("active");
+}
+
 async function loadPrice(){
 
-document.getElementById("price").innerText="Loading...";
+try{
+const res=await fetch(API_URL);
+const data=await res.json();
 
-const res = await fetch("https://www.goldapi.io/api/XAU/USD",{
-headers:{
-"x-access-token":"goldapi-c9cf12b0466ededb8d7a6fdd8c2e89f6-io"
-}});
+let price=data.price;
 
-const data = await res.json();
-let price = data.price;
-
-document.getElementById("price").innerText="XAU/USD: "+price;
+priceEl.innerText="XAU/USD: "+price;
 
 // SIGNAL
-let score = Math.random()*20-10;
-let signal = score>0?"BUY":"SELL";
-
-document.getElementById("signal").innerText=signal;
+let signal=Math.random()>0.5?"BUY":"SELL";
+signalEl.innerText=signal;
 
 // TIME
-document.getElementById("time").innerText=
-"Updated: "+new Date().toLocaleTimeString();
+time.innerText="Updated: "+new Date().toLocaleTimeString();
 
 // SESSION
 let h=new Date().getHours();
-let session=(h<15)?"London":(h<22)?"New York":"Asian";
-document.getElementById("session").innerText="Session: "+session;
+session.innerText=(h<15)?"London":(h<22)?"New York":"Asian";
 
-// MULTI STYLE
-let scalp="Scalp 15-30m";
-let intra="Intraday 30-90m";
-let swing="Swing 1-4h";
-
-document.getElementById("primary").innerText=
-"Primary: "+intra;
-
-document.getElementById("alt").innerText=
-"Alt: "+scalp+" | "+swing;
+// STYLE
+let hold=(currentStyle==="scalp")?"15-30m":(currentStyle==="intra")?"30-90m":"1-4h";
+tradestyle.innerText=currentStyle+" | "+hold;
 
 // ENTRY
-let entry=price;
-let sl=signal=="BUY"?price-10:price+10;
-let tp1=signal=="BUY"?price+10:price-10;
+let sl,tp1;
 
-document.getElementById("entry").innerText="Entry: "+entry;
-document.getElementById("sl").innerText="SL: "+sl;
-document.getElementById("tp1").innerText="TP1: "+tp1;
+if(currentStyle==="scalp"){
+sl=signal==="BUY"?price-5:price+5;
+tp1=signal==="BUY"?price+5:price-5;
+}
+if(currentStyle==="intra"){
+sl=signal==="BUY"?price-10:price+10;
+tp1=signal==="BUY"?price+10:price-10;
+}
+if(currentStyle==="swing"){
+sl=signal==="BUY"?price-20:price+20;
+tp1=signal==="BUY"?price+20:price-20;
+}
 
-// VIP LOCK
-document.getElementById("tp2").innerText="🔒 TP2 VIP";
-document.getElementById("tp3").innerText="🔒 TP3 VIP";
+entry.innerText="Entry: "+price.toFixed(2);
+slEl.innerText="SL: "+sl.toFixed(2);
+tp1El.innerText="TP1: "+tp1.toFixed(2);
 
-// CONFIDENCE
-let conf=Math.floor(Math.random()*30)+70;
-document.getElementById("confidence").innerText="Confidence: "+conf+"%";
+tp2.innerText="🔒 VIP";
+tp3.innerText="🔒 VIP";
+
+// CONF
+let c=Math.floor(Math.random()*30)+70;
+confidence.innerText="Confidence: "+c+"%";
 
 // ACTION
-document.getElementById("action").innerText=
-(conf>80)?"🟢 ENTER NOW":"⏳ WAIT";
+action.innerText=(c>80)?"ENTER NOW":"WAIT";
 
+}catch{
+priceEl.innerText="Error";
+}
 }
 
-// VIP PAYMENT (Mock)
-function subscribeVIP(){
-alert("VIP Coming Soon (เชื่อม Stripe / PromptPay)");
-}
+// FIX ELEMENT
+const priceEl=document.getElementById("price");
+const signalEl=document.getElementById("signal");
+const time=document.getElementById("time");
+const session=document.getElementById("session");
+const tradestyle=document.getElementById("tradestyle");
+const entry=document.getElementById("entry");
+const slEl=document.getElementById("sl");
+const tp1El=document.getElementById("tp1");
+const tp2=document.getElementById("tp2");
+const tp3=document.getElementById("tp3");
+const confidence=document.getElementById("confidence");
+const action=document.getElementById("action");
 
-// AUTO REFRESH
+// AUTO
 setInterval(loadPrice,60000);
+setStyle("intra");
 
 </script>
 
