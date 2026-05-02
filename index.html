@@ -158,7 +158,22 @@ session + sessionBias;
     let signal = "WAIT";
     let cls = "";
 
-    if (score >= 7) {
+   let price = data.price;
+
+if (score >= 7) {
+  entry = price;
+  sl = price - 10;
+  tp1 = price + 10;
+  tp2 = price + 20;
+  tp3 = price + 35;
+
+} else if (score <= -7) {
+  entry = price;
+  sl = price + 10;
+  tp1 = price - 10;
+  tp2 = price - 20;
+  tp3 = price - 35;
+}
       signal = "🔥 STRONG BUY";
       cls = "buy";
     } else if (score <= -7) {
