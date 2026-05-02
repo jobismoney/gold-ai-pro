@@ -1,157 +1,77 @@
 <!DOCTYPE html>
-<html lang="th">
+<html>
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Gold AI Pro</title>
-
+<meta name="viewport" content="width=device-width">
 <style>
-body {
-  margin:0;
-  font-family:Arial;
-  background:#0b0f14;
-  color:white;
-}
-
-.container {
-  max-width:420px;
-  margin:auto;
-  padding:15px;
-}
-
-.card {
-  background:#121a24;
-  border-radius:15px;
-  padding:15px;
-  margin-bottom:15px;
-}
-
-.title {
-  font-size:18px;
-  font-weight:bold;
-}
-
-.price {
-  font-size:30px;
-  margin-top:10px;
-}
-
-.signal {
-  font-size:28px;
-  font-weight:bold;
-  margin-top:5px;
-}
-
-.buy {color:#00e676;}
-.sell {color:#ff5252;}
-.wait {color:#ffd54f;}
-
-.grid {
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:10px;
-  margin-top:10px;
-}
-
-.box {
-  background:#1f2937;
-  padding:10px;
-  border-radius:10px;
-  font-size:14px;
-}
-
-.vip {
-  color:#FFD700;
-}
-
-button {
-  width:100%;
-  padding:14px;
-  border:none;
-  border-radius:10px;
-  margin-top:10px;
-  font-weight:bold;
-}
-
-.main {background:#00e676;color:black;}
-.vip-btn {background:#FFD700;color:black;}
-.setting {background:#1f2937;color:white;}
-
-.status-open {
-  color:#00e676;
-}
-
-.status-closed {
-  color:#ff5252;
-}
+body{background:#0b0f14;color:#fff;font-family:sans-serif;text-align:center}
+.card{background:#121a24;padding:20px;border-radius:15px;margin:20px}
+.buy{color:#00e676}
+.sell{color:#ff5252}
+.wait{color:#ffd54f}
+button{padding:15px;margin:10px;border:none;border-radius:10px}
 </style>
 </head>
 
 <body>
 
-<div class="container">
-
 <div class="card">
-  <div class="title">💰 Gold AI Pro</div>
 
-  <div id="marketStatus"></div>
+<h2>💰 Gold AI</h2>
 
-  <div id="price" class="price">--</div>
-  <div id="signal" class="signal">--</div>
+<div id="status"></div>
+<h1 id="price">--</h1>
+<h2 id="signal">--</h2>
 
-  <div class="grid">
-    <div class="box" id="entry"></div>
-    <div class="box" id="sl"></div>
-    <div class="box" id="tp1"></div>
-    <div class="box vip" id="tp2">🔒 VIP</div>
-    <div class="box vip" id="tp3">🔒 VIP</div>
-    <div class="box" id="confidence"></div>
-  </div>
+<p id="entry"></p>
+<p id="tp1"></p>
+<p id="tp2">🔒 VIP</p>
+<p id="tp3">🔒 VIP</p>
 
-  <button class="main" onclick="load()">🚀 Load Signal</button>
-  <button class="vip-btn">💎 Upgrade VIP</button>
-  <button class="setting">⚙️ Settings</button>
-
-</div>
+<button onclick="load()">🚀 Load</button>
+<button onclick="vip()">💎 VIP</button>
 
 </div>
 
 <script>
 
-const API = "https://white-fog-ba70.porapat-su1975.workers.dev/";
+const API="https://white-fog-ba70.porapat-su1975.workers.dev/";
 
-let isVip = false;
+let isVip = localStorage.getItem("vip")==="true";
+
+function vip(){
+  let code = prompt("ใส่ VIP code");
+  if(code==="VIP123"){
+    localStorage.setItem("vip","true");
+    isVip=true;
+    alert("VIP unlocked");
+  }
+}
 
 async function load(){
-  const res = await fetch(API + "?vip=true&min_conf=70&cooldown=15");
-  const data = await res.json();
 
-  if(data.market === "closed"){
-    document.getElementById("marketStatus").innerHTML =
-      "<span class='status-closed'>📴 Market Closed</span>";
+  const res = await fetch(API+"?vip=true&min_conf=70&cooldown=15");
+  const d = await res.json();
+
+  if(d.market==="closed"){
+    document.getElementById("status").innerText="Market Closed";
     return;
   }
 
-  document.getElementById("marketStatus").innerHTML =
-    "<span class='status-open'>🟢 Market Open</span>";
-
-  document.getElementById("price").innerText = "XAU/USD: " + data.price;
+  document.getElementById("status").innerText="Market Open";
+  document.getElementById("price").innerText="XAU/USD "+d.price;
 
   let sig = document.getElementById("signal");
-  sig.innerText = data.signal.signal;
-  sig.className = "signal " + data.signal.signal.toLowerCase();
+  sig.innerText=d.signal.signal;
+  sig.className=d.signal.signal.toLowerCase();
 
-  document.getElementById("entry").innerText = "Entry: " + data.signal.entry;
-  document.getElementById("sl").innerText = "SL: " + data.signal.sl;
-  document.getElementById("tp1").innerText = "TP1: " + data.signal.tp1;
+  document.getElementById("entry").innerText="Entry "+d.signal.entry;
+  document.getElementById("tp1").innerText="TP1 "+d.signal.tp1;
 
   if(isVip){
-    document.getElementById("tp2").innerText = "TP2: " + data.signal.tp2;
-    document.getElementById("tp3").innerText = "TP3: " + data.signal.tp3;
+    document.getElementById("tp2").innerText="TP2 "+d.signal.tp2;
+    document.getElementById("tp3").innerText="TP3 "+d.signal.tp3;
   }
 
-  document.getElementById("confidence").innerText =
-    "Confidence: " + data.signal.confidence + "%";
 }
 
 </script>
