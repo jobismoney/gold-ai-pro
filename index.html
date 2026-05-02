@@ -18,6 +18,7 @@ button { padding:10px 20px; font-size:16px; }
 <div class="card">
 <h2>Gold AI Pro</h2>
 <div id="price" class="price">XAU/USD: Loading...</div>
+<div id="time" style="font-size:14px;color:gray;"></div>
 <div id="signal" class="signal">WAIT</div>
 <button onclick="loadPrice()">Load Price</button>
 </div>
@@ -29,7 +30,8 @@ async function loadPrice() {
       headers: { "x-access-token": "goldapi-c9cf12b0466ededb8d7a6fdd8c2e89f6-io" }
     });
     const data = await res.json();
-
+document.getElementById("time").innerText =
+"Updated: " + new Date().toLocaleTimeString();
     document.getElementById("price").innerText = "XAU/USD: " + data.price;
 
     let score = 10;
