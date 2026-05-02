@@ -89,6 +89,16 @@ button:hover {
   
   <button onclick="loadPrice()">🚀 Load Price</button>
 </div>
+  <button onclick="toggleChart()">📊 View Chart</button>
+
+<div id="chartBox" style="display:none; margin-top:20px;">
+  <iframe 
+    src="https://www.tradingview.com/widgetembed/?symbol=OANDA:XAUUSD&interval=15&theme=dark"
+    width="100%" 
+    height="400" 
+    frameborder="0">
+  </iframe>
+</div>
 
 <script>
 async function loadPrice() {
@@ -190,6 +200,16 @@ if (score >= 7) {
   }
 }
 </script>
+
+ function toggleChart() {
+  let chart = document.getElementById("chartBox");
+
+  if (chart.style.display === "none") {
+    chart.style.display = "block";
+  } else {
+    chart.style.display = "none";
+  }
+} 
 
 </body>
 </html>
