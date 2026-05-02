@@ -1,4 +1,4 @@
-const API_URL = "https://white-fog-ba70.porapat-su1975.workers.dev";
+
 
 // ตอนนี้ทดสอบ VIP แบบ local ก่อน
 let isVip = localStorage.getItem("vip") === "true";
@@ -42,7 +42,7 @@ async function loadSignal(){
     const cooldown = localStorage.getItem("cooldown") || "15";
 
     const vipParam = isVip && telegramOn ? "true" : "false";
-    const url = `${API_URL}/?vip=${vipParam}&min_conf=${minConf}&cooldown=${cooldown}`;
+const url = `${CONFIG.API_URL}/?vip=${vipParam}&min_conf=${minConf}&cooldown=${cooldown}`;
 
     const res = await fetch(url);
     const data = await res.json();
@@ -92,7 +92,7 @@ async function loadSignal(){
 
 async function testTelegram(){
   try{
-    const res = await fetch(API_URL + "/?mode=test-telegram");
+    const res = await fetch(CONFIG.API_URL + "/?mode=test-telegram")
     const data = await res.json();
     alert(data.market || data.message || "Test sent");
   }catch(e){
