@@ -4,28 +4,89 @@
 <meta charset="UTF-8">
 <title>Gold AI Pro</title>
 <style>
-body { background:#0B0F14; color:white; font-family:Arial; text-align:center; padding-top:100px; }
-.card { background:#121A24; padding:30px; border-radius:16px; display:inline-block; }
-.price { font-size:24px; margin:20px 0; }
-.signal { font-size:28px; font-weight:bold; }
-.buy { color:#00C853; }
-.sell { color:red; }
-button { padding:10px 20px; font-size:16px; }
+body {
+  margin: 0;
+  background: linear-gradient(180deg, #0B0F14, #111827);
+  color: #fff;
+  font-family: 'Segoe UI', sans-serif;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+
+.card {
+  background: #121A24;
+  padding: 30px;
+  border-radius: 20px;
+  width: 320px;
+  text-align: center;
+  box-shadow: 0 0 30px rgba(0,255,150,0.1);
+}
+
+h2 {
+  margin-bottom: 10px;
+}
+
+.price {
+  font-size: 32px;
+  font-weight: bold;
+  margin: 15px 0;
+}
+
+.signal {
+  font-size: 26px;
+  font-weight: bold;
+  margin-top: 10px;
+}
+
+.buy { color: #00E676; }
+.sell { color: #FF5252; }
+
+.time {
+  font-size: 13px;
+  color: #aaa;
+  margin-top: 5px;
+}
+
+button {
+  margin-top: 20px;
+  width: 100%;
+  padding: 12px;
+  font-size: 16px;
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(90deg, #00E676, #00C853);
+  color: black;
+  font-weight: bold;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+button:hover {
+  transform: scale(1.05);
+}
 </style>
 </head>
 <body>
 
 <div class="card">
-<h2>Gold AI Pro</h2>
-<div id="price" class="price">XAU/USD: Loading...</div>
-<div id="time" style="font-size:14px;color:gray;"></div>
-<div id="signal" class="signal">WAIT</div>
-<button onclick="loadPrice()">Load Price</button>
+  <h2>💰 Gold AI Pro</h2>
+
+  <div id="price" class="price">Loading...</div>
+
+  <div id="signal" class="signal">WAIT</div>
+
+  <div id="time" class="time"></div>
+
+  <button onclick="loadPrice()">🚀 Load Price</button>
 </div>
 
 <script>
 async function loadPrice() {
   try {
+    document.getElementById("price").innerText = "Loading...";
+document.getElementById("signal").innerText = "Analyzing...";
     const res = await fetch("https://www.goldapi.io/api/XAU/USD", {
       headers: { "x-access-token": "goldapi-c9cf12b0466ededb8d7a6fdd8c2e89f6-io" }
     });
