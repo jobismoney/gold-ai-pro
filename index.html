@@ -79,6 +79,9 @@ button:hover {
 
   <div id="time" class="time"></div>
 
+  <div id="expected" class="time"></div>
+<div id="session" class="time"></div>
+  
   <button onclick="loadPrice()">🚀 Load Price</button>
 </div>
 
@@ -95,6 +98,26 @@ document.getElementById("time").innerText =
 "Updated: " + new Date().toLocaleTimeString();
     document.getElementById("price").innerText = "XAU/USD: " + data.price;
 
+    // ===== TIME + SESSION =====
+
+// 1. เวลาโดยประมาณ
+let timeEstimate = "30–60 นาที";
+
+// 2. หา session
+let hour = new Date().getHours();
+let session = "";
+
+if (hour >= 7 && hour < 15) session = "🌍 London Session";
+else if (hour >= 15 && hour < 22) session = "🌍 New York Session";
+else session = "🌏 Asian Session";
+
+// 3. แสดงผล
+document.getElementById("expected").innerText =
+"⏱ Expected Move: " + timeEstimate;
+
+document.getElementById("session").innerText =
+session;
+    
     let score = 10;
 
     let signal = "WAIT";
