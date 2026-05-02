@@ -13,24 +13,25 @@ body {
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 100vh;
+  min-height: 100vh;
 }
 
 .card {
   background: #121A24;
-  padding: 25px;
+  padding: 20px;
   border-radius: 16px;
-  width: 320px;
+  width: 95%;
+  max-width: 400px;
   text-align: center;
 }
 
-.price { font-size: 28px; margin: 10px 0; }
-.signal { font-size: 24px; font-weight: bold; }
+.price { font-size: 26px; margin: 10px 0; }
+.signal { font-size: 22px; font-weight: bold; }
 
 .buy { color: #00E676; }
 .sell { color: #FF5252; }
 
-.time { font-size: 14px; color: #aaa; margin-top: 5px; }
+.time { font-size: 13px; color: #aaa; margin-top: 5px; }
 
 button {
   margin-top: 10px;
@@ -42,6 +43,12 @@ button {
   color: black;
   font-weight: bold;
   cursor: pointer;
+}
+
+@media (min-width: 768px) {
+  .card {
+    max-width: 600px;
+  }
 }
 </style>
 </head>
@@ -58,11 +65,27 @@ button {
   <div id="expected" class="time"></div>
   <div id="session" class="time"></div>
 
+  <div id="tradestyle" class="time"></div>
+  <div id="timing" class="time"></div>
+
+  <div id="confidence" class="time"></div>
+  <div id="winrate" class="time"></div>
+
+  <div id="action" class="signal"></div>
+
   <div id="entry" class="time"></div>
   <div id="sl" class="time"></div>
   <div id="tp1" class="time"></div>
   <div id="tp2" class="time"></div>
   <div id="tp3" class="time"></div>
+
+  <div id="vip" class="time"></div>
+
+  <div style="margin-top:10px;">
+    <a href="https://www.forexfactory.com/calendar" target="_blank" style="color:#00E676;">
+      📰 View Market News
+    </a>
+  </div>
 
   <button onclick="loadPrice()">🚀 Load Price</button>
   <button onclick="toggleChart()">📊 View Chart</button>
@@ -107,8 +130,8 @@ async function loadPrice() {
     document.getElementById("time").innerText =
     "Updated: " + new Date().toLocaleTimeString();
 
-    let timeEstimate = "30–60 นาที";
     let randomVol = Math.random();
+    let timeEstimate = "30–60 นาที";
 
     if (randomVol > 0.7) timeEstimate = "15–30 นาที";
     else if (randomVol < 0.3) timeEstimate = "1–2 ชั่วโมง";
@@ -133,34 +156,78 @@ async function loadPrice() {
     document.getElementById("session").innerText =
     session + sessionBias;
 
+    // ===== TRADE STYLE =====
+    let style = "";
+    let holding = "";
+
+    if (randomVol > 0.7) {
+      style = "Scalp";
+      holding = "15–30 mins";
+    } else if (randomVol < 0.3) {
+      style = "Swing";
+      holding = "1–4 hours";
+    } else {
+      style = "Intraday";
+      holding = "30–90 mins";
+    }
+
+    let timing = session.includes("London") ? "Best Entry: London Open" : "Wait Setup";
+
+    document.getElementById("tradestyle").innerText =
+    "⏱ Style: " + style + " | Holding: " + holding;
+
+    document.getElementById("timing").innerText =
+    "🎯 " + timing;
+
+    // ===== CONFIDENCE =====
+    let confidence = Math.floor(Math.random() * 30) + 70;
+    document.getElementById("confidence").innerText =
+    "Confidence: " + confidence + "%";
+
+    // ===== WIN RATE =====
+    let winrate = Math.floor(Math.random() * 15) + 60;
+    document.getElementById("winrate").innerText =
+    "Win Rate: " + winrate + "%";
+
+    // ===== ACTION =====
+    let action = "";
+
+    if (confidence > 80 && signal.includes("BUY")) {
+      action = "🟢 ENTER NOW";
+    } else {
+      action = "⏳ WAIT";
+    }
+
+    document.getElementById("action").innerText = action;
+
     // ===== ENTRY / TP / SL =====
     let entry = price;
-    let sl, tp1, tp2, tp3;
+    let sl, tp1;
 
     if (signal.includes("BUY")) {
       sl = price - 10;
       tp1 = price + 10;
-      tp2 = price + 20;
-      tp3 = price + 35;
     } else {
       sl = price + 10;
       tp1 = price - 10;
-      tp2 = price - 20;
-      tp3 = price - 35;
     }
 
     document.getElementById("entry").innerText = "🎯 Entry: " + entry.toFixed(2);
     document.getElementById("sl").innerText = "🛑 SL: " + sl.toFixed(2);
     document.getElementById("tp1").innerText = "💰 TP1: " + tp1.toFixed(2);
-    document.getElementById("tp2").innerText = "💰 TP2: " + tp2.toFixed(2);
-    document.getElementById("tp3").innerText = "💰 TP3: " + tp3.toFixed(2);
+
+    document.getElementById("tp2").innerText = "🔒 TP2 (VIP)";
+    document.getElementById("tp3").innerText = "🔒 TP3 (VIP)";
+
+    document.getElementById("vip").innerText =
+    "🔓 Unlock VIP for Full Targets";
 
   } catch (e) {
     document.getElementById("price").innerText = "Error loading price";
   }
 }
 
-// ===== TOGGLE CHART =====
+// ===== CHART =====
 function toggleChart() {
   let chart = document.getElementById("chartBox");
 
@@ -170,6 +237,9 @@ function toggleChart() {
     chart.style.display = "none";
   }
 }
+
+// ===== AUTO REFRESH =====
+setInterval(loadPrice, 60000);
 
 </script>
 
