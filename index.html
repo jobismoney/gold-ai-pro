@@ -3,12 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <title>Gold AI Pro</title>
+
 <style>
 body {
   margin: 0;
   background: linear-gradient(180deg, #0B0F14, #111827);
   color: #fff;
-  font-family: 'Segoe UI', sans-serif;
+  font-family: Arial;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -17,189 +18,150 @@ body {
 
 .card {
   background: #121A24;
-  padding: 30px;
-  border-radius: 20px;
+  padding: 25px;
+  border-radius: 16px;
   width: 320px;
   text-align: center;
-  box-shadow: 0 0 30px rgba(0,255,150,0.1);
 }
 
-h2 {
-  margin-bottom: 10px;
-}
-
-.price {
-  font-size: 32px;
-  font-weight: bold;
-  margin: 15px 0;
-}
-
-.signal {
-  font-size: 26px;
-  font-weight: bold;
-  margin-top: 10px;
-}
+.price { font-size: 28px; margin: 10px 0; }
+.signal { font-size: 24px; font-weight: bold; }
 
 .buy { color: #00E676; }
 .sell { color: #FF5252; }
 
-.time {
-  font-size: 13px;
-  color: #aaa;
-  margin-top: 5px;
-}
+.time { font-size: 14px; color: #aaa; margin-top: 5px; }
 
 button {
-  margin-top: 20px;
+  margin-top: 10px;
   width: 100%;
-  padding: 12px;
-  font-size: 16px;
+  padding: 10px;
+  border-radius: 8px;
   border: none;
-  border-radius: 10px;
-  background: linear-gradient(90deg, #00E676, #00C853);
+  background: #00E676;
   color: black;
   font-weight: bold;
   cursor: pointer;
-  transition: 0.3s;
-}
-
-button:hover {
-  transform: scale(1.05);
 }
 </style>
 </head>
+
 <body>
 
 <div class="card">
   <h2>💰 Gold AI Pro</h2>
 
   <div id="price" class="price">Loading...</div>
-
   <div id="signal" class="signal">WAIT</div>
 
   <div id="time" class="time"></div>
-
   <div id="expected" class="time"></div>
-<div id="session" class="time"></div>
+  <div id="session" class="time"></div>
+
   <div id="entry" class="time"></div>
-<div id="sl" class="time"></div>
-<div id="tp1" class="time"></div>
-<div id="tp2" class="time"></div>
-<div id="tp3" class="time"></div>
-  
+  <div id="sl" class="time"></div>
+  <div id="tp1" class="time"></div>
+  <div id="tp2" class="time"></div>
+  <div id="tp3" class="time"></div>
+
   <button onclick="loadPrice()">🚀 Load Price</button>
-</div>
   <button onclick="toggleChart()">📊 View Chart</button>
 
-<div id="chartBox" style="display:none; margin-top:20px;">
-  <iframe 
-    src="https://www.tradingview.com/widgetembed/?symbol=OANDA:XAUUSD&interval=15&theme=dark"
-    width="100%" 
-    height="400" 
-    frameborder="0">
-  </iframe>
+  <div id="chartBox" style="display:none; margin-top:20px;">
+    <iframe 
+      src="https://www.tradingview.com/widgetembed/?symbol=OANDA:XAUUSD&interval=15&theme=dark"
+      width="100%" height="300" frameborder="0">
+    </iframe>
+  </div>
 </div>
 
 <script>
+
 async function loadPrice() {
+
+  document.getElementById("price").innerText = "Loading...";
+  document.getElementById("signal").innerText = "Analyzing...";
+
   try {
-    document.getElementById("price").innerText = "Loading...";
-document.getElementById("signal").innerText = "Analyzing...";
     const res = await fetch("https://www.goldapi.io/api/XAU/USD", {
-      headers: { "x-access-token": "goldapi-c9cf12b0466ededb8d7a6fdd8c2e89f6-io" }
+      headers: { "x-access-token": "YOUR_API_KEY" }
     });
+
     const data = await res.json();
-document.getElementById("time").innerText =
-"Updated: " + new Date().toLocaleTimeString();
-    document.getElementById("price").innerText = "XAU/USD: " + data.price;
-    // ===== ENTRY / TP / SL =====
+    let price = data.price;
 
-let price = data.price;
+    document.getElementById("price").innerText = "XAU/USD: " + price;
 
-// กำหนดระยะ (ปรับได้)
-let entry = price;
-let sl = price - 10;
-let tp1 = price + 10;
-let tp2 = price + 20;
-let tp3 = price + 35;
-
-// แสดงผล
-document.getElementById("entry").innerText = "🎯 Entry: " + entry.toFixed(2);
-document.getElementById("sl").innerText = "🛑 SL: " + sl.toFixed(2);
-document.getElementById("tp1").innerText = "💰 TP1: " + tp1.toFixed(2);
-document.getElementById("tp2").innerText = "💰 TP2: " + tp2.toFixed(2);
-document.getElementById("tp3").innerText = "💰 TP3: " + tp3.toFixed(2);
-
-    // ===== TIME + SESSION =====
-
-// 1. เวลาโดยประมาณ
-let priceNow = data.price;
-let timeEstimate = "30–60 นาที";
-
-// จำลอง volatility ง่ายๆ
-let randomVol = Math.random();
-
-if (randomVol > 0.7) timeEstimate = "15–30 นาที";
-else if (randomVol < 0.3) timeEstimate = "1–2 ชั่วโมง";
-
-// 2. หา session
-let hour = new Date().getHours();
-let session = "";
-
-if (hour >= 7 && hour < 15) session = "🌍 London Session";
-else if (hour >= 15 && hour < 22) session = "🌍 New York Session";
-else session = "🌏 Asian Session";
-
-let sessionBias = "";
-
-if (session.includes("London")) sessionBias = " (Bullish)";
-else if (session.includes("New York")) sessionBias = " (Volatile)";
-else sessionBias = " (Slow)";
-    
-// 3. แสดงผล
-document.getElementById("expected").innerText =
-"⏱ Expected Move: " + timeEstimate;
-
-document.getElementById("session").innerText =
-session + sessionBias;
-    
-    let score = 10;
-
+    // ===== SIGNAL =====
+    let score = Math.random() * 20 - 10;
     let signal = "WAIT";
-    let cls = "";
 
-   let price = data.price;
+    if (score >= 7) signal = "🔥 STRONG BUY";
+    else if (score <= -7) signal = "🔻 STRONG SELL";
 
-if (score >= 7) {
-  entry = price;
-  sl = price - 10;
-  tp1 = price + 10;
-  tp2 = price + 20;
-  tp3 = price + 35;
+    let signalEl = document.getElementById("signal");
+    signalEl.innerText = signal;
+    signalEl.className = "signal " + (signal.includes("BUY") ? "buy" : "sell");
 
-} else if (score <= -7) {
-  entry = price;
-  sl = price + 10;
-  tp1 = price - 10;
-  tp2 = price - 20;
-  tp3 = price - 35;
-}
-      signal = "🔥 STRONG BUY";
-      cls = "buy";
-    } else if (score <= -7) {
-      signal = "🔻 STRONG SELL";
-      cls = "sell";
+    // ===== TIME =====
+    document.getElementById("time").innerText =
+    "Updated: " + new Date().toLocaleTimeString();
+
+    let timeEstimate = "30–60 นาที";
+    let randomVol = Math.random();
+
+    if (randomVol > 0.7) timeEstimate = "15–30 นาที";
+    else if (randomVol < 0.3) timeEstimate = "1–2 ชั่วโมง";
+
+    document.getElementById("expected").innerText =
+    "⏱ Expected Move: " + timeEstimate;
+
+    // ===== SESSION =====
+    let hour = new Date().getHours();
+    let session = "";
+
+    if (hour >= 7 && hour < 15) session = "🌍 London Session";
+    else if (hour >= 15 && hour < 22) session = "🌍 New York Session";
+    else session = "🌏 Asian Session";
+
+    let sessionBias = "";
+
+    if (session.includes("London")) sessionBias = " (Bullish)";
+    else if (session.includes("New York")) sessionBias = " (Volatile)";
+    else sessionBias = " (Slow)";
+
+    document.getElementById("session").innerText =
+    session + sessionBias;
+
+    // ===== ENTRY / TP / SL =====
+    let entry = price;
+    let sl, tp1, tp2, tp3;
+
+    if (signal.includes("BUY")) {
+      sl = price - 10;
+      tp1 = price + 10;
+      tp2 = price + 20;
+      tp3 = price + 35;
+    } else {
+      sl = price + 10;
+      tp1 = price - 10;
+      tp2 = price - 20;
+      tp3 = price - 35;
     }
 
-    let el = document.getElementById("signal");
-    el.innerText = signal;
-    el.className = "signal " + cls;
+    document.getElementById("entry").innerText = "🎯 Entry: " + entry.toFixed(2);
+    document.getElementById("sl").innerText = "🛑 SL: " + sl.toFixed(2);
+    document.getElementById("tp1").innerText = "💰 TP1: " + tp1.toFixed(2);
+    document.getElementById("tp2").innerText = "💰 TP2: " + tp2.toFixed(2);
+    document.getElementById("tp3").innerText = "💰 TP3: " + tp3.toFixed(2);
 
-  } catch(e) {
-    document.getElementById("price").innerText = "Error";
+  } catch (e) {
+    document.getElementById("price").innerText = "Error loading price";
   }
 }
-   function toggleChart() {
+
+// ===== TOGGLE CHART =====
+function toggleChart() {
   let chart = document.getElementById("chartBox");
 
   if (chart.style.display === "none") {
@@ -207,10 +169,9 @@ if (score >= 7) {
   } else {
     chart.style.display = "none";
   }
-} 
+}
 
 </script>
-
 
 </body>
 </html>
