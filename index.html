@@ -101,7 +101,14 @@ document.getElementById("time").innerText =
     // ===== TIME + SESSION =====
 
 // 1. เวลาโดยประมาณ
+let priceNow = data.price;
 let timeEstimate = "30–60 นาที";
+
+// จำลอง volatility ง่ายๆ
+let randomVol = Math.random();
+
+if (randomVol > 0.7) timeEstimate = "15–30 นาที";
+else if (randomVol < 0.3) timeEstimate = "1–2 ชั่วโมง";
 
 // 2. หา session
 let hour = new Date().getHours();
@@ -111,12 +118,18 @@ if (hour >= 7 && hour < 15) session = "🌍 London Session";
 else if (hour >= 15 && hour < 22) session = "🌍 New York Session";
 else session = "🌏 Asian Session";
 
+let sessionBias = "";
+
+if (session.includes("London")) sessionBias = " (Bullish)";
+else if (session.includes("New York")) sessionBias = " (Volatile)";
+else sessionBias = " (Slow)";
+    
 // 3. แสดงผล
 document.getElementById("expected").innerText =
 "⏱ Expected Move: " + timeEstimate;
 
 document.getElementById("session").innerText =
-session;
+session + sessionBias;
     
     let score = 10;
 
