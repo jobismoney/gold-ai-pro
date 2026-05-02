@@ -1,79 +1,312 @@
 <!DOCTYPE html>
-<html>
+<html lang="th">
 <head>
-<meta name="viewport" content="width=device-width">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gold AI Pro</title>
+
 <style>
-body{background:#0b0f14;color:#fff;font-family:sans-serif;text-align:center}
-.card{background:#121a24;padding:20px;border-radius:15px;margin:20px}
+*{box-sizing:border-box}
+body{
+  margin:0;
+  background:radial-gradient(circle at top,#172033,#05080c 70%);
+  color:white;
+  font-family:Arial,sans-serif;
+}
+.app{
+  max-width:820px;
+  margin:auto;
+  padding:14px;
+}
+.card{
+  background:#101923;
+  border:1px solid #26364a;
+  border-radius:22px;
+  padding:20px;
+  box-shadow:0 0 35px rgba(0,0,0,.4);
+}
+.top{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:12px;
+}
+.logo{
+  font-size:24px;
+  font-weight:900;
+}
+.status{
+  margin-top:8px;
+  font-size:14px;
+  color:#9fb1c7;
+}
+.open{color:#00e676}
+.closed{color:#ff5252}
+.badge{
+  background:#ffe66d;
+  color:#000;
+  padding:9px 14px;
+  border-radius:999px;
+  font-weight:900;
+}
+.price{
+  font-size:34px;
+  font-weight:900;
+  margin-top:24px;
+}
+.signal{
+  font-size:34px;
+  font-weight:900;
+  margin-top:8px;
+}
 .buy{color:#00e676}
 .sell{color:#ff5252}
 .wait{color:#ffd54f}
-button{padding:15px;margin:10px;border:none;border-radius:10px}
+.grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+  margin-top:18px;
+}
+.box{
+  background:#172536;
+  border:1px solid #2a3c54;
+  border-radius:14px;
+  padding:13px;
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+}
+.box span{color:#c5d3e5}
+.vip-lock b{color:#ffe66d}
+button{
+  width:100%;
+  border:0;
+  border-radius:14px;
+  padding:15px;
+  margin-top:12px;
+  font-weight:900;
+  cursor:pointer;
+}
+.main{background:#00e676;color:#000}
+.dark{background:#1e293b;color:white}
+.gold{background:#ffe66d;color:#000}
+.panel{
+  display:none;
+  margin-top:18px;
+  background:#0c131d;
+  border:1px solid #26364a;
+  border-radius:16px;
+  padding:15px;
+}
+select{
+  width:100%;
+  padding:12px;
+  border-radius:10px;
+  border:1px solid #2a3c54;
+  background:#07101a;
+  color:white;
+  margin-top:6px;
+}
+label{
+  display:block;
+  margin-top:12px;
+  color:#c5d3e5;
+}
+.note{
+  color:#9fb1c7;
+  font-size:12px;
+  margin-top:14px;
+}
+@media(max-width:650px){
+  .grid{grid-template-columns:1fr}
+  .price{font-size:29px}
+}
 </style>
 </head>
 
 <body>
 
-<div class="card">
+<div class="app">
+  <div class="card">
 
-<h2>💰 Gold AI</h2>
+    <div class="top">
+      <div>
+        <div class="logo">💰 Gold AI Pro</div>
+        <div id="marketStatus" class="status">Loading...</div>
+      </div>
+      <div id="vipBadge" class="badge">FREE</div>
+    </div>
 
-<div id="status"></div>
-<h1 id="price">--</h1>
-<h2 id="signal">--</h2>
+    <div id="price" class="price">XAU/USD: --</div>
+    <div id="signal" class="signal wait">WAIT</div>
 
-<p id="entry"></p>
-<p id="tp1"></p>
-<p id="tp2">🔒 VIP</p>
-<p id="tp3">🔒 VIP</p>
+    <div class="grid">
+      <div class="box"><span>🎯 Entry</span><b id="entry">--</b></div>
+      <div class="box"><span>🛑 SL</span><b id="sl">--</b></div>
+      <div class="box"><span>💰 TP1</span><b id="tp1">--</b></div>
+      <div class="box vip-lock"><span>🔐 TP2</span><b id="tp2">VIP</b></div>
+      <div class="box vip-lock"><span>🔐 TP3</span><b id="tp3">VIP</b></div>
+      <div class="box"><span>📌 Confidence</span><b id="confidence">--</b></div>
+    </div>
 
-<button onclick="load()">🚀 Load</button>
-<button onclick="vip()">💎 VIP</button>
+    <button class="main" onclick="loadSignal()">🚀 Load Signal</button>
+    <button class="dark" onclick="toggleChart()">📊 View Chart</button>
+    <button class="gold" onclick="toggleSettings()">⚙️ Alert Settings</button>
 
+    <div id="settings" class="panel">
+      <h3>⚙️ Alert Settings</h3>
+
+      <label>Telegram Alert</label>
+      <select id="telegram">
+        <option value="off">ปิด</option>
+        <option value="on">เปิด</option>
+      </select>
+
+      <label>Minimum Confidence</label>
+      <select id="minConf">
+        <option value="60">60%+</option>
+        <option value="70" selected>70%+</option>
+        <option value="80">80%+</option>
+      </select>
+
+      <label>Cooldown</label>
+      <select id="cooldown">
+        <option value="5">5 นาที</option>
+        <option value="15" selected>15 นาที</option>
+        <option value="60">60 นาที</option>
+      </select>
+
+      <button class="main" onclick="saveSettings()">💾 Save Settings</button>
+      <button class="dark" onclick="testTelegram()">🔔 Test Telegram</button>
+
+      <div class="note">
+        Telegram จะส่งเฉพาะ VIP + เปิด Telegram + Signal เข้าเงื่อนไข
+      </div>
+    </div>
+
+    <div id="chart" class="panel">
+      <iframe
+        src="https://www.tradingview.com/widgetembed/?symbol=OANDA:XAUUSD&interval=15&theme=dark"
+        width="100%"
+        height="420"
+        frameborder="0">
+      </iframe>
+    </div>
+
+    <div class="note">
+      ⚠️ ระบบนี้เป็นเครื่องมือช่วยวิเคราะห์ ไม่ใช่คำแนะนำการลงทุน
+    </div>
+
+  </div>
 </div>
 
 <script>
+const API_URL = "https://white-fog-ba70.porapat-su1975.workers.dev";
 
-const API="https://white-fog-ba70.porapat-su1975.workers.dev/";
+// ตอนนี้ทดสอบ VIP แบบ local ก่อน
+let isVip = localStorage.getItem("vip") === "true";
 
-let isVip = localStorage.getItem("vip")==="true";
+function updateVipBadge(){
+  const badge = document.getElementById("vipBadge");
+  badge.innerText = isVip ? "VIP" : "FREE";
+  badge.style.background = isVip ? "#00e676" : "#ffe66d";
+}
 
-function vip(){
-  let code = prompt("ใส่ VIP code");
-  if(code==="VIP123"){
-    localStorage.setItem("vip","true");
-    isVip=true;
-    alert("VIP unlocked");
+function toggleSettings(){
+  const p = document.getElementById("settings");
+  p.style.display = p.style.display === "block" ? "none" : "block";
+}
+
+function toggleChart(){
+  const p = document.getElementById("chart");
+  p.style.display = p.style.display === "block" ? "none" : "block";
+}
+
+function saveSettings(){
+  localStorage.setItem("telegram", document.getElementById("telegram").value);
+  localStorage.setItem("minConf", document.getElementById("minConf").value);
+  localStorage.setItem("cooldown", document.getElementById("cooldown").value);
+  alert("บันทึก Setting แล้ว");
+}
+
+function loadSettings(){
+  document.getElementById("telegram").value = localStorage.getItem("telegram") || "off";
+  document.getElementById("minConf").value = localStorage.getItem("minConf") || "70";
+  document.getElementById("cooldown").value = localStorage.getItem("cooldown") || "15";
+}
+
+async function loadSignal(){
+  const btn = document.querySelector(".main");
+  btn.innerText = "Loading...";
+
+  try{
+    const telegramOn = localStorage.getItem("telegram") === "on";
+    const minConf = localStorage.getItem("minConf") || "70";
+    const cooldown = localStorage.getItem("cooldown") || "15";
+
+    const vipParam = isVip && telegramOn ? "true" : "false";
+    const url = `${API_URL}/?vip=${vipParam}&min_conf=${minConf}&cooldown=${cooldown}`;
+
+    const res = await fetch(url);
+    const data = await res.json();
+
+    if(data.market === "closed"){
+      document.getElementById("marketStatus").innerText = "🔴 Market Closed";
+      document.getElementById("marketStatus").className = "status closed";
+      document.getElementById("price").innerText = "XAU/USD: " + data.price;
+      document.getElementById("signal").innerText = "WAIT";
+      document.getElementById("signal").className = "signal wait";
+      document.getElementById("entry").innerText = "--";
+      document.getElementById("sl").innerText = "--";
+      document.getElementById("tp1").innerText = "--";
+      document.getElementById("tp2").innerText = isVip ? "--" : "VIP";
+      document.getElementById("tp3").innerText = isVip ? "--" : "VIP";
+      document.getElementById("confidence").innerText = "--";
+      return;
+    }
+
+    const s = data.signal;
+
+    document.getElementById("marketStatus").innerText = "🟢 Market Open";
+    document.getElementById("marketStatus").className = "status open";
+
+    document.getElementById("price").innerText = "XAU/USD: " + Number(data.price).toFixed(2);
+
+    const sig = document.getElementById("signal");
+    sig.innerText = s.signal;
+    sig.className = "signal " + s.signal.toLowerCase();
+
+    document.getElementById("entry").innerText = s.entry ?? "--";
+    document.getElementById("sl").innerText = s.sl ?? "--";
+    document.getElementById("tp1").innerText = s.tp1 ?? "--";
+    document.getElementById("tp2").innerText = isVip ? (s.tp2 ?? "--") : "VIP";
+    document.getElementById("tp3").innerText = isVip ? (s.tp3 ?? "--") : "VIP";
+    document.getElementById("confidence").innerText = s.confidence + "%";
+
+  }catch(e){
+    console.log(e);
+    document.getElementById("marketStatus").innerText = "API Error";
+    document.getElementById("marketStatus").className = "status closed";
+    alert("โหลดข้อมูลไม่ได้ ตรวจ Worker หรือ CORS");
+  }finally{
+    btn.innerText = "🚀 Load Signal";
   }
 }
 
-async function load(){
-
-  const res = await fetch(API+"?vip=true&min_conf=70&cooldown=15");
-  const d = await res.json();
-
-  if(d.market==="closed"){
-    document.getElementById("status").innerText="Market Closed";
-    return;
+async function testTelegram(){
+  try{
+    const res = await fetch(API_URL + "/?mode=test-telegram");
+    const data = await res.json();
+    alert(data.market || data.message || "Test sent");
+  }catch(e){
+    alert("Test Telegram ไม่สำเร็จ");
   }
-
-  document.getElementById("status").innerText="Market Open";
-  document.getElementById("price").innerText="XAU/USD "+d.price;
-
-  let sig = document.getElementById("signal");
-  sig.innerText=d.signal.signal;
-  sig.className=d.signal.signal.toLowerCase();
-
-  document.getElementById("entry").innerText="Entry "+d.signal.entry;
-  document.getElementById("tp1").innerText="TP1 "+d.signal.tp1;
-
-  if(isVip){
-    document.getElementById("tp2").innerText="TP2 "+d.signal.tp2;
-    document.getElementById("tp3").innerText="TP3 "+d.signal.tp3;
-  }
-
 }
 
+loadSettings();
+updateVipBadge();
+loadSignal();
 </script>
 
 </body>
