@@ -6,315 +6,154 @@
 <title>Gold AI Pro</title>
 
 <style>
-*{box-sizing:border-box}
-body{
+body {
   margin:0;
-  background:#070b10;
+  font-family:Arial;
+  background:#0b0f14;
   color:white;
-  font-family:Arial,sans-serif;
-  padding:14px;
 }
-.app{
-  max-width:820px;
+
+.container {
+  max-width:420px;
   margin:auto;
-  background:#101923;
-  border:1px solid #26364a;
-  border-radius:22px;
-  padding:20px;
+  padding:15px;
 }
-.top{display:flex;justify-content:space-between;align-items:center}
-.logo{font-size:24px;font-weight:900}
-.badge{background:#00e676;color:#000;padding:10px 16px;border-radius:20px;font-weight:bold}
-.main{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:25px}
-.price{font-size:34px;font-weight:900}
-.signal{font-size:34px;font-weight:900;margin:12px 0}
-.buy{color:#00e676}.sell{color:#ff5252}.wait{color:#ffd54f}
-.tabs{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin:14px 0}
-.tab{background:#172536;border:1px solid #2a3c54;color:white;padding:13px;border-radius:12px;font-weight:bold}
-.tab.active{background:#00e676;color:#000}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.box{background:#172536;border:1px solid #2a3c54;border-radius:13px;padding:13px}
-.label{color:#9fb1c7;font-size:12px;margin-bottom:4px}
-.value{font-weight:bold}
-.panel{background:#0c131d;border:1px solid #26364a;border-radius:16px;padding:14px}
-.row{display:flex;justify-content:space-between;border-bottom:1px solid #1f2d3f;padding:12px 0}
-.row:last-child{border-bottom:none}
-button{width:100%;border:0;border-radius:14px;padding:15px;margin-top:12px;font-weight:900;cursor:pointer;font-size:15px}
-.green{background:#00e676;color:#000}
-.dark{background:#1e293b;color:white}
-.gold{background:#ffe66d;color:#000}
-.link{text-align:center;color:#00e676;margin-top:14px;cursor:pointer;font-weight:bold}
-.chart,.settings,.news{display:none;margin-top:18px}
-select{width:100%;padding:12px;border-radius:10px;border:1px solid #2a3c54;background:#0c131d;color:white;margin-top:6px}
-.small{color:#9fb1c7;font-size:12px;margin-top:10px}
-.vip-lock{color:#ffe66d;font-weight:bold}
-@media(max-width:700px){.main{grid-template-columns:1fr}.price{font-size:28px}}
+
+.card {
+  background:#121a24;
+  border-radius:15px;
+  padding:15px;
+  margin-bottom:15px;
+}
+
+.title {
+  font-size:18px;
+  font-weight:bold;
+}
+
+.price {
+  font-size:30px;
+  margin-top:10px;
+}
+
+.signal {
+  font-size:28px;
+  font-weight:bold;
+  margin-top:5px;
+}
+
+.buy {color:#00e676;}
+.sell {color:#ff5252;}
+.wait {color:#ffd54f;}
+
+.grid {
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+  margin-top:10px;
+}
+
+.box {
+  background:#1f2937;
+  padding:10px;
+  border-radius:10px;
+  font-size:14px;
+}
+
+.vip {
+  color:#FFD700;
+}
+
+button {
+  width:100%;
+  padding:14px;
+  border:none;
+  border-radius:10px;
+  margin-top:10px;
+  font-weight:bold;
+}
+
+.main {background:#00e676;color:black;}
+.vip-btn {background:#FFD700;color:black;}
+.setting {background:#1f2937;color:white;}
+
+.status-open {
+  color:#00e676;
+}
+
+.status-closed {
+  color:#ff5252;
+}
 </style>
 </head>
 
 <body>
 
-<div class="app">
+<div class="container">
 
-  <div class="top">
-    <div class="logo">💰 Gold AI Pro</div>
-    <div class="badge" id="vipBadge">VIP</div>
+<div class="card">
+  <div class="title">💰 Gold AI Pro</div>
+
+  <div id="marketStatus"></div>
+
+  <div id="price" class="price">--</div>
+  <div id="signal" class="signal">--</div>
+
+  <div class="grid">
+    <div class="box" id="entry"></div>
+    <div class="box" id="sl"></div>
+    <div class="box" id="tp1"></div>
+    <div class="box vip" id="tp2">🔒 VIP</div>
+    <div class="box vip" id="tp3">🔒 VIP</div>
+    <div class="box" id="confidence"></div>
   </div>
 
-  <div class="main">
-    <div>
-      <div class="price" id="price">XAU/USD: --</div>
-      <div class="signal wait" id="signal">WAIT</div>
+  <button class="main" onclick="load()">🚀 Load Signal</button>
+  <button class="vip-btn">💎 Upgrade VIP</button>
+  <button class="setting">⚙️ Settings</button>
 
-      <div class="tabs">
-        <button class="tab" onclick="setMode('SCALP',event)">⚡ Scalp</button>
-        <button class="tab active" onclick="setMode('INTRADAY',event)">📊 Intraday</button>
-        <button class="tab" onclick="setMode('SWING',event)">📈 Swing</button>
-      </div>
-
-      <div class="grid">
-        <div class="box"><div class="label">Updated</div><div class="value" id="updated">--</div></div>
-        <div class="box"><div class="label">Session</div><div class="value" id="session">--</div></div>
-        <div class="box"><div class="label">Trade Style</div><div class="value" id="style">INTRADAY | 30-90m</div></div>
-        <div class="box"><div class="label">Confidence</div><div class="value" id="confidence">--</div></div>
-        <div class="box" style="grid-column:1/3"><div class="label">Action</div><div class="value" id="action">⏳ WAIT SIGNAL</div></div>
-      </div>
-    </div>
-
-    <div>
-      <div class="panel">
-        <div class="row"><span>🎯 Entry</span><b id="entry">--</b></div>
-        <div class="row"><span>🛑 SL</span><b id="sl">--</b></div>
-        <div class="row"><span>💰 TP1</span><b id="tp1">--</b></div>
-        <div class="row"><span>🔐 TP2</span><b id="tp2" class="vip-lock">--</b></div>
-        <div class="row"><span>🔐 TP3</span><b id="tp3" class="vip-lock">--</b></div>
-      </div>
-
-      <button class="green" onclick="loadSignal()">🚀 Load Signal</button>
-      <button class="dark" onclick="toggle('chart')">📊 View Chart</button>
-      <button class="gold" onclick="toggle('settings')">⚙️ Alert Settings</button>
-      <div class="link" onclick="toggle('news')">📰 View Market News</div>
-    </div>
-  </div>
-
-  <div id="chart" class="chart">
-    <iframe
-      src="https://www.tradingview.com/widgetembed/?symbol=OANDA:XAUUSD&interval=15&theme=dark"
-      width="100%"
-      height="420"
-      frameborder="0">
-    </iframe>
-  </div>
-
-  <div id="settings" class="settings panel">
-    <h3>⚙️ Alert Settings</h3>
-
-    <label>Telegram Alert</label>
-    <select id="telegram">
-      <option value="off">ปิด</option>
-      <option value="on">เปิด</option>
-    </select>
-
-    <label>Minimum Confidence</label>
-    <select id="minConfidence">
-      <option value="60">60%+</option>
-      <option value="70" selected>70%+</option>
-      <option value="80">80%+</option>
-    </select>
-
-    <label>Alert Cooldown</label>
-    <select id="cooldown">
-      <option value="5">5 นาที</option>
-      <option value="15" selected>15 นาที</option>
-      <option value="60">60 นาที</option>
-    </select>
-
-    <button class="green" onclick="saveSettings()">💾 Save Settings</button>
-    <button class="dark" onclick="testAlert()">🔔 Test Alert</button>
-
-    <div class="small">
-      Telegram จริงต้องยิงผ่าน Backend เท่านั้น ห้ามใส่ Bot Token ในหน้าเว็บ
-    </div>
-  </div>
-
-  <div id="news" class="news panel">
-    <h3>📰 Market News</h3>
-    <p>ข่าวตลาดจะเชื่อม API ภายหลัง</p>
-  </div>
-
-  <div class="small">
-    ⚠️ ระบบนี้เป็นเครื่องมือช่วยวิเคราะห์ ไม่ใช่คำแนะนำการลงทุน
-  </div>
+</div>
 
 </div>
 
 <script>
-const API_URL = "https://white-fog-ba70.porapat-su1975.workers.dev/";
-let mode = "INTRADAY";
-let lastSignal = null;
-let lastSentTime = 0;
 
-function setMode(m,e){
-  mode = m;
-  document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
-  e.target.classList.add("active");
+const API = "https://white-fog-ba70.porapat-su1975.workers.dev/";
 
-  let text = "INTRADAY | 30-90m";
-  if(m==="SCALP") text = "SCALP | 5-15m";
-  if(m==="SWING") text = "SWING | 4H-1D";
-  document.getElementById("style").innerText = text;
-}
+let isVip = false;
 
-function toggle(id){
-  const el = document.getElementById(id);
-  el.style.display = el.style.display === "block" ? "none" : "block";
-}
+async function load(){
+  const res = await fetch(API + "?vip=true&min_conf=70&cooldown=15");
+  const data = await res.json();
 
-function saveSettings(){
-  localStorage.setItem("telegram", document.getElementById("telegram").value);
-  localStorage.setItem("minConfidence", document.getElementById("minConfidence").value);
-  localStorage.setItem("cooldown", document.getElementById("cooldown").value);
-  alert("บันทึก Setting แล้ว");
-}
-
-function loadSettings(){
-  document.getElementById("telegram").value = localStorage.getItem("telegram") || "off";
-  document.getElementById("minConfidence").value = localStorage.getItem("minConfidence") || "70";
-  document.getElementById("cooldown").value = localStorage.getItem("cooldown") || "15";
-}
-
-function getSession(){
-  const h = new Date().getHours();
-  if(h >= 13 && h < 20) return "London";
-  if(h >= 20 || h < 4) return "New York";
-  return "Asia";
-}
-
-function analyze(price){
-  const now = new Date();
-  const minute = now.getMinutes();
-  const hour = now.getHours();
-
-  let bias = 0;
-
-  if(price > 2300) bias += 1;
-  if(price > 2340) bias += 1;
-  if(price < 2320) bias -= 1;
-  if(minute % 2 === 0) bias += 1;
-  if(hour >= 19 || hour <= 2) bias += 1;
-
-  let signal = "WAIT";
-  if(bias >= 2) signal = "BUY";
-  if(bias <= -1) signal = "SELL";
-
-  let confidence = 65 + Math.abs(bias) * 7;
-  if(confidence > 88) confidence = 88;
-
-  let entry = price;
-  let sl = price;
-  let tp1 = price;
-  let tp2 = price;
-  let tp3 = price;
-
-  if(signal === "BUY"){
-    sl = price - 10;
-    tp1 = price + 10;
-    tp2 = price + 20;
-    tp3 = price + 35;
+  if(data.market === "closed"){
+    document.getElementById("marketStatus").innerHTML =
+      "<span class='status-closed'>📴 Market Closed</span>";
+    return;
   }
 
-  if(signal === "SELL"){
-    sl = price + 10;
-    tp1 = price - 10;
-    tp2 = price - 20;
-    tp3 = price - 35;
+  document.getElementById("marketStatus").innerHTML =
+    "<span class='status-open'>🟢 Market Open</span>";
+
+  document.getElementById("price").innerText = "XAU/USD: " + data.price;
+
+  let sig = document.getElementById("signal");
+  sig.innerText = data.signal.signal;
+  sig.className = "signal " + data.signal.signal.toLowerCase();
+
+  document.getElementById("entry").innerText = "Entry: " + data.signal.entry;
+  document.getElementById("sl").innerText = "SL: " + data.signal.sl;
+  document.getElementById("tp1").innerText = "TP1: " + data.signal.tp1;
+
+  if(isVip){
+    document.getElementById("tp2").innerText = "TP2: " + data.signal.tp2;
+    document.getElementById("tp3").innerText = "TP3: " + data.signal.tp3;
   }
 
-  if(signal === "WAIT"){
-    confidence = 50;
-  }
-
-  return {signal,confidence,entry,sl,tp1,tp2,tp3};
+  document.getElementById("confidence").innerText =
+    "Confidence: " + data.signal.confidence + "%";
 }
 
-async function loadSignal(){
-  try{
-    document.getElementById("price").innerText = "Loading...";
-
-    const res = await fetch(API_URL);
-    const data = await res.json();
-
-    const price = Number(data.price);
-
-    if (!data.ok || !price || isNaN(price)) {
-      document.getElementById("price").innerText = "API Error";
-      document.getElementById("signal").innerText = "WAIT";
-      document.getElementById("signal").className = "signal wait";
-      alert("API ดึงราคาทองไม่ได้");
-      return;
-    }
-
-    const result = analyze(price);
-
-    document.getElementById("price").innerText = "XAU/USD: " + price.toFixed(2);
-
-    const sig = document.getElementById("signal");
-    sig.innerText = result.signal;
-    sig.className =
-      "signal " + (result.signal === "BUY" ? "buy" : result.signal === "SELL" ? "sell" : "wait");
-
-    document.getElementById("entry").innerText = result.entry.toFixed(2);
-    document.getElementById("sl").innerText = result.sl.toFixed(2);
-    document.getElementById("tp1").innerText = result.tp1.toFixed(2);
-    document.getElementById("tp2").innerText = result.tp2.toFixed(2);
-    document.getElementById("tp3").innerText = result.tp3.toFixed(2);
-
-    document.getElementById("confidence").innerText = result.confidence + "%";
-    document.getElementById("session").innerText = getSession();
-    document.getElementById("updated").innerText = new Date().toLocaleTimeString();
-
-    const minConf = Number(localStorage.getItem("minConfidence") || 70);
-
-    if(result.signal === "WAIT"){
-      document.getElementById("action").innerText = "⏳ WAIT SIGNAL";
-    }else if(result.confidence >= minConf){
-      document.getElementById("action").innerText = "🟢 ENTER NOW";
-    }else{
-      document.getElementById("action").innerText = "🟡 WAIT";
-    }
-
-    checkAlert(result, price);
-
-  }catch(e){
-    console.log(e);
-    document.getElementById("price").innerText = "API Error";
-    alert("API Error: เปิด Worker ดูก่อนว่ามี price หรือไม่");
-  }
-}
-
-function checkAlert(result, price){
-  const telegram = localStorage.getItem("telegram") || "off";
-  const cooldown = Number(localStorage.getItem("cooldown") || 15) * 60 * 1000;
-  const minConf = Number(localStorage.getItem("minConfidence") || 70);
-  const now = Date.now();
-
-  if(telegram !== "on") return;
-  if(result.signal === "WAIT") return;
-  if(result.confidence < minConf) return;
-  if(lastSignal === result.signal && now - lastSentTime < cooldown) return;
-
-  lastSignal = result.signal;
-  lastSentTime = now;
-
-  alert("🔔 Alert พร้อมส่ง Telegram: " + result.signal + " " + result.confidence + "%");
-}
-
-function testAlert(){
-  alert("✅ ระบบแจ้งเตือนพร้อมใช้งาน");
-}
-
-loadSettings();
-loadSignal();
 </script>
 
 </body>
