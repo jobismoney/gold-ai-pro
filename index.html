@@ -81,6 +81,11 @@ button:hover {
 
   <div id="expected" class="time"></div>
 <div id="session" class="time"></div>
+  <div id="entry" class="time"></div>
+<div id="sl" class="time"></div>
+<div id="tp1" class="time"></div>
+<div id="tp2" class="time"></div>
+<div id="tp3" class="time"></div>
   
   <button onclick="loadPrice()">🚀 Load Price</button>
 </div>
@@ -97,6 +102,23 @@ document.getElementById("signal").innerText = "Analyzing...";
 document.getElementById("time").innerText =
 "Updated: " + new Date().toLocaleTimeString();
     document.getElementById("price").innerText = "XAU/USD: " + data.price;
+    // ===== ENTRY / TP / SL =====
+
+let price = data.price;
+
+// กำหนดระยะ (ปรับได้)
+let entry = price;
+let sl = price - 10;
+let tp1 = price + 10;
+let tp2 = price + 20;
+let tp3 = price + 35;
+
+// แสดงผล
+document.getElementById("entry").innerText = "🎯 Entry: " + entry.toFixed(2);
+document.getElementById("sl").innerText = "🛑 SL: " + sl.toFixed(2);
+document.getElementById("tp1").innerText = "💰 TP1: " + tp1.toFixed(2);
+document.getElementById("tp2").innerText = "💰 TP2: " + tp2.toFixed(2);
+document.getElementById("tp3").innerText = "💰 TP3: " + tp3.toFixed(2);
 
     // ===== TIME + SESSION =====
 
