@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Gold AI Pro</title>
+<style>
+body { background:#0B0F14; color:white; font-family:Arial; text-align:center; padding-top:100px; }
+.card { background:#121A24; padding:30px; border-radius:16px; display:inline-block; }
+.price { font-size:24px; margin:20px 0; }
+.signal { font-size:28px; font-weight:bold; }
+.buy { color:#00C853; }
+.sell { color:red; }
+button { padding:10px 20px; font-size:16px; }
+</style>
+</head>
+<body>
+
+<div class="card">
+<h2>Gold AI Pro</h2>
+<div id="price" class="price">XAU/USD: Loading...</div>
+<div id="signal" class="signal">WAIT</div>
+<button onclick="loadPrice()">Load Price</button>
+</div>
+
+<script>
+async function loadPrice() {
+  try {
+    const res = await fetch("https://www.goldapi.io/api/XAU/USD", {
+      headers: { "x-access-token": "YOUR_API_KEY" }
+    });
+    const data = await res.json();
+
+    document.getElementById("price").innerText = "XAU/USD: " + data.price;
+
+    let score = 10;
+
+    let signal = "WAIT";
+    let cls = "";
+
+    if (score >= 7) {
+      signal = "🔥 STRONG BUY";
+      cls = "buy";
+    } else if (score <= -7) {
+      signal = "🔻 STRONG SELL";
+      cls = "sell";
+    }
+
+    let el = document.getElementById("signal");
+    el.innerText = signal;
+    el.className = "signal " + cls;
+
+  } catch(e) {
+    document.getElementById("price").innerText = "Error";
+  }
+}
+</script>
+
+</body>
+</html>
