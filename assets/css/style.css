@@ -285,3 +285,19 @@ button{
     font-size:36px;
   }
 }
+
+.setting-input {
+  width: 100%;
+  margin-top: 8px;
+  padding: 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.15);
+  background: #111827;
+  color: #ffffff;
+  font-size: 15px;
+  outline: none;
+}
+
+.setting-input:focus {
+  border-color: #f5c542;
+}
