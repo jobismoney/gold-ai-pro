@@ -2,9 +2,11 @@ const API_URL = "https://white-fog-ba70.porapat-su1975.workers.dev";
 
 let currentMode = "balanced";
 
-// =========================
-// LOAD SIGNAL
-// =========================
+function setText(id, value) {
+  const node = document.getElementById(id);
+  if (node) node.innerText = value ?? "-";
+}
+
 async function loadSignal() {
   try {
     const res = await fetch(`${API_URL}?mode=${currentMode}`);
@@ -15,52 +17,48 @@ async function loadSignal() {
   }
 }
 
-// =========================
-// RENDER
-// =========================
 function render(data) {
   const s = data.signal;
 
-  document.getElementById("price").innerText = data.price;
-  document.getElementById("signal").innerText = s.signal;
-  document.getElementById("confidence").innerText = s.confidence + "%";
+  setText("price", data.price);
+  setText("signal", s.signal);
+  setText("confidence", s.confidence + "%");
+  setText("trend", s.trend);
+  setText("rsi", s.rsi);
+  setText("support", s.support);
+  setText("resistance", s.resistance);
+  setText("entry", s.entry);
+  setText("sl", s.sl || "-");
+  setText("tp1", s.tp1 || "-");
+  setText("tp2", s.tp2 || "-");
+  setText("tp3", s.tp3 || "-");
+  setText("marketStatus", data.market === "open" ? "OPEN" : "CLOSED");
 
-  document.getElementById("trend").innerText = s.trend;
-  document.getElementById("rsi").innerText = s.rsi;
-  document.getElementById("support").innerText = s.support;
-  document.getElementById("resistance").innerText = s.resistance;
-
-  document.getElementById("entry").innerText = s.entry;
-  document.getElementById("sl").innerText = s.sl || "-";
-  document.getElementById("tp1").innerText = s.tp1 || "-";
-  document.getElementById("tp2").innerText = s.tp2 || "-";
-  document.getElementById("tp3").innerText = s.tp3 || "-";
-
-  document.getElementById("marketStatus").innerText =
-    data.market === "open" ? "OPEN" : "CLOSED";
-
-  document.getElementById("demoBadge").style.display =
-    data.demo ? "inline-block" : "none";
+  const demo = document.getElementById("demoBadge");
+  if (demo) demo.style.display = data.demo ? "inline-block" : "none";
 
   const signalEl = document.getElementById("signal");
-
-  if (s.signal === "BUY") signalEl.style.color = "#00c853";
-  else if (s.signal === "SELL") signalEl.style.color = "#ff1744";
-  else signalEl.style.color = "#999";
+  if (signalEl) {
+    if (s.signal === "BUY") signalEl.style.color = "#00c853";
+    else if (s.signal === "SELL") signalEl.style.color = "#ff1744";
+    else signalEl.style.color = "#999";
+  }
 
   const reasonBox = document.getElementById("reason");
-  reasonBox.innerHTML = "";
-
-  s.reason.forEach(r => {
-    const div = document.createElement("div");
-    div.innerText = "• " + r;
-    reasonBox.appendChild(div);
-  });
+  if (reasonBox) {
+    reasonBox.innerHTML = "";
+    if (s.reason && s.reason.length) {
+      s.reason.forEach(r => {
+        const div = document.createElement("div");
+        div.innerText = "• " + r;
+        reasonBox.appendChild(div);
+      });
+    } else {
+      reasonBox.innerText = "-";
+    }
+  }
 }
 
-// =========================
-// MODE
-// =========================
 function setMode(mode) {
   currentMode = mode;
 
@@ -68,14 +66,40 @@ function setMode(mode) {
     btn.classList.remove("active");
   });
 
-  document.getElementById(`mode-${mode}`).classList.add("active");
+  const activeBtn = document.getElementById(`mode-${mode}`);
+  if (activeBtn) activeBtn.classList.add("active");
 
   loadSignal();
 }
 
-// =========================
-// 🔥 THAI GOLD FIX REAL
-// =========================
+function findNumberLike(obj, keywords) {
+  const results = [];
+
+  function walk(value, path = "") {
+    if (value === null || value === undefined) return;
+
+    if (typeof value === "object") {
+      Object.keys(value).forEach(key => {
+        walk(value[key], path ? `${path}.${key}` : key);
+      });
+      return;
+    }
+
+    const text = String(value);
+    const pathLower = path.toLowerCase();
+
+    const matchKeyword = keywords.some(k => pathLower.includes(k));
+    const hasNumber = /[0-9]/.test(text);
+
+    if (matchKeyword && hasNumber) {
+      results.push({ path, value: text });
+    }
+  }
+
+  walk(obj);
+  return results;
+}
+
 async function loadThaiGold() {
   try {
     const res = await fetch("https://api.chnwt.dev/thai-gold-api/latest");
@@ -83,29 +107,69 @@ async function loadThaiGold() {
 
     console.log("Thai Gold RAW:", data);
 
-    const d = data.response;
+    const found = findNumberLike(data, [
+      "buy",
+      "sell",
+      "bid",
+      "ask",
+      "bar",
+      "jewelry",
+      "ornament",
+      "ทอง"
+    ]);
 
-    // 🔥 ใช้ field ที่ถูกต้องจริง
-    const barBuy = d.price.gold.bar.buy;
-    const barSell = d.price.gold.bar.sell;
-    const jewBuy = d.price.gold.jewelry.buy;
-    const jewSell = d.price.gold.jewelry.sell;
+    console.log("Thai Gold FOUND:", found);
 
-    console.log("Parsed:", barBuy, barSell, jewBuy, jewSell);
+    let barBuy = "-";
+    let barSell = "-";
+    let jewBuy = "-";
+    let jewSell = "-";
 
-    document.getElementById("thai_buy").innerText = barBuy;
-    document.getElementById("thai_sell").innerText = barSell;
-    document.getElementById("thai_buy_jewelry").innerText = jewBuy;
-    document.getElementById("thai_sell_jewelry").innerText = jewSell;
+    const textAll = JSON.stringify(data);
+
+    const nums = textAll.match(/\d{2,3},?\d{3}(?:\.\d+)?/g) || [];
+
+    if (nums.length >= 4) {
+      barBuy = nums[0];
+      barSell = nums[1];
+      jewBuy = nums[2];
+      jewSell = nums[3];
+    }
+
+    // ถ้าเจอ path ที่ชัดกว่า ใช้ก่อน
+    const byPath = (words) => {
+      const item = found.find(x =>
+        words.every(w => x.path.toLowerCase().includes(w))
+      );
+      return item ? item.value : null;
+    };
+
+    barBuy = byPath(["bar", "buy"]) || byPath(["ทองแท่ง", "buy"]) || barBuy;
+    barSell = byPath(["bar", "sell"]) || byPath(["ทองแท่ง", "sell"]) || barSell;
+    jewBuy = byPath(["jewelry", "buy"]) || byPath(["ornament", "buy"]) || byPath(["รูปพรรณ", "buy"]) || jewBuy;
+    jewSell = byPath(["jewelry", "sell"]) || byPath(["ornament", "sell"]) || byPath(["รูปพรรณ", "sell"]) || jewSell;
+
+    console.log("Thai Gold Parsed:", {
+      barBuy,
+      barSell,
+      jewBuy,
+      jewSell
+    });
+
+    setText("thai_buy", barBuy);
+    setText("thai_sell", barSell);
+    setText("thai_buy_jewelry", jewBuy);
+    setText("thai_sell_jewelry", jewSell);
 
   } catch (e) {
     console.log("Thai gold error:", e);
+    setText("thai_buy", "-");
+    setText("thai_sell", "-");
+    setText("thai_buy_jewelry", "-");
+    setText("thai_sell_jewelry", "-");
   }
 }
 
-// =========================
-// INIT
-// =========================
 window.addEventListener("DOMContentLoaded", () => {
   loadSignal();
   loadThaiGold();
