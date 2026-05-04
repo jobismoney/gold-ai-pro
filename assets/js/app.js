@@ -1,4 +1,4 @@
-console.log("APP JS VERSION 13 LOADED");
+console.log("APP JS VERSION 14 LOADED");
 
 const API_URL = "https://white-fog-ba70.porapat-su1975.workers.dev";
 
@@ -88,6 +88,42 @@ async function loadSignal() {
   } catch (err) {
     console.error("Signal error:", err);
     setText("marketStatus", "ERROR");
+  }
+}
+
+async function testTelegram() {
+  const statusEl = document.getElementById("telegramTestStatus");
+
+  try {
+    if (statusEl) {
+      statusEl.innerText = "Telegram: sending test...";
+    }
+
+    const res = await fetch(`${API_URL}?mode=test-telegram&t=${Date.now()}`);
+    const data = await res.json();
+
+    console.log("TELEGRAM TEST:", data);
+
+    if (data.ok === true) {
+      if (statusEl) {
+        statusEl.innerText = "Telegram: ✅ test sent successfully";
+      }
+      alert("✅ ส่งข้อความทดสอบเข้า Telegram สำเร็จ");
+    } else {
+      if (statusEl) {
+        statusEl.innerText = `Telegram: ❌ ${data.reason || "test failed"}`;
+      }
+      alert("❌ ส่ง Telegram ไม่สำเร็จ: " + (data.reason || data.message || "unknown"));
+    }
+
+  } catch (err) {
+    console.error("Telegram test error:", err);
+
+    if (statusEl) {
+      statusEl.innerText = "Telegram: ❌ connection error";
+    }
+
+    alert("❌ Telegram test error");
   }
 }
 
