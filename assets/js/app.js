@@ -1,4 +1,4 @@
-console.log("APP JS VERSION 17 LOADED");
+console.log("APP JS VERSION 18 LOADED");
 
 const API_URL = "https://white-fog-ba70.porapat-su1975.workers.dev";
 
@@ -33,6 +33,13 @@ function requireAdminKey() {
   }
 
   return key;
+}
+
+function toggleAdminKey() {
+  const input = document.getElementById("adminKey");
+  if (!input) return;
+
+  input.type = input.type === "password" ? "text" : "password";
 }
 
 function formatThaiDateTime(value) {
@@ -203,7 +210,10 @@ async function testTelegram() {
       statusEl.innerText = "Telegram: sending test...";
     }
 
-    const res = await fetch(`${API_URL}?mode=test-telegram&admin_key=${encodeURIComponent(adminKey)}&t=${Date.now()}`);
+    const res = await fetch(
+      `${API_URL}?mode=test-telegram&admin_key=${encodeURIComponent(adminKey)}&t=${Date.now()}`
+    );
+
     const data = await res.json();
 
     console.log("TELEGRAM TEST:", data);
