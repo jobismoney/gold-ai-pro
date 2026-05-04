@@ -1,4 +1,4 @@
-console.log("APP JS VERSION 10 LOADED");
+console.log("APP JS VERSION 11 LOADED");
 
 const API_URL = "https://white-fog-ba70.porapat-su1975.workers.dev";
 
@@ -9,10 +9,40 @@ function setText(id, value) {
   if (node) node.innerText = value ?? "-";
 }
 
+function formatThaiDateTime(value) {
+  if (!value) return "-";
+
+  try {
+    return new Date(value).toLocaleString("th-TH", {
+      timeZone: "Asia/Bangkok",
+      hour12: false,
+      day: "2-digit",
+      month: "2-digit",
+      year: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit"
+    });
+  } catch (e) {
+    return value;
+  }
+}
+
+function formatSource(source) {
+  if (!source) return "-";
+
+  if (source.includes("twelve_data_real")) return "Real Candles";
+  if (source.includes("twelve_data_cache")) return "Real Cache";
+  if (source.includes("demo")) return "Demo/Fallback";
+
+  return source;
+}
+
 async function loadSignal() {
   try {
     const res = await fetch(`${API_URL}?mode=${currentMode}`);
     const data = await res.json();
+    console.log("SIGNAL DATA:", data);
     render(data);
   } catch (err) {
     console.error("Signal error:", err);
@@ -34,7 +64,20 @@ function render(data) {
   setText("tp1", s.tp1 || "-");
   setText("tp2", s.tp2 || "-");
   setText("tp3", s.tp3 || "-");
+
   setText("marketStatus", data.market === "open" ? "OPEN" : "CLOSED");
+
+  // Timing
+  setText("signalTime", formatThaiDateTime(s.signalTime));
+  setText("validUntil", formatThaiDateTime(s.validUntil));
+  setText("nextCheck", formatThaiDateTime(s.nextCheck));
+  setText("candleInterval", s.candleInterval || "-");
+  setText("signalSource", formatSource(s.source));
+
+  const validNote = document.getElementById("validNote");
+  if (validNote) {
+    validNote.innerText = s.validNote || "ใช้ดูภายในแท่ง 15m นี้ หรือจนกว่าจะมีสัญญาณใหม่ / ราคาแตะ SL หรือ TP";
+  }
 
   const demo = document.getElementById("demoBadge");
   if (demo) demo.style.display = data.demo ? "inline-block" : "none";
@@ -83,7 +126,6 @@ async function loadThaiGold() {
     console.log("Thai Gold RAW:", data);
 
     const text = JSON.stringify(data);
-
     const prices = text.match(/\d{2,3},\d{3}(?:\.\d+)?|\d{5}(?:\.\d+)?/g) || [];
 
     console.log("Thai Gold PRICES:", prices);
