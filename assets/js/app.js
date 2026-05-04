@@ -1,3 +1,5 @@
+console.log("APP JS VERSION 10 LOADED");
+
 const API_URL = "https://white-fog-ba70.porapat-su1975.workers.dev";
 
 let currentMode = "balanced";
@@ -80,8 +82,9 @@ async function loadThaiGold() {
 
     console.log("Thai Gold RAW:", data);
 
-    const rawText = JSON.stringify(data);
-    const prices = rawText.match(/\d{2,3},\d{3}(?:\.\d+)?|\d{5}(?:\.\d+)?/g) || [];
+    const text = JSON.stringify(data);
+
+    const prices = text.match(/\d{2,3},\d{3}(?:\.\d+)?|\d{5}(?:\.\d+)?/g) || [];
 
     console.log("Thai Gold PRICES:", prices);
 
