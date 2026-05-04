@@ -1,4 +1,4 @@
-console.log("APP JS VERSION 11 LOADED");
+console.log("APP JS VERSION 12 LOADED");
 
 const API_URL = "https://white-fog-ba70.porapat-su1975.workers.dev";
 
@@ -10,10 +10,16 @@ function setText(id, value) {
 }
 
 function formatThaiDateTime(value) {
-  if (!value) return "-";
+  if (!value || value === "-") return "-";
 
   try {
-    return new Date(value).toLocaleString("th-TH", {
+    const d = new Date(value);
+
+    if (isNaN(d.getTime())) {
+      return String(value);
+    }
+
+    return d.toLocaleString("th-TH", {
       timeZone: "Asia/Bangkok",
       hour12: false,
       day: "2-digit",
@@ -23,8 +29,19 @@ function formatThaiDateTime(value) {
       minute: "2-digit",
       second: "2-digit"
     });
+
   } catch (e) {
-    return value;
+    return String(value);
+  }
+}
+
+function addMinutesToIso(value, minutes) {
+  try {
+    const d = new Date(value);
+    if (isNaN(d.getTime())) return null;
+    return new Date(d.getTime() + minutes * 60 * 1000).toISOString();
+  } catch (e) {
+    return null;
   }
 }
 
@@ -40,10 +57,13 @@ function formatSource(source) {
 
 async function loadSignal() {
   try {
-    const res = await fetch(`${API_URL}?mode=${currentMode}`);
+    const res = await fetch(`${API_URL}?mode=${currentMode}&t=${Date.now()}`);
     const data = await res.json();
+
     console.log("SIGNAL DATA:", data);
+
     render(data);
+
   } catch (err) {
     console.error("Signal error:", err);
   }
@@ -55,10 +75,12 @@ function render(data) {
   setText("price", data.price);
   setText("signal", s.signal);
   setText("confidence", (s.confidence ?? "-") + "%");
+
   setText("trend", s.trend);
   setText("rsi", s.rsi);
   setText("support", s.support);
   setText("resistance", s.resistance);
+
   setText("entry", s.entry);
   setText("sl", s.sl || "-");
   setText("tp1", s.tp1 || "-");
@@ -67,20 +89,36 @@ function render(data) {
 
   setText("marketStatus", data.market === "open" ? "OPEN" : "CLOSED");
 
-  // Timing
-  setText("signalTime", formatThaiDateTime(s.signalTime));
-  setText("validUntil", formatThaiDateTime(s.validUntil));
-  setText("nextCheck", formatThaiDateTime(s.nextCheck));
-  setText("candleInterval", s.candleInterval || "-");
-  setText("signalSource", formatSource(s.source));
+  const baseTime =
+    s.signalTime ||
+    data.updated ||
+    new Date().toISOString();
+
+  const validUntil =
+    s.validUntil ||
+    addMinutesToIso(baseTime, 15);
+
+  const nextCheck =
+    s.nextCheck ||
+    addMinutesToIso(baseTime, data.apiCacheMinutes || 5);
+
+  setText("signalTime", formatThaiDateTime(baseTime));
+  setText("validUntil", formatThaiDateTime(validUntil));
+  setText("nextCheck", formatThaiDateTime(nextCheck));
+  setText("candleInterval", s.candleInterval || "15min");
+  setText("signalSource", formatSource(s.source || data.source));
 
   const validNote = document.getElementById("validNote");
   if (validNote) {
-    validNote.innerText = s.validNote || "ใช้ดูภายในแท่ง 15m นี้ หรือจนกว่าจะมีสัญญาณใหม่ / ราคาแตะ SL หรือ TP";
+    validNote.innerText =
+      s.validNote ||
+      "ใช้ดูภายในแท่ง 15m นี้ หรือจนกว่าจะมีสัญญาณใหม่ / ราคาแตะ SL หรือ TP";
   }
 
   const demo = document.getElementById("demoBadge");
-  if (demo) demo.style.display = data.demo ? "inline-block" : "none";
+  if (demo) {
+    demo.style.display = data.demo ? "inline-block" : "none";
+  }
 
   const signalEl = document.getElementById("signal");
   if (signalEl) {
