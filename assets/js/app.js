@@ -1,4 +1,4 @@
-console.log("APP JS VERSION 19 LOADED");
+console.log("APP JS VERSION 20 LOADED");
 
 const API_URL = "https://white-fog-ba70.porapat-su1975.workers.dev";
 
@@ -106,10 +106,26 @@ function formatTelegramReason(reason) {
     too_many_contradictions: "ไม่ส่ง เพราะสัญญาณขัดแย้งหลายจุด",
     duplicate_signal_cooldown: "ไม่ส่ง เพราะเป็นสัญญาณซ้ำและยังอยู่ใน Cooldown",
     cooldown_active: "ไม่ส่ง เพราะยังอยู่ใน Cooldown",
-    telegram_config_missing_or_failed: "ส่งไม่สำเร็จ: Telegram config ไม่ครบหรือผิดพลาด"
+    telegram_config_missing_or_failed: "ส่งไม่สำเร็จ: Telegram config ไม่ครบหรือผิดพลาด",
+    vip_quality_filter_blocked: "ไม่ส่ง เพราะ Smart Filter ยังไม่อนุญาตให้ส่ง VIP"
   };
 
   return map[reason] || reason || "ไม่ทราบสาเหตุ";
+}
+
+function formatQuality(q) {
+  if (!q) return "-";
+
+  if (q === "A_STRONG") return "A | Strong";
+  if (q === "B_MEDIUM") return "B | Medium";
+  if (q === "C_WEAK") return "C | Weak";
+  if (q === "C_WAIT") return "C | Wait";
+
+  return q;
+}
+
+function formatYesNo(value) {
+  return value === true ? "YES" : "NO";
 }
 
 function updateAutoRefreshStatus() {
@@ -125,6 +141,24 @@ function updateAutoRefreshStatus() {
 function resetRefreshCountdown() {
   nextRefreshAt = Date.now() + AUTO_REFRESH_SECONDS * 1000;
   updateAutoRefreshStatus();
+}
+
+function renderList(id, items) {
+  const box = document.getElementById(id);
+  if (!box) return;
+
+  box.innerHTML = "";
+
+  if (!items || !items.length) {
+    box.innerText = "-";
+    return;
+  }
+
+  items.forEach(item => {
+    const div = document.createElement("div");
+    div.innerText = "• " + item;
+    box.appendChild(div);
+  });
 }
 
 async function loadSignal() {
@@ -258,24 +292,40 @@ async function testTelegram() {
 
 function render(data) {
   const s = data.signal || {};
+  const learning = data.learning || s.learningStats || {};
 
   setText("price", data.price);
   setText("signal", s.signal);
   setText("confidence", (s.confidence ?? "-") + "%");
 
+  // Smart Engine v2
+  setText("engine", s.engine || "-");
+  setText("signalQuality", formatQuality(s.signalQuality));
+  setText("aiScore", s.aiScore !== undefined ? `${s.aiScore}/100` : "-");
+  setText("vipAllowed", formatYesNo(s.vipAllowed));
+  setText("riskReward", s.riskReward ?? "-");
+
+  // Market Structure
   setText("trend", s.trend);
   setText("rsi", s.rsi);
   setText("support", s.support);
   setText("resistance", s.resistance);
+  setText("buyScore", s.buyScore);
+  setText("sellScore", s.sellScore);
+  setText("fibZone", s.fibZone);
+  setText("trap", s.trap);
 
+  // Trade Plan
   setText("entry", s.entry);
   setText("sl", s.sl || "-");
   setText("tp1", s.tp1 || "-");
   setText("tp2", s.tp2 || "-");
   setText("tp3", s.tp3 || "-");
 
+  // Market status
   setText("marketStatus", data.market === "open" ? "OPEN" : "CLOSED");
 
+  // Timing
   const baseTime =
     s.signalTime ||
     data.updated ||
@@ -300,6 +350,21 @@ function render(data) {
     validNote.innerText =
       s.validNote ||
       "ใช้ดูภายในแท่ง 15m นี้ หรือจนกว่าจะมีสัญญาณใหม่ / ราคาแตะ SL หรือ TP";
+  }
+
+  // Learning Stats
+  setText("memoryType", learning.memoryType || "-");
+  setText("totalSignals", learning.totalSignals ?? 0);
+  setText("totalFinished", learning.totalFinished ?? 0);
+  setText("wins", learning.wins ?? 0);
+  setText("losses", learning.losses ?? 0);
+  setText("winRate", learning.winRate === null || learning.winRate === undefined ? "-" : `${learning.winRate}%`);
+
+  const learningNote = document.getElementById("learningNote");
+  if (learningNote) {
+    learningNote.innerText =
+      learning.note ||
+      "Learning จะเริ่มมีผลเมื่อมีข้อมูลย้อนหลังมากพอ";
   }
 
   const demo = document.getElementById("demoBadge");
@@ -329,20 +394,30 @@ function render(data) {
     }
   }
 
-  const reasonBox = document.getElementById("reason");
-  if (reasonBox) {
-    reasonBox.innerHTML = "";
-
-    if (s.reason && s.reason.length) {
-      s.reason.forEach(r => {
-        const div = document.createElement("div");
-        div.innerText = "• " + r;
-        reasonBox.appendChild(div);
-      });
-    } else {
-      reasonBox.innerText = "-";
-    }
+  // Quality color
+  const qualityEl = document.getElementById("signalQuality");
+  if (qualityEl) {
+    if (s.signalQuality === "A_STRONG") qualityEl.style.color = "#00c853";
+    else if (s.signalQuality === "B_MEDIUM") qualityEl.style.color = "#f5c542";
+    else qualityEl.style.color = "#ff9800";
   }
+
+  const aiScoreEl = document.getElementById("aiScore");
+  if (aiScoreEl) {
+    const score = Number(s.aiScore || 0);
+
+    if (score >= 75) aiScoreEl.style.color = "#00c853";
+    else if (score >= 60) aiScoreEl.style.color = "#f5c542";
+    else aiScoreEl.style.color = "#ff9800";
+  }
+
+  const vipAllowedEl = document.getElementById("vipAllowed");
+  if (vipAllowedEl) {
+    vipAllowedEl.style.color = s.vipAllowed ? "#00c853" : "#ff9800";
+  }
+
+  renderList("reason", s.reason);
+  renderList("filters", s.filters);
 }
 
 function setMode(mode) {
