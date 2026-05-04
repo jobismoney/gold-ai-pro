@@ -14,12 +14,11 @@
 
 <div class="app">
 
-  <!-- TOP -->
   <div class="card">
     <div class="top">
       <div>
         <div class="logo">💰 Gold AI Pro</div>
-        <div id="marketStatus" class="status">Loading...</div>
+        <div id="marketStatus">Loading...</div>
       </div>
 
       <div class="badges">
@@ -31,9 +30,9 @@
 
     <!-- MODE -->
     <div class="mode-row">
-      <button id="mode-fast" class="mode-btn" onclick="setMode('fast')">⚡ FAST</button>
-      <button id="mode-balanced" class="mode-btn active" onclick="setMode('balanced')">🎯 BALANCED</button>
-      <button id="mode-safe" class="mode-btn" onclick="setMode('safe')">🧠 SAFE</button>
+      <button id="mode-fast" class="mode-btn" onclick="setMode('fast')">⚡ Scalping</button>
+      <button id="mode-balanced" class="mode-btn active" onclick="setMode('balanced')">🎯 Day Trade</button>
+      <button id="mode-safe" class="mode-btn" onclick="setMode('safe')">🧠 Swing</button>
     </div>
 
     <!-- SIGNAL -->
@@ -43,7 +42,6 @@
       <div id="confidence" class="confidence">-</div>
     </div>
 
-    <!-- DATA -->
     <div class="grid">
       <div class="box"><span>Trend</span><b id="trend">-</b></div>
       <div class="box"><span>RSI</span><b id="rsi">-</b></div>
@@ -51,11 +49,9 @@
       <div class="box"><span>Resistance</span><b id="resistance">-</b></div>
     </div>
 
-    <!-- REASON -->
     <div class="section-title">Reason</div>
     <div id="reason" class="reason">-</div>
 
-    <!-- ACTION -->
     <div class="section-title">Trade Plan</div>
     <div class="grid">
       <div class="box"><span>Entry</span><b id="entry">-</b></div>
@@ -65,7 +61,6 @@
       <div class="box"><span>TP3</span><b id="tp3">-</b></div>
     </div>
 
-    <!-- ACTION BUTTON -->
     <div class="actions">
       <button class="btn-main" onclick="loadSignal()">🚀 Load Signal</button>
     </div>
@@ -74,14 +69,9 @@
   <!-- CHART -->
   <div class="card">
     <div class="section-title">XAU/USD Chart</div>
-
     <div class="chart-box">
-      <iframe
-        src="https://www.tradingview.com/widgetembed/?symbol=XAUUSD&interval=15&theme=dark"
-        width="100%"
-        height="400"
-        frameborder="0"
-      ></iframe>
+      <iframe src="https://www.tradingview.com/widgetembed/?symbol=XAUUSD&interval=15&theme=dark"
+        width="100%" height="400"></iframe>
     </div>
   </div>
 
@@ -97,23 +87,20 @@
     </div>
 
     <div class="note">
-      * ราคาทองไทยใช้เพื่อข้อมูลเท่านั้น ไม่ได้ใช้คำนวณ Signal
+      * ใช้เพื่อข้อมูลเท่านั้น ไม่ใช้คำนวณ Signal
     </div>
   </div>
 
   <!-- NEWS -->
   <div class="card">
     <div class="section-title">📰 Market News</div>
-
     <div class="news-item">USD แข็งค่า → กดดันทอง</div>
     <div class="news-item">FED มีแนวโน้มขึ้นดอกเบี้ย</div>
   </div>
 
   <!-- ADS -->
   <div class="card">
-    <div class="ad-box">
-      พื้นที่โฆษณา (Google AdSense)
-    </div>
+    <div class="ad-box">พื้นที่โฆษณา</div>
   </div>
 
 </div>
