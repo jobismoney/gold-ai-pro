@@ -25,24 +25,16 @@ const el = {
   thai_sell_jewelry: document.getElementById("thai_sell_jewelry")
 };
 
-// =========================
-// LOAD SIGNAL
-// =========================
 async function loadSignal() {
   try {
     const res = await fetch(`${API_URL}?mode=${currentMode}`);
     const data = await res.json();
-
     render(data);
-
   } catch (err) {
     console.error("Signal error:", err);
   }
 }
 
-// =========================
-// RENDER
-// =========================
 function render(data) {
   const s = data.signal;
 
@@ -52,7 +44,6 @@ function render(data) {
 
   el.trend.innerText = s.trend;
   el.rsi.innerText = s.rsi;
-
   el.support.innerText = s.support;
   el.resistance.innerText = s.resistance;
 
@@ -63,10 +54,8 @@ function render(data) {
   el.tp3.innerText = s.tp3 || "-";
 
   el.market.innerText = data.market === "open" ? "OPEN" : "CLOSED";
-
   el.demo.style.display = data.demo ? "inline-block" : "none";
 
-  // สี signal
   if (s.signal === "BUY") {
     el.signal.style.color = "#00c853";
   } else if (s.signal === "SELL") {
@@ -75,18 +64,19 @@ function render(data) {
     el.signal.style.color = "#999";
   }
 
-  // reason
   el.reason.innerHTML = "";
-  s.reason.forEach(r => {
-    const div = document.createElement("div");
-    div.innerText = "• " + r;
-    el.reason.appendChild(div);
-  });
+
+  if (s.reason && s.reason.length > 0) {
+    s.reason.forEach(r => {
+      const div = document.createElement("div");
+      div.innerText = "• " + r;
+      el.reason.appendChild(div);
+    });
+  } else {
+    el.reason.innerText = "-";
+  }
 }
 
-// =========================
-// MODE
-// =========================
 function setMode(mode) {
   currentMode = mode;
 
@@ -94,14 +84,12 @@ function setMode(mode) {
     btn.classList.remove("active");
   });
 
-  document.getElementById(`mode-${mode}`).classList.add("active");
+  const activeBtn = document.getElementById(`mode-${mode}`);
+  if (activeBtn) activeBtn.classList.add("active");
 
   loadSignal();
 }
 
-// =========================
-// THAI GOLD (REAL + SAFE)
-// =========================
 async function loadThaiGold() {
   try {
     const res = await fetch("https://api.chnwt.dev/thai-gold-api/latest");
@@ -113,42 +101,42 @@ async function loadThaiGold() {
 
     const barBuy =
       d.price?.gold?.bar?.buy ||
+      d.price?.gold?.bar?.bid ||
       d.gold?.bar_buy ||
       "-";
 
     const barSell =
       d.price?.gold?.bar?.sell ||
+      d.price?.gold?.bar?.ask ||
       d.gold?.bar_sell ||
       "-";
 
     const jewBuy =
       d.price?.gold?.jewelry?.buy ||
+      d.price?.gold?.ornament?.buy ||
       d.gold?.ornament_buy ||
       "-";
 
     const jewSell =
       d.price?.gold?.jewelry?.sell ||
+      d.price?.gold?.ornament?.sell ||
       d.gold?.ornament_sell ||
       "-";
 
-    el.thai_buy.innerText = barBuy;
-    el.thai_sell.innerText = barSell;
-    el.thai_buy_jewelry.innerText = jewBuy;
-    el.thai_sell_jewelry.innerText = jewSell;
+    if (el.thai_buy) el.thai_buy.innerText = barBuy;
+    if (el.thai_sell) el.thai_sell.innerText = barSell;
+    if (el.thai_buy_jewelry) el.thai_buy_jewelry.innerText = jewBuy;
+    if (el.thai_sell_jewelry) el.thai_sell_jewelry.innerText = jewSell;
 
   } catch (e) {
     console.log("Thai gold error:", e);
 
-    // fallback กันหน้าว่าง
-    el.thai_buy.innerText = "-";
-    el.thai_sell.innerText = "-";
-    el.thai_buy_jewelry.innerText = "-";
-    el.thai_sell_jewelry.innerText = "-";
+    if (el.thai_buy) el.thai_buy.innerText = "-";
+    if (el.thai_sell) el.thai_sell.innerText = "-";
+    if (el.thai_buy_jewelry) el.thai_buy_jewelry.innerText = "-";
+    if (el.thai_sell_jewelry) el.thai_sell_jewelry.innerText = "-";
   }
 }
 
-// =========================
-// INIT
-// =========================
 loadSignal();
 loadThaiGold();
