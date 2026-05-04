@@ -1,105 +1,93 @@
+const API_URL = "https://white-fog-ba70.porapat-su1975.workers.dev";
 
+let currentMode = "balanced";
 
-// ตอนนี้ทดสอบ VIP แบบ local ก่อน
-let isVip = localStorage.getItem("vip") === "true";
+const el = {
+  price: document.getElementById("price"),
+  signal: document.getElementById("signal"),
+  confidence: document.getElementById("confidence"),
+  trend: document.getElementById("trend"),
+  rsi: document.getElementById("rsi"),
+  support: document.getElementById("support"),
+  resistance: document.getElementById("resistance"),
+  reason: document.getElementById("reason"),
+  entry: document.getElementById("entry"),
+  sl: document.getElementById("sl"),
+  tp1: document.getElementById("tp1"),
+  tp2: document.getElementById("tp2"),
+  tp3: document.getElementById("tp3"),
+  market: document.getElementById("marketStatus"),
+  demo: document.getElementById("demoBadge")
+};
 
-function updateVipBadge(){
-  const badge = document.getElementById("vipBadge");
-  badge.innerText = isVip ? "VIP" : "FREE";
-  badge.style.background = isVip ? "#00e676" : "#ffe66d";
-}
-
-function toggleSettings(){
-  const p = document.getElementById("settings");
-  p.style.display = p.style.display === "block" ? "none" : "block";
-}
-
-function toggleChart(){
-  const p = document.getElementById("chart");
-  p.style.display = p.style.display === "block" ? "none" : "block";
-}
-
-function saveSettings(){
-  localStorage.setItem("telegram", document.getElementById("telegram").value);
-  localStorage.setItem("minConf", document.getElementById("minConf").value);
-  localStorage.setItem("cooldown", document.getElementById("cooldown").value);
-  alert("บันทึก Setting แล้ว");
-}
-
-function loadSettings(){
-  document.getElementById("telegram").value = localStorage.getItem("telegram") || "off";
-  document.getElementById("minConf").value = localStorage.getItem("minConf") || "70";
-  document.getElementById("cooldown").value = localStorage.getItem("cooldown") || "15";
-}
-
-async function loadSignal(){
-  const btn = document.querySelector(".main");
-  btn.innerText = "Loading...";
-
-  try{
-    const telegramOn = localStorage.getItem("telegram") === "on";
-    const minConf = localStorage.getItem("minConf") || "70";
-    const cooldown = localStorage.getItem("cooldown") || "15";
-
-    const vipParam = isVip && telegramOn ? "true" : "false";
-const url = `${CONFIG.API_URL}/?vip=${vipParam}&min_conf=${minConf}&cooldown=${cooldown}`;
-
-    const res = await fetch(url);
+// 🔥 โหลดข้อมูล
+async function loadSignal() {
+  try {
+    const res = await fetch(`${API_URL}?mode=${currentMode}`);
     const data = await res.json();
 
-    if(data.market === "closed"){
-      document.getElementById("marketStatus").innerText = "🔴 Market Closed";
-      document.getElementById("marketStatus").className = "status closed";
-      document.getElementById("price").innerText = "XAU/USD: " + data.price;
-      document.getElementById("signal").innerText = "WAIT";
-      document.getElementById("signal").className = "signal wait";
-      document.getElementById("entry").innerText = "--";
-      document.getElementById("sl").innerText = "--";
-      document.getElementById("tp1").innerText = "--";
-      document.getElementById("tp2").innerText = isVip ? "--" : "VIP";
-      document.getElementById("tp3").innerText = isVip ? "--" : "VIP";
-      document.getElementById("confidence").innerText = "--";
-      return;
-    }
+    render(data);
 
-    const s = data.signal;
-
-    document.getElementById("marketStatus").innerText = "🟢 Market Open";
-    document.getElementById("marketStatus").className = "status open";
-
-    document.getElementById("price").innerText = "XAU/USD: " + Number(data.price).toFixed(2);
-
-    const sig = document.getElementById("signal");
-    sig.innerText = s.signal;
-    sig.className = "signal " + s.signal.toLowerCase();
-
-    document.getElementById("entry").innerText = s.entry ?? "--";
-    document.getElementById("sl").innerText = s.sl ?? "--";
-    document.getElementById("tp1").innerText = s.tp1 ?? "--";
-    document.getElementById("tp2").innerText = isVip ? (s.tp2 ?? "--") : "VIP";
-    document.getElementById("tp3").innerText = isVip ? (s.tp3 ?? "--") : "VIP";
-    document.getElementById("confidence").innerText = s.confidence + "%";
-
-  }catch(e){
-    console.log(e);
-    document.getElementById("marketStatus").innerText = "API Error";
-    document.getElementById("marketStatus").className = "status closed";
-    alert("โหลดข้อมูลไม่ได้ ตรวจ Worker หรือ CORS");
-  }finally{
-    btn.innerText = "🚀 Load Signal";
+  } catch (err) {
+    console.error(err);
   }
 }
 
-async function testTelegram(){
-  try{
-    const res = await fetch(CONFIG.API_URL + "/?mode=test-telegram")
-    const data = await res.json();
-    alert(data.market || data.message || "Test sent");
-  }catch(e){
-    alert("Test Telegram ไม่สำเร็จ");
+// 🔥 แสดงผล
+function render(data) {
+  const s = data.signal;
+
+  el.price.innerText = data.price;
+  el.signal.innerText = s.signal;
+  el.confidence.innerText = s.confidence + "%";
+
+  el.trend.innerText = s.trend;
+  el.rsi.innerText = s.rsi;
+
+  el.support.innerText = s.support;
+  el.resistance.innerText = s.resistance;
+
+  el.entry.innerText = s.entry;
+  el.sl.innerText = s.sl || "-";
+  el.tp1.innerText = s.tp1 || "-";
+  el.tp2.innerText = s.tp2 || "-";
+  el.tp3.innerText = s.tp3 || "-";
+
+  el.market.innerText = data.market === "open" ? "OPEN" : "CLOSED";
+
+  // Demo badge
+  el.demo.style.display = data.demo ? "inline-block" : "none";
+
+  // สี signal
+  if (s.signal === "BUY") {
+    el.signal.style.color = "#00c853";
+  } else if (s.signal === "SELL") {
+    el.signal.style.color = "#ff1744";
+  } else {
+    el.signal.style.color = "#999";
   }
+
+  // reason
+  el.reason.innerHTML = "";
+  s.reason.forEach(r => {
+    const li = document.createElement("div");
+    li.innerText = "• " + r;
+    el.reason.appendChild(li);
+  });
 }
 
-loadSettings();
-updateVipBadge();
+// 🔥 เปลี่ยนโหมด
+function setMode(mode) {
+  currentMode = mode;
+
+  document.querySelectorAll(".mode-btn").forEach(btn => {
+    btn.classList.remove("active");
+  });
+
+  document.getElementById(`mode-${mode}`).classList.add("active");
+
+  loadSignal();
+}
+
+// 🔥 initial load
 loadSignal();
