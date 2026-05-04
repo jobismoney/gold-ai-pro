@@ -1,4 +1,4 @@
-console.log("APP JS VERSION 16 LOADED");
+console.log("APP JS VERSION 17 LOADED");
 
 const API_URL = "https://white-fog-ba70.porapat-su1975.workers.dev";
 
@@ -17,6 +17,22 @@ function setText(id, value) {
 function getSettingValue(id, fallback) {
   const node = document.getElementById(id);
   return node?.value || fallback;
+}
+
+function getAdminKey() {
+  const key = getSettingValue("adminKey", "").trim();
+  return key;
+}
+
+function requireAdminKey() {
+  const key = getAdminKey();
+
+  if (!key) {
+    alert("กรุณาใส่ Admin Key ก่อน");
+    return null;
+  }
+
+  return key;
 }
 
 function formatThaiDateTime(value) {
@@ -69,6 +85,7 @@ function formatTelegramReason(reason) {
   const map = {
     sent: "ส่งสัญญาณ VIP เข้า Telegram แล้ว",
     vip_disabled: "ยังไม่ได้เปิด VIP",
+    unauthorized_admin_key: "Admin Key ไม่ถูกต้อง หรือไม่ได้กรอก",
     demo_mode_no_vip_alert: "ไม่ส่ง เพราะระบบอยู่ใน Demo/Fallback",
     wait_signal: "ไม่ส่ง เพราะตอนนี้เป็น WAIT",
     confidence_too_low: "ไม่ส่ง เพราะ Confidence ต่ำกว่าเกณฑ์",
@@ -114,6 +131,9 @@ async function loadSignal() {
 
 async function sendVipSignal() {
   const statusEl = document.getElementById("vipAlertStatus");
+  const adminKey = requireAdminKey();
+
+  if (!adminKey) return;
 
   const minConf = getSettingValue("minConfidence", "75");
   const cooldown = getSettingValue("cooldownMinutes", "30");
@@ -128,12 +148,19 @@ async function sendVipSignal() {
       `&vip=true` +
       `&min_conf=${encodeURIComponent(minConf)}` +
       `&cooldown=${encodeURIComponent(cooldown)}` +
+      `&admin_key=${encodeURIComponent(adminKey)}` +
       `&t=${Date.now()}`;
 
     const res = await fetch(url);
     const data = await res.json();
 
     console.log("VIP ALERT DATA:", data);
+
+    if (data.reason === "unauthorized_admin_key") {
+      if (statusEl) statusEl.innerText = "VIP Alert: ❌ Admin Key ไม่ถูกต้อง";
+      alert("❌ Admin Key ไม่ถูกต้อง");
+      return;
+    }
 
     render(data);
     resetRefreshCountdown();
@@ -167,26 +194,37 @@ async function sendVipSignal() {
 
 async function testTelegram() {
   const statusEl = document.getElementById("telegramTestStatus");
+  const adminKey = requireAdminKey();
+
+  if (!adminKey) return;
 
   try {
     if (statusEl) {
       statusEl.innerText = "Telegram: sending test...";
     }
 
-    const res = await fetch(`${API_URL}?mode=test-telegram&t=${Date.now()}`);
+    const res = await fetch(`${API_URL}?mode=test-telegram&admin_key=${encodeURIComponent(adminKey)}&t=${Date.now()}`);
     const data = await res.json();
 
     console.log("TELEGRAM TEST:", data);
+
+    if (data.reason === "unauthorized_admin_key") {
+      if (statusEl) statusEl.innerText = "Telegram: ❌ Admin Key ไม่ถูกต้อง";
+      alert("❌ Admin Key ไม่ถูกต้อง");
+      return;
+    }
 
     if (data.ok === true) {
       if (statusEl) {
         statusEl.innerText = "Telegram: ✅ test sent successfully";
       }
+
       alert("✅ ส่งข้อความทดสอบเข้า Telegram สำเร็จ");
     } else {
       if (statusEl) {
         statusEl.innerText = `Telegram: ❌ ${data.reason || "test failed"}`;
       }
+
       alert("❌ ส่ง Telegram ไม่สำเร็จ: " + (data.reason || data.message || "unknown"));
     }
 
