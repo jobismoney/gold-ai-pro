@@ -1,18 +1,19 @@
-console.log("APP JS VERSION 23 LOADED");
+console.log("APP JS VERSION 24 LOADED");
 
 const API_URL = "https://white-fog-ba70.porapat-su1975.workers.dev";
 
 let currentMode = "balanced";
 let autoRefreshTimer = null;
 let countdownTimer = null;
-let nextRefreshAt = null;
+let nextApiUpdateAt = null;
 
-const AUTO_REFRESH_SECONDS = 60;
+const API_REFRESH_SECONDS = 300;
 
 let previousPrice = null;
 let previousSignal = null;
 let previousActiveStatus = null;
 let soundEnabled = true;
+let latestChartData = [];
 
 function setText(id, value) {
   const node = document.getElementById(id);
@@ -54,7 +55,6 @@ function toggleAdminPanel() {
 function toggleAdminKey() {
   const input = document.getElementById("adminKey");
   if (!input) return;
-
   input.type = input.type === "password" ? "text" : "password";
 }
 
@@ -63,10 +63,7 @@ function formatThaiDateTime(value) {
 
   try {
     const d = new Date(value);
-
-    if (isNaN(d.getTime())) {
-      return String(value);
-    }
+    if (isNaN(d.getTime())) return String(value);
 
     return d.toLocaleString("th-TH", {
       timeZone: "Asia/Bangkok",
@@ -83,20 +80,17 @@ function formatThaiDateTime(value) {
   }
 }
 
-function addMinutesToIso(value, minutes) {
-  try {
-    const d = new Date(value);
-    if (isNaN(d.getTime())) return null;
-    return new Date(d.getTime() + minutes * 60 * 1000).toISOString();
-  } catch (e) {
-    return null;
-  }
+function formatCountdown(ms) {
+  const totalSec = Math.max(0, Math.ceil(ms / 1000));
+  const m = Math.floor(totalSec / 60);
+  const s = totalSec % 60;
+  return `${m}m ${String(s).padStart(2, "0")}s`;
 }
 
 function formatSource(source) {
   if (!source) return "-";
-  if (source.includes("twelve_data_real")) return "Real Candles";
-  if (source.includes("twelve_data_cache")) return "Real Cache";
+  if (source.includes("twelve_data_real")) return "Twelve Data Real";
+  if (source.includes("twelve_data_cache")) return "Twelve Data Cache";
   if (source.includes("demo")) return "Demo/Fallback";
   return source;
 }
@@ -149,27 +143,36 @@ function formatYesNo(value) {
   return value === true ? "YES" : "NO";
 }
 
-function updateAutoRefreshStatus() {
+function updateApiCountdown() {
   const el = document.getElementById("autoRefreshStatus");
   const miniEl = document.getElementById("refreshCountdown");
 
-  if (!nextRefreshAt) return;
+  if (!nextApiUpdateAt) return;
 
-  const remainMs = nextRefreshAt - Date.now();
-  const remainSec = Math.max(0, Math.ceil(remainMs / 1000));
+  const remainMs = nextApiUpdateAt - Date.now();
+  const text = formatCountdown(remainMs);
 
   if (el) {
-    el.innerText = `Auto refresh in ${remainSec}s | API cache: 5 min`;
+    el.innerText = `Next API update in ${text} | API cache: 5 min`;
   }
 
   if (miniEl) {
-    miniEl.innerText = `${remainSec}s`;
+    miniEl.innerText = text;
   }
 }
 
-function resetRefreshCountdown() {
-  nextRefreshAt = Date.now() + AUTO_REFRESH_SECONDS * 1000;
-  updateAutoRefreshStatus();
+function setNextApiUpdate(value) {
+  if (value) {
+    const t = new Date(value).getTime();
+    if (!isNaN(t)) {
+      nextApiUpdateAt = t;
+      updateApiCountdown();
+      return;
+    }
+  }
+
+  nextApiUpdateAt = Date.now() + API_REFRESH_SECONDS * 1000;
+  updateApiCountdown();
 }
 
 function renderList(id, items) {
@@ -196,7 +199,6 @@ function showToast(title, message = "", type = "warning") {
 
   const toast = document.createElement("div");
   toast.className = `toast toast-${type}`;
-
   toast.innerHTML = `
     <strong>${escapeHtml(title)}</strong>
     <div>${escapeHtml(message)}</div>
@@ -235,13 +237,9 @@ function playTone(kind = "info") {
     osc.connect(gain);
     gain.connect(ctx.destination);
 
-    if (kind === "success") {
-      osc.frequency.value = 880;
-    } else if (kind === "danger") {
-      osc.frequency.value = 320;
-    } else {
-      osc.frequency.value = 620;
-    }
+    if (kind === "success") osc.frequency.value = 880;
+    else if (kind === "danger") osc.frequency.value = 320;
+    else osc.frequency.value = 620;
 
     gain.gain.value = 0.001;
     osc.start();
@@ -270,6 +268,7 @@ function toggleSound() {
   soundEnabled = !soundEnabled;
   localStorage.setItem("gold_ai_sound_enabled", soundEnabled ? "on" : "off");
   loadSoundSetting();
+
   showToast(
     soundEnabled ? "เปิดเสียงแจ้งเตือน" : "ปิดเสียงแจ้งเตือน",
     soundEnabled ? "ระบบจะมีเสียงเบา ๆ เมื่อเกิด event สำคัญ" : "ระบบจะเงียบทั้งหมด",
@@ -293,7 +292,7 @@ function toggleSection(bodyId, btn) {
   body.classList.toggle("closed");
 
   if (btn) {
-    btn.innerText = body.classList.contains("closed") ? "เปิด" : "ซ่อน";
+    btn.innerText = body.classList.contains("closed") ? "รายละเอียด" : "ย่อ";
   }
 }
 
@@ -305,7 +304,7 @@ async function loadSignal() {
     console.log("SIGNAL DATA:", data);
 
     render(data);
-    resetRefreshCountdown();
+    setNextApiUpdate(data.nextApiUpdate || data.signal?.nextCheck || data.currentAnalysis?.nextCheck);
 
   } catch (err) {
     console.error("Signal error:", err);
@@ -348,7 +347,7 @@ async function sendVipSignal() {
     }
 
     render(data);
-    resetRefreshCountdown();
+    setNextApiUpdate(data.nextApiUpdate || data.signal?.nextCheck || data.currentAnalysis?.nextCheck);
 
     const reasonText = formatTelegramReason(data.telegramReason);
 
@@ -531,11 +530,22 @@ function applySignalAnimation(signal) {
 
 function updateModeLabel() {
   const label = document.getElementById("modeLabel");
-  if (!label) return;
+  const title = document.getElementById("modeInfoTitle");
+  const text = document.getElementById("modeInfoText");
 
-  if (currentMode === "fast") label.innerText = "⚡ Scalping";
-  else if (currentMode === "safe") label.innerText = "🧠 Swing";
-  else label.innerText = "🎯 Day Trade";
+  if (currentMode === "fast") {
+    if (label) label.innerText = "⚡ Scalping";
+    if (title) title.innerText = "Scalping";
+    if (text) text.innerText = "สัญญาณไวกว่า TP/SL สั้นกว่า เหมาะกับดูจังหวะเร็ว ความเสี่ยงสูงกว่า";
+  } else if (currentMode === "safe") {
+    if (label) label.innerText = "🧠 Swing";
+    if (title) title.innerText = "Swing";
+    if (text) text.innerText = "เข้มงวดกว่า รอสัญญาณชัด ออกสัญญาณน้อยกว่า เหมาะกับถือแผนนานขึ้น";
+  } else {
+    if (label) label.innerText = "🎯 Day Trade";
+    if (title) title.innerText = "Day Trade";
+    if (text) text.innerText = "โหมดสมดุล เหมาะกับการดูกราฟ 15 นาที ใช้กติกากลาง";
+  }
 }
 
 function render(data) {
@@ -581,22 +591,31 @@ function render(data) {
 
   setText("confidence", confText);
 
-  const baseTime = s.signalTime || data.updated || new Date().toISOString();
-  const validUntil = s.validUntil || addMinutesToIso(baseTime, 15);
-  const nextCheck = s.nextCheck || addMinutesToIso(baseTime, data.apiCacheMinutes || 5);
-
-  setText("signalTime", formatThaiDateTime(baseTime));
-  setText("validUntil", formatThaiDateTime(validUntil));
-  setText("nextCheck", formatThaiDateTime(nextCheck));
+  setText("signalTime", formatThaiDateTime(s.signalTime || data.updated));
+  setText("validUntil", formatThaiDateTime(s.validUntil));
+  setText("nextCheck", formatThaiDateTime(s.nextCheck || data.nextApiUpdate));
   setText("candleInterval", s.candleInterval || "15min");
   setText("signalSource", formatSource(s.source || data.source));
+  setText("priceSource", formatSource(data.priceSource || data.source));
+  setText("lastCandleTime", s.candleTime || "-");
+  setText("nextApiUpdate", formatThaiDateTime(data.nextApiUpdate || s.nextCheck));
 
   const validNote = document.getElementById("validNote");
   if (validNote) {
     validNote.innerText =
       s.validNote ||
-      "Current Analysis เปลี่ยนได้ แต่ Active Trade Plan จะล็อกจนกว่า TP1 / SL / Expired";
+      "ราคาและกราฟใช้ข้อมูลชุดเดียวกันจาก Worker/Twelve Data";
   }
+
+  const chartSourceText = document.getElementById("chartSourceText");
+  if (chartSourceText) {
+    chartSourceText.innerText =
+      data.dataNotice ||
+      "กราฟนี้วาดจาก Candle ชุดเดียวกับที่ใช้คำนวณ Signal";
+  }
+
+  latestChartData = Array.isArray(data.chartData) ? data.chartData : [];
+  drawApiChart(latestChartData);
 
   renderActivePlan(activePlan);
 
@@ -651,10 +670,7 @@ function renderActivePlan(plan) {
     setText("activeHitType", "-");
     setText("activeHitPrice", "-");
 
-    if (activeStatus) {
-      activeStatus.className = "active-status";
-    }
-
+    if (activeStatus) activeStatus.className = "active-status";
     if (activeSignal) activeSignal.style.color = "#999";
     if (activeNote) {
       activeNote.innerText = "ยังไม่มี Active Trade Plan เพราะระบบยังไม่พบสัญญาณ BUY/SELL ที่คุณภาพผ่าน";
@@ -738,6 +754,132 @@ function renderActivePlan(plan) {
   previousActiveStatus = plan.status;
 }
 
+function drawApiChart(candles) {
+  const canvas = document.getElementById("apiChartCanvas");
+  if (!canvas) return;
+
+  const ctx = canvas.getContext("2d");
+  const w = canvas.width;
+  const h = canvas.height;
+
+  ctx.clearRect(0, 0, w, h);
+
+  ctx.fillStyle = "#080a0d";
+  ctx.fillRect(0, 0, w, h);
+
+  if (!candles || candles.length < 5) {
+    ctx.fillStyle = "#9aa3b2";
+    ctx.font = "20px sans-serif";
+    ctx.fillText("No chart data", 30, 60);
+    return;
+  }
+
+  const padLeft = 46;
+  const padRight = 72;
+  const padTop = 26;
+  const padBottom = 36;
+
+  const highs = candles.map(c => Number(c.high));
+  const lows = candles.map(c => Number(c.low));
+
+  const max = Math.max(...highs);
+  const min = Math.min(...lows);
+  const range = Math.max(0.01, max - min);
+
+  const plotW = w - padLeft - padRight;
+  const plotH = h - padTop - padBottom;
+
+  function xAt(i) {
+    return padLeft + (i / Math.max(1, candles.length - 1)) * plotW;
+  }
+
+  function yAt(price) {
+    return padTop + ((max - price) / range) * plotH;
+  }
+
+  ctx.strokeStyle = "rgba(255,255,255,0.08)";
+  ctx.lineWidth = 1;
+
+  for (let i = 0; i <= 4; i++) {
+    const y = padTop + (i / 4) * plotH;
+    ctx.beginPath();
+    ctx.moveTo(padLeft, y);
+    ctx.lineTo(w - padRight, y);
+    ctx.stroke();
+  }
+
+  for (let i = 0; i <= 6; i++) {
+    const x = padLeft + (i / 6) * plotW;
+    ctx.beginPath();
+    ctx.moveTo(x, padTop);
+    ctx.lineTo(x, h - padBottom);
+    ctx.stroke();
+  }
+
+  const candleW = Math.max(3, Math.floor(plotW / candles.length * 0.55));
+
+  candles.forEach((c, i) => {
+    const x = xAt(i);
+    const open = Number(c.open);
+    const close = Number(c.close);
+    const high = Number(c.high);
+    const low = Number(c.low);
+
+    const up = close >= open;
+    const color = up ? "#00c853" : "#ff455e";
+
+    const yHigh = yAt(high);
+    const yLow = yAt(low);
+    const yOpen = yAt(open);
+    const yClose = yAt(close);
+
+    ctx.strokeStyle = color;
+    ctx.fillStyle = color;
+
+    ctx.beginPath();
+    ctx.moveTo(x, yHigh);
+    ctx.lineTo(x, yLow);
+    ctx.stroke();
+
+    const bodyTop = Math.min(yOpen, yClose);
+    const bodyH = Math.max(2, Math.abs(yOpen - yClose));
+
+    ctx.fillRect(x - candleW / 2, bodyTop, candleW, bodyH);
+  });
+
+  const last = candles[candles.length - 1];
+  const lastPrice = Number(last.close);
+  const yLast = yAt(lastPrice);
+
+  ctx.setLineDash([5, 5]);
+  ctx.strokeStyle = "rgba(245,197,66,0.55)";
+  ctx.beginPath();
+  ctx.moveTo(padLeft, yLast);
+  ctx.lineTo(w - padRight, yLast);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  ctx.fillStyle = "#f5c542";
+  ctx.fillRect(w - padRight + 8, yLast - 13, 58, 26);
+
+  ctx.fillStyle = "#111";
+  ctx.font = "bold 14px sans-serif";
+  ctx.fillText(String(lastPrice.toFixed(2)), w - padRight + 13, yLast + 5);
+
+  ctx.fillStyle = "#cbd2df";
+  ctx.font = "13px sans-serif";
+
+  for (let i = 0; i <= 4; i++) {
+    const price = max - (i / 4) * range;
+    const y = padTop + (i / 4) * plotH;
+    ctx.fillText(price.toFixed(2), w - padRight + 8, y + 4);
+  }
+
+  ctx.fillStyle = "#9aa3b2";
+  ctx.font = "13px sans-serif";
+  ctx.fillText("Worker / Twelve Data candles", padLeft, h - 12);
+}
+
 function setMode(mode) {
   currentMode = mode;
 
@@ -749,7 +891,13 @@ function setMode(mode) {
   if (activeBtn) activeBtn.classList.add("active");
 
   updateModeLabel();
-  showToast("เปลี่ยนโหมด", mode === "fast" ? "Scalping" : mode === "safe" ? "Swing" : "Day Trade", "warning");
+
+  showToast(
+    "เปลี่ยนโหมด",
+    mode === "fast" ? "Scalping" : mode === "safe" ? "Swing" : "Day Trade",
+    "warning"
+  );
+
   loadSignal();
 }
 
@@ -786,13 +934,13 @@ function startAutoRefresh() {
 
   autoRefreshTimer = setInterval(() => {
     loadSignal();
-  }, AUTO_REFRESH_SECONDS * 1000);
+  }, API_REFRESH_SECONDS * 1000);
 
   countdownTimer = setInterval(() => {
-    updateAutoRefreshStatus();
+    updateApiCountdown();
   }, 1000);
 
-  resetRefreshCountdown();
+  setNextApiUpdate(null);
 }
 
 window.toggleSound = toggleSound;
@@ -805,6 +953,10 @@ window.sendVipSignal = sendVipSignal;
 window.testTelegram = testTelegram;
 window.resetActivePlan = resetActivePlan;
 window.toggleSection = toggleSection;
+
+window.addEventListener("resize", () => {
+  drawApiChart(latestChartData);
+});
 
 window.addEventListener("DOMContentLoaded", () => {
   loadSoundSetting();
