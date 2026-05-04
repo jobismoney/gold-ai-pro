@@ -183,18 +183,7 @@ select {
   box-shadow: var(--shadow), 0 0 38px rgba(245, 197, 66, 0.12);
 }
 
-.hero-glow {
-  position: absolute;
-  inset: -80px auto auto -80px;
-  width: 260px;
-  height: 260px;
-  background: radial-gradient(circle, rgba(245, 197, 66, 0.28), transparent 70%);
-  pointer-events: none;
-}
-
 .hero-main {
-  position: relative;
-  z-index: 1;
   display: grid;
   grid-template-columns: auto 1fr auto auto;
   align-items: center;
@@ -266,8 +255,6 @@ select {
 }
 
 .hero-metrics {
-  position: relative;
-  z-index: 1;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 14px;
@@ -316,14 +303,6 @@ select {
   overflow: hidden;
   border-color: rgba(245, 197, 66, 0.62);
   box-shadow: var(--shadow), 0 0 30px rgba(245, 197, 66, 0.12);
-}
-
-.active-bg-icon {
-  position: absolute;
-  right: 20px;
-  top: 16px;
-  opacity: 0.08;
-  font-size: 130px;
 }
 
 .section-head {
@@ -499,10 +478,6 @@ select {
 
 .reason-list div {
   margin-bottom: 6px;
-}
-
-.reason-list div::first-letter {
-  color: var(--gold);
 }
 
 .chart-gold-row {
