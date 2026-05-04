@@ -20,7 +20,9 @@ const el = {
   demo: document.getElementById("demoBadge")
 };
 
-// 🔥 โหลดข้อมูล
+// =========================
+// LOAD SIGNAL
+// =========================
 async function loadSignal() {
   try {
     const res = await fetch(`${API_URL}?mode=${currentMode}`);
@@ -33,7 +35,9 @@ async function loadSignal() {
   }
 }
 
-// 🔥 แสดงผล
+// =========================
+// RENDER SIGNAL
+// =========================
 function render(data) {
   const s = data.signal;
 
@@ -70,13 +74,15 @@ function render(data) {
   // reason
   el.reason.innerHTML = "";
   s.reason.forEach(r => {
-    const li = document.createElement("div");
-    li.innerText = "• " + r;
-    el.reason.appendChild(li);
+    const div = document.createElement("div");
+    div.innerText = "• " + r;
+    el.reason.appendChild(div);
   });
 }
 
-// 🔥 เปลี่ยนโหมด
+// =========================
+// MODE
+// =========================
 function setMode(mode) {
   currentMode = mode;
 
@@ -89,5 +95,33 @@ function setMode(mode) {
   loadSignal();
 }
 
-// 🔥 initial load
+// =========================
+// THAI GOLD REAL DATA
+// =========================
+async function loadThaiGold() {
+  try {
+    const res = await fetch("https://api.chnwt.dev/thai-gold-api/latest");
+    const data = await res.json();
+
+    document.getElementById("thai_buy").innerText =
+      data.response.price.gold.bar.buy;
+
+    document.getElementById("thai_sell").innerText =
+      data.response.price.gold.bar.sell;
+
+    document.getElementById("thai_buy_jewelry").innerText =
+      data.response.price.gold.jewelry.buy;
+
+    document.getElementById("thai_sell_jewelry").innerText =
+      data.response.price.gold.jewelry.sell;
+
+  } catch (e) {
+    console.log("Thai gold error", e);
+  }
+}
+
+// =========================
+// INIT
+// =========================
 loadSignal();
+loadThaiGold();
