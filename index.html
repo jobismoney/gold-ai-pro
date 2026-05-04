@@ -4,167 +4,318 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <title>Gold AI Pro | XAU/USD Signal</title>
-  <meta name="description" content="วิเคราะห์ทองคำ XAU/USD พร้อมสัญญาณ BUY/SELL และราคาทองวันนี้">
+  <title>Gold AI Pro | XAU/USD Smart Signal</title>
+  <meta name="description" content="Gold AI Pro วิเคราะห์ทองคำ XAU/USD พร้อม Smart Signal, Active Trade Plan และราคาทองไทย">
 
   <link rel="stylesheet" href="./assets/css/style.css">
 </head>
 
 <body>
 
-<div class="app">
+<div class="app-shell">
 
-  <div class="card">
-    <div class="top">
+  <!-- APP HEADER -->
+  <header class="app-header">
+    <div class="brand-wrap">
+      <div class="brand-logo">G</div>
       <div>
-        <div class="logo">💰 Gold AI Pro</div>
-        <div id="marketStatus">Loading...</div>
-      </div>
-
-      <div class="badges">
-        <div id="demoBadge" class="badge demo">DEMO</div>
-        <div class="badge vip">VIP</div>
-        <div class="badge market">LIVE</div>
+        <div class="brand-title">Gold AI Pro</div>
+        <div class="brand-subtitle">XAU/USD Smart Signal</div>
       </div>
     </div>
 
-    <div class="mode-row">
-      <button id="mode-fast" class="mode-btn" onclick="setMode('fast')">⚡ Scalping</button>
-      <button id="mode-balanced" class="mode-btn active" onclick="setMode('balanced')">🎯 Day Trade</button>
-      <button id="mode-safe" class="mode-btn" onclick="setMode('safe')">🧠 Swing</button>
+    <button class="icon-btn" type="button" onclick="toggleAdminPanel()">🔔</button>
+  </header>
+
+  <!-- STATUS CHIPS -->
+  <div class="status-row">
+    <div id="marketStatus" class="status-chip open">Loading...</div>
+    <div class="status-chip live"><span class="live-dot"></span> LIVE</div>
+    <div class="status-chip mode">📈 Day Trade</div>
+  </div>
+
+  <!-- MODE SWITCH -->
+  <div class="mode-row premium-tabs">
+    <button id="mode-fast" class="mode-btn" onclick="setMode('fast')">⚡ Scalping</button>
+    <button id="mode-balanced" class="mode-btn active" onclick="setMode('balanced')">🎯 Day Trade</button>
+    <button id="mode-safe" class="mode-btn" onclick="setMode('safe')">🧠 Swing</button>
+  </div>
+
+  <!-- HERO SIGNAL CARD -->
+  <section class="hero-card">
+    <div class="hero-glow"></div>
+
+    <div class="hero-main">
+      <div class="gold-stack">🪙</div>
+
+      <div class="hero-price-wrap">
+        <div id="price" class="hero-price">-</div>
+        <div class="hero-symbol">XAU/USD <span>• USD</span></div>
+      </div>
+
+      <div class="hero-signal-wrap">
+        <div id="signal" class="hero-signal">-</div>
+      </div>
+
+      <div class="hero-confidence-wrap">
+        <span>Confidence</span>
+        <b id="confidence">-</b>
+      </div>
     </div>
 
-    <div class="section-title">Current Analysis</div>
+    <div class="hero-metrics">
+      <div class="hero-mini">
+        <span>🤖 AI Score</span>
+        <b id="aiScore">-</b>
+      </div>
 
-    <div class="signal-box">
-      <div id="price" class="price">-</div>
-      <div id="signal" class="signal">-</div>
-      <div id="confidence" class="confidence">-</div>
+      <div class="hero-mini">
+        <span>🛡 Quality</span>
+        <b id="signalQuality">-</b>
+      </div>
+
+      <div class="hero-mini">
+        <span>👤 VIP</span>
+        <b id="vipAllowed">-</b>
+      </div>
+    </div>
+  </section>
+
+  <div class="helper-text">
+    วิเคราะห์สดเปลี่ยนได้ตามตลาด — แผนที่ล็อกไว้จะแสดงใน Active Trade Plan
+  </div>
+
+  <!-- ACTIVE TRADE PLAN -->
+  <section class="card active-card">
+    <div class="active-bg-icon">🔒</div>
+
+    <div class="section-head">
+      <div>
+        <h2>Active Trade Plan</h2>
+        <p>แผนที่ล็อกไว้ ไม่เปลี่ยนจนกว่า TP1 / SL / Expired</p>
+      </div>
+      <div class="lock-badge">LOCK</div>
     </div>
 
-    <div class="section-title">Smart Engine v2</div>
-    <div class="grid">
-      <div class="box"><span>Engine</span><b id="engine">-</b></div>
-      <div class="box"><span>Quality</span><b id="signalQuality">-</b></div>
-      <div class="box"><span>AI Score</span><b id="aiScore">-</b></div>
-      <div class="box"><span>VIP Allowed</span><b id="vipAllowed">-</b></div>
-      <div class="box"><span>Risk/Reward</span><b id="riskReward">-</b></div>
-      <div class="box"><span>Plan Lock</span><b id="activePlanReason">-</b></div>
+    <div class="active-status-wrap">
+      <div id="activeStatus" class="active-status">NO ACTIVE PLAN</div>
+      <div id="activeSignal" class="active-signal">-</div>
     </div>
 
-    <div class="section-title">Market Structure</div>
-    <div class="grid">
-      <div class="box"><span>Trend</span><b id="trend">-</b></div>
-      <div class="box"><span>RSI</span><b id="rsi">-</b></div>
-      <div class="box"><span>Support</span><b id="support">-</b></div>
-      <div class="box"><span>Resistance</span><b id="resistance">-</b></div>
-      <div class="box"><span>Buy Score</span><b id="buyScore">-</b></div>
-      <div class="box"><span>Sell Score</span><b id="sellScore">-</b></div>
-      <div class="box"><span>Fib Zone</span><b id="fibZone">-</b></div>
-      <div class="box"><span>Trap</span><b id="trap">-</b></div>
-    </div>
-
-    <div class="section-title">Reason</div>
-    <div id="reason" class="reason">-</div>
-
-    <div class="section-title">Smart Filters</div>
-    <div id="filters" class="reason">-</div>
-
-    <div class="section-title">Current Analysis Trade Plan</div>
-    <div class="grid">
-      <div class="box"><span>Entry</span><b id="entry">-</b></div>
-      <div class="box"><span>SL</span><b id="sl">-</b></div>
-      <div class="box"><span>TP1</span><b id="tp1">-</b></div>
-      <div class="box"><span>TP2</span><b id="tp2">-</b></div>
-      <div class="box"><span>TP3</span><b id="tp3">-</b></div>
-    </div>
-
-    <div class="note">
-      Current Analysis สามารถเปลี่ยนได้เมื่อราคา/แท่งเทียนเปลี่ยน แต่ Active Trade Plan ด้านล่างจะล็อกไว้จนกว่าจะจบ
-    </div>
-
-    <div class="section-title">🔒 Active Trade Plan</div>
-
-    <div class="signal-box">
-      <div id="activeStatus" class="signal">NO ACTIVE PLAN</div>
-      <div id="activeSignal" class="confidence">-</div>
-    </div>
-
-    <div class="grid">
-      <div class="box"><span>Status</span><b id="activePlanStatus">-</b></div>
-      <div class="box"><span>Signal</span><b id="activePlanSignal">-</b></div>
-      <div class="box"><span>Quality</span><b id="activePlanQuality">-</b></div>
-      <div class="box"><span>AI Score</span><b id="activePlanAiScore">-</b></div>
-      <div class="box"><span>Confidence</span><b id="activePlanConfidence">-</b></div>
-      <div class="box"><span>Risk/Reward</span><b id="activePlanRiskReward">-</b></div>
-    </div>
-
-    <div class="section-title">Locked Price Plan</div>
-    <div class="grid">
-      <div class="box"><span>Entry</span><b id="activeEntry">-</b></div>
-      <div class="box"><span>SL</span><b id="activeSl">-</b></div>
-      <div class="box"><span>TP1</span><b id="activeTp1">-</b></div>
-      <div class="box"><span>TP2</span><b id="activeTp2">-</b></div>
-      <div class="box"><span>TP3</span><b id="activeTp3">-</b></div>
-      <div class="box"><span>Last Price</span><b id="activeLastPrice">-</b></div>
-    </div>
-
-    <div class="section-title">Active Plan Timing</div>
-    <div class="grid">
-      <div class="box"><span>Created</span><b id="activeCreatedAt">-</b></div>
-      <div class="box"><span>Expires</span><b id="activeExpiresAt">-</b></div>
-      <div class="box"><span>Closed</span><b id="activeClosedAt">-</b></div>
-      <div class="box"><span>Result</span><b id="activeResult">-</b></div>
-      <div class="box"><span>Hit Type</span><b id="activeHitType">-</b></div>
-      <div class="box"><span>Hit Price</span><b id="activeHitPrice">-</b></div>
-    </div>
-
-    <div class="note" id="activePlanNote">
+    <div id="activePlanNote" class="active-note">
       ยังไม่มี Active Trade Plan เพราะระบบยังไม่พบสัญญาณ BUY/SELL ที่คุณภาพผ่าน
     </div>
 
-    <div class="section-title">Signal Timing</div>
-    <div class="grid">
-      <div class="box"><span>Signal Time</span><b id="signalTime">-</b></div>
-      <div class="box"><span>Valid Until</span><b id="validUntil">-</b></div>
-      <div class="box"><span>Next Check</span><b id="nextCheck">-</b></div>
-      <div class="box"><span>Candle</span><b id="candleInterval">-</b></div>
-      <div class="box"><span>Source</span><b id="signalSource">-</b></div>
+    <div class="plan-strip">
+      <div>
+        <span>Status</span>
+        <b id="activePlanStatus">-</b>
+      </div>
+      <div>
+        <span>Signal</span>
+        <b id="activePlanSignal">-</b>
+      </div>
+      <div>
+        <span>Entry</span>
+        <b id="activeEntry">-</b>
+      </div>
+      <div>
+        <span>SL</span>
+        <b id="activeSl">-</b>
+      </div>
+      <div>
+        <span>TP1</span>
+        <b id="activeTp1">-</b>
+      </div>
     </div>
 
-    <div class="note" id="validNote">
-      Current Analysis เปลี่ยนได้ แต่ Active Trade Plan จะล็อกจนกว่า TP1 / SL / Expired
+    <div class="mini-grid active-mini-grid">
+      <div class="mini-card"><span>TP2</span><b id="activeTp2">-</b></div>
+      <div class="mini-card"><span>TP3</span><b id="activeTp3">-</b></div>
+      <div class="mini-card"><span>Last Price</span><b id="activeLastPrice">-</b></div>
+      <div class="mini-card"><span>Quality</span><b id="activePlanQuality">-</b></div>
+      <div class="mini-card"><span>AI Score</span><b id="activePlanAiScore">-</b></div>
+      <div class="mini-card"><span>Confidence</span><b id="activePlanConfidence">-</b></div>
+      <div class="mini-card"><span>Risk/Reward</span><b id="activePlanRiskReward">-</b></div>
+      <div class="mini-card"><span>Result</span><b id="activeResult">-</b></div>
     </div>
 
-    <div class="section-title">Learning Stats</div>
-    <div class="grid">
-      <div class="box"><span>Memory</span><b id="memoryType">-</b></div>
-      <div class="box"><span>Total Signals</span><b id="totalSignals">-</b></div>
-      <div class="box"><span>Pending</span><b id="pendingSignals">-</b></div>
-      <div class="box"><span>Finished</span><b id="totalFinished">-</b></div>
-      <div class="box"><span>Wins</span><b id="wins">-</b></div>
-      <div class="box"><span>Losses</span><b id="losses">-</b></div>
-      <div class="box"><span>Win Rate</span><b id="winRate">-</b></div>
+    <div class="timeline-grid">
+      <div><span>Created</span><b id="activeCreatedAt">-</b></div>
+      <div><span>Expires</span><b id="activeExpiresAt">-</b></div>
+      <div><span>Closed</span><b id="activeClosedAt">-</b></div>
+      <div><span>Hit Type</span><b id="activeHitType">-</b></div>
+      <div><span>Hit Price</span><b id="activeHitPrice">-</b></div>
+    </div>
+  </section>
+
+  <!-- CURRENT ANALYSIS -->
+  <section class="card">
+    <div class="section-head compact">
+      <div>
+        <h2>Current Analysis</h2>
+        <p>ข้อมูลวิเคราะห์สด ใช้ดูสภาพตลาดปัจจุบัน</p>
+      </div>
     </div>
 
-    <div class="note" id="learningNote">
-      Learning จะเริ่มมีผลเมื่อมีข้อมูลย้อนหลังมากพอ
+    <div class="mini-grid">
+      <div class="mini-card trend-card"><span>Trend</span><b id="trend">-</b></div>
+      <div class="mini-card"><span>RSI</span><b id="rsi">-</b></div>
+      <div class="mini-card"><span>Support</span><b id="support">-</b></div>
+      <div class="mini-card"><span>Resistance</span><b id="resistance">-</b></div>
+      <div class="mini-card"><span>Buy Score</span><b id="buyScore">-</b></div>
+      <div class="mini-card"><span>Sell Score</span><b id="sellScore">-</b></div>
+      <div class="mini-card"><span>Fib Zone</span><b id="fibZone">-</b></div>
+      <div class="mini-card"><span>Trap</span><b id="trap">-</b></div>
+      <div class="mini-card"><span>Risk/Reward</span><b id="riskReward">-</b></div>
+      <div class="mini-card"><span>Plan Lock</span><b id="activePlanReason">-</b></div>
+      <div class="mini-card"><span>Engine</span><b id="engine">-</b></div>
+      <div class="mini-card"><span>Source</span><b id="signalSource">-</b></div>
+    </div>
+  </section>
+
+  <!-- CURRENT ANALYSIS TRADE PLAN -->
+  <section class="card slim-card">
+    <div class="section-head compact">
+      <div>
+        <h2>Current Analysis Trade Plan</h2>
+        <p>แผนสด อาจเปลี่ยนได้ตามตลาด ไม่ใช่แผนที่ล็อก</p>
+      </div>
     </div>
 
+    <div class="plan-strip muted">
+      <div><span>Entry</span><b id="entry">-</b></div>
+      <div><span>SL</span><b id="sl">-</b></div>
+      <div><span>TP1</span><b id="tp1">-</b></div>
+      <div><span>TP2</span><b id="tp2">-</b></div>
+      <div><span>TP3</span><b id="tp3">-</b></div>
+    </div>
+  </section>
+
+  <!-- REASON + FILTERS -->
+  <section class="two-col">
+    <div class="card info-card">
+      <div class="small-title">💡 Reason</div>
+      <div id="reason" class="reason-list">-</div>
+    </div>
+
+    <div class="card info-card">
+      <div class="small-title">🔎 Smart Filters</div>
+      <div id="filters" class="reason-list">-</div>
+    </div>
+  </section>
+
+  <!-- TIMING -->
+  <section class="card slim-card">
+    <div class="section-head compact">
+      <div>
+        <h2>Signal Timing</h2>
+        <p id="validNote">Current Analysis เปลี่ยนได้ แต่ Active Trade Plan จะล็อกจนกว่า TP1 / SL / Expired</p>
+      </div>
+    </div>
+
+    <div class="mini-grid timing-grid">
+      <div class="mini-card"><span>Signal Time</span><b id="signalTime">-</b></div>
+      <div class="mini-card"><span>Valid Until</span><b id="validUntil">-</b></div>
+      <div class="mini-card"><span>Next Check</span><b id="nextCheck">-</b></div>
+      <div class="mini-card"><span>Candle</span><b id="candleInterval">-</b></div>
+    </div>
+  </section>
+
+  <!-- CHART + THAI GOLD -->
+  <section class="two-col chart-gold-row">
+    <div class="card chart-card">
+      <div class="section-head compact">
+        <div>
+          <h2>XAU/USD Chart</h2>
+          <p>TradingView realtime chart</p>
+        </div>
+      </div>
+
+      <div class="chart-box">
+        <iframe
+          src="https://www.tradingview.com/widgetembed/?symbol=XAUUSD&interval=15&theme=dark"
+          width="100%"
+          height="340"
+          frameborder="0">
+        </iframe>
+      </div>
+    </div>
+
+    <div class="card thai-card">
+      <div class="section-head compact">
+        <div>
+          <h2>ราคาทองคำในประเทศ</h2>
+          <p>ใช้เพื่อข้อมูลเท่านั้น ไม่ใช้คำนวณ Signal</p>
+        </div>
+      </div>
+
+      <div class="thai-grid">
+        <div>
+          <span>ทองแท่ง ซื้อ</span>
+          <b id="thai_buy">-</b>
+          <small>บาท</small>
+        </div>
+        <div>
+          <span>ทองแท่ง ขาย</span>
+          <b id="thai_sell">-</b>
+          <small>บาท</small>
+        </div>
+        <div>
+          <span>รูปพรรณ ซื้อ</span>
+          <b id="thai_buy_jewelry">-</b>
+          <small>บาท</small>
+        </div>
+        <div>
+          <span>รูปพรรณ ขาย</span>
+          <b id="thai_sell_jewelry">-</b>
+          <small>บาท</small>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- LEARNING -->
+  <section class="card slim-card">
+    <div class="section-head compact">
+      <div>
+        <h2>Learning Stats</h2>
+        <p id="learningNote">Learning จะเริ่มมีผลเมื่อมีข้อมูลย้อนหลังมากพอ</p>
+      </div>
+    </div>
+
+    <div class="mini-grid">
+      <div class="mini-card"><span>Memory</span><b id="memoryType">-</b></div>
+      <div class="mini-card"><span>Total</span><b id="totalSignals">-</b></div>
+      <div class="mini-card"><span>Pending</span><b id="pendingSignals">-</b></div>
+      <div class="mini-card"><span>Finished</span><b id="totalFinished">-</b></div>
+      <div class="mini-card"><span>Wins</span><b id="wins">-</b></div>
+      <div class="mini-card"><span>Losses</span><b id="losses">-</b></div>
+      <div class="mini-card"><span>Win Rate</span><b id="winRate">-</b></div>
+    </div>
+  </section>
+
+  <!-- ACTIONS -->
+  <section class="card action-card">
     <div class="actions">
       <button class="btn-main" onclick="loadSignal()">🚀 Load Signal</button>
-      <button class="btn-main" onclick="toggleAdminPanel()">🔐 Admin Panel</button>
+      <button class="btn-main ghost" onclick="toggleAdminPanel()">🔐 Admin Panel</button>
     </div>
 
     <div class="note" id="autoRefreshStatus">
       Auto refresh: every 60s | API cache: 5 min
     </div>
 
-    <div id="adminPanel" style="display:none;">
-      <div class="section-title">VIP Alert Setting</div>
+    <div id="adminPanel" class="admin-panel" style="display:none;">
+      <div class="section-head compact">
+        <div>
+          <h2>Admin Panel</h2>
+          <p>สำหรับทดสอบ Telegram / ส่ง VIP / Reset Plan</p>
+        </div>
+      </div>
 
-      <div class="grid">
-        <div class="box">
+      <div class="mini-grid">
+        <div class="mini-card input-card">
           <span>Admin Key</span>
           <input
             id="adminKey"
@@ -175,13 +326,10 @@
             autocapitalize="off"
             spellcheck="false"
           >
-
-          <button class="btn-main" type="button" onclick="toggleAdminKey()">
-            👁 แสดง / ซ่อน Admin Key
-          </button>
+          <button class="small-btn" type="button" onclick="toggleAdminKey()">👁 แสดง / ซ่อน</button>
         </div>
 
-        <div class="box">
+        <div class="mini-card input-card">
           <span>Min Confidence</span>
           <select id="minConfidence" class="setting-input">
             <option value="70">70%</option>
@@ -191,7 +339,7 @@
           </select>
         </div>
 
-        <div class="box">
+        <div class="mini-card input-card">
           <span>Cooldown</span>
           <select id="cooldownMinutes" class="setting-input">
             <option value="15">15 min</option>
@@ -201,70 +349,39 @@
         </div>
       </div>
 
-      <div class="actions">
+      <div class="actions admin-actions">
         <button class="btn-main" onclick="sendVipSignal()">📩 Send VIP Alert</button>
-        <button class="btn-main" onclick="testTelegram()">🧪 Test Telegram</button>
-        <button class="btn-main" onclick="resetActivePlan()">♻️ Reset Active Plan</button>
+        <button class="btn-main ghost" onclick="testTelegram()">🧪 Test Telegram</button>
+        <button class="btn-main danger" onclick="resetActivePlan()">♻️ Reset Active Plan</button>
       </div>
 
-      <div class="note" id="vipAlertStatus">
-        VIP Alert: ready
-      </div>
-
-      <div class="note" id="telegramTestStatus">
-        Telegram: ready
-      </div>
-
-      <div class="note" id="resetActiveStatus">
-        Active Plan Reset: ready
-      </div>
+      <div class="note" id="vipAlertStatus">VIP Alert: ready</div>
+      <div class="note" id="telegramTestStatus">Telegram: ready</div>
+      <div class="note" id="resetActiveStatus">Active Plan Reset: ready</div>
     </div>
-  </div>
+  </section>
 
-  <div class="card">
-    <div class="section-title">XAU/USD Chart</div>
-    <div class="chart-box">
-      <iframe
-        src="https://www.tradingview.com/widgetembed/?symbol=XAUUSD&interval=15&theme=dark"
-        width="100%"
-        height="400"
-        frameborder="0">
-      </iframe>
-    </div>
-  </div>
-
-  <div class="card">
-    <div class="section-title">🇹🇭 ราคาทองไทย</div>
-
-    <div class="thai-gold">
-      <div class="box"><span>ทองแท่ง ซื้อ</span><b id="thai_buy">-</b></div>
-      <div class="box"><span>ทองแท่ง ขาย</span><b id="thai_sell">-</b></div>
-      <div class="box"><span>รูปพรรณ ซื้อ</span><b id="thai_buy_jewelry">-</b></div>
-      <div class="box"><span>รูปพรรณ ขาย</span><b id="thai_sell_jewelry">-</b></div>
-    </div>
-
-    <div class="note">
-      * ราคาทองไทยใช้เพื่อข้อมูลเท่านั้น ไม่ใช้คำนวณ Signal
-    </div>
-  </div>
-
-  <div class="card">
-    <div class="section-title">⚠️ Disclaimer</div>
-    <div class="note">
+  <!-- DISCLAIMER -->
+  <section class="card disclaimer-card">
+    <div class="small-title">⚠️ Disclaimer</div>
+    <p>
       ข้อมูลและสัญญาณใน Gold AI Pro ใช้เพื่อการศึกษาและประกอบการวิเคราะห์เท่านั้น
       ไม่ใช่คำแนะนำการลงทุน ผู้ใช้งานควรบริหารความเสี่ยงและตัดสินใจด้วยตนเอง
-    </div>
-  </div>
+    </p>
+  </section>
 
-  <div class="card">
-    <div class="section-title">📰 Market News</div>
-    <div class="news-item">Market News: Coming soon</div>
-    <div class="news-item">ข่าวเศรษฐกิจ / USD / FED จะเพิ่มในขั้นต่อไป</div>
-  </div>
+  <!-- AD -->
+  <section class="ad-box">
+    พื้นที่โฆษณา
+  </section>
 
-  <div class="card">
-    <div class="ad-box">พื้นที่โฆษณา</div>
-  </div>
+  <!-- MOBILE BOTTOM NAV MOCK -->
+  <nav class="bottom-nav">
+    <div class="nav-item active">🏠<span>Home</span></div>
+    <div class="nav-item">📡<span>Signal</span></div>
+    <div class="nav-item">📋<span>Plan</span></div>
+    <div class="nav-item" onclick="toggleAdminPanel()">⚙️<span>Admin</span></div>
+  </nav>
 
 </div>
 
