@@ -74,32 +74,29 @@ function setMode(mode) {
 }
 
 // =========================
-// THAI GOLD (FIXED)
+// 🔥 THAI GOLD FIX REAL
 // =========================
 async function loadThaiGold() {
   try {
     const res = await fetch("https://api.chnwt.dev/thai-gold-api/latest");
     const data = await res.json();
 
-    console.log("Thai Gold API:", data);
+    console.log("Thai Gold RAW:", data);
 
-    const d = data.response || data;
+    const d = data.response;
 
-    const barBuy = d.price?.gold?.bar?.buy || "-";
-    const barSell = d.price?.gold?.bar?.sell || "-";
-    const jewBuy = d.price?.gold?.jewelry?.buy || "-";
-    const jewSell = d.price?.gold?.jewelry?.sell || "-";
+    // 🔥 ใช้ field ที่ถูกต้องจริง
+    const barBuy = d.price.gold.bar.buy;
+    const barSell = d.price.gold.bar.sell;
+    const jewBuy = d.price.gold.jewelry.buy;
+    const jewSell = d.price.gold.jewelry.sell;
 
-    // 🔥 ดึง element ตอนนี้ (ไม่ใช้ el cache)
-    const thai_buy = document.getElementById("thai_buy");
-    const thai_sell = document.getElementById("thai_sell");
-    const thai_buy_jewelry = document.getElementById("thai_buy_jewelry");
-    const thai_sell_jewelry = document.getElementById("thai_sell_jewelry");
+    console.log("Parsed:", barBuy, barSell, jewBuy, jewSell);
 
-    if (thai_buy) thai_buy.innerText = barBuy;
-    if (thai_sell) thai_sell.innerText = barSell;
-    if (thai_buy_jewelry) thai_buy_jewelry.innerText = jewBuy;
-    if (thai_sell_jewelry) thai_sell_jewelry.innerText = jewSell;
+    document.getElementById("thai_buy").innerText = barBuy;
+    document.getElementById("thai_sell").innerText = barSell;
+    document.getElementById("thai_buy_jewelry").innerText = jewBuy;
+    document.getElementById("thai_sell_jewelry").innerText = jewSell;
 
   } catch (e) {
     console.log("Thai gold error:", e);
@@ -107,7 +104,7 @@ async function loadThaiGold() {
 }
 
 // =========================
-// INIT (รอ DOM ก่อน)
+// INIT
 // =========================
 window.addEventListener("DOMContentLoaded", () => {
   loadSignal();
