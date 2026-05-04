@@ -1,90 +1,124 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Gold AI Pro</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<link rel="stylesheet" href="./assets/css/style.css">
+  <title>Gold AI Pro | XAU/USD Signal</title>
+  <meta name="description" content="วิเคราะห์ทองคำ XAU/USD พร้อมสัญญาณ BUY/SELL และราคาทองวันนี้">
+
+  <link rel="stylesheet" href="./assets/css/style.css">
 </head>
 
 <body>
 
 <div class="app">
-  <div class="card">
 
+  <!-- TOP -->
+  <div class="card">
     <div class="top">
       <div>
         <div class="logo">💰 Gold AI Pro</div>
         <div id="marketStatus" class="status">Loading...</div>
       </div>
-      <div id="vipBadge" class="badge">FREE</div>
-    </div>
 
-    <div id="price" class="price">XAU/USD: --</div>
-    <div id="signal" class="signal wait">WAIT</div>
-
-    <div class="grid">
-      <div class="box"><span>🎯 Entry</span><b id="entry">--</b></div>
-      <div class="box"><span>🛑 SL</span><b id="sl">--</b></div>
-      <div class="box"><span>💰 TP1</span><b id="tp1">--</b></div>
-      <div class="box vip-lock"><span>🔐 TP2</span><b id="tp2">VIP</b></div>
-      <div class="box vip-lock"><span>🔐 TP3</span><b id="tp3">VIP</b></div>
-      <div class="box"><span>📌 Confidence</span><b id="confidence">--</b></div>
-    </div>
-
-    <button class="main" onclick="loadSignal()">🚀 Load Signal</button>
-    <button class="dark" onclick="toggleChart()">📊 View Chart</button>
-    <button class="gold" onclick="toggleSettings()">⚙️ Alert Settings</button>
-
-    <div id="settings" class="panel">
-      <h3>⚙️ Alert Settings</h3>
-
-      <label>Telegram Alert</label>
-      <select id="telegram">
-        <option value="off">ปิด</option>
-        <option value="on">เปิด</option>
-      </select>
-
-      <label>Minimum Confidence</label>
-      <select id="minConf">
-        <option value="60">60%+</option>
-        <option value="70" selected>70%+</option>
-        <option value="80">80%+</option>
-      </select>
-
-      <label>Cooldown</label>
-      <select id="cooldown">
-        <option value="5">5 นาที</option>
-        <option value="15" selected>15 นาที</option>
-        <option value="60">60 นาที</option>
-      </select>
-
-      <button class="main" onclick="saveSettings()">💾 Save Settings</button>
-      <button class="dark" onclick="testTelegram()">🔔 Test Telegram</button>
-
-      <div class="note">
-        Telegram จะส่งเฉพาะ VIP + เปิด Telegram + Signal เข้าเงื่อนไข
+      <div class="badges">
+        <div id="demoBadge" class="badge demo">DEMO</div>
+        <div class="badge vip">VIP</div>
+        <div class="badge market">LIVE</div>
       </div>
     </div>
 
-    <div id="chart" class="panel">
+    <!-- MODE -->
+    <div class="mode-row">
+      <button id="mode-fast" class="mode-btn" onclick="setMode('fast')">⚡ FAST</button>
+      <button id="mode-balanced" class="mode-btn active" onclick="setMode('balanced')">🎯 BALANCED</button>
+      <button id="mode-safe" class="mode-btn" onclick="setMode('safe')">🧠 SAFE</button>
+    </div>
+
+    <!-- SIGNAL -->
+    <div class="signal-box">
+      <div id="price" class="price">-</div>
+      <div id="signal" class="signal">-</div>
+      <div id="confidence" class="confidence">-</div>
+    </div>
+
+    <!-- DATA -->
+    <div class="grid">
+      <div class="box"><span>Trend</span><b id="trend">-</b></div>
+      <div class="box"><span>RSI</span><b id="rsi">-</b></div>
+      <div class="box"><span>Support</span><b id="support">-</b></div>
+      <div class="box"><span>Resistance</span><b id="resistance">-</b></div>
+    </div>
+
+    <!-- REASON -->
+    <div class="section-title">Reason</div>
+    <div id="reason" class="reason">-</div>
+
+    <!-- ACTION -->
+    <div class="section-title">Trade Plan</div>
+    <div class="grid">
+      <div class="box"><span>Entry</span><b id="entry">-</b></div>
+      <div class="box"><span>SL</span><b id="sl">-</b></div>
+      <div class="box"><span>TP1</span><b id="tp1">-</b></div>
+      <div class="box"><span>TP2</span><b id="tp2">-</b></div>
+      <div class="box"><span>TP3</span><b id="tp3">-</b></div>
+    </div>
+
+    <!-- ACTION BUTTON -->
+    <div class="actions">
+      <button class="btn-main" onclick="loadSignal()">🚀 Load Signal</button>
+    </div>
+  </div>
+
+  <!-- CHART -->
+  <div class="card">
+    <div class="section-title">XAU/USD Chart</div>
+
+    <div class="chart-box">
       <iframe
-        src="https://www.tradingview.com/widgetembed/?symbol=OANDA:XAUUSD&interval=15&theme=dark"
+        src="https://www.tradingview.com/widgetembed/?symbol=XAUUSD&interval=15&theme=dark"
         width="100%"
-        height="420"
-        frameborder="0">
-      </iframe>
+        height="400"
+        frameborder="0"
+      ></iframe>
+    </div>
+  </div>
+
+  <!-- THAI GOLD -->
+  <div class="card">
+    <div class="section-title">🇹🇭 ราคาทองไทย</div>
+
+    <div class="thai-gold">
+      <div class="box"><span>ทองแท่ง ซื้อ</span><b>-</b></div>
+      <div class="box"><span>ทองแท่ง ขาย</span><b>-</b></div>
+      <div class="box"><span>รูปพรรณ ซื้อ</span><b>-</b></div>
+      <div class="box"><span>รูปพรรณ ขาย</span><b>-</b></div>
     </div>
 
     <div class="note">
-      ⚠️ ระบบนี้เป็นเครื่องมือช่วยวิเคราะห์ ไม่ใช่คำแนะนำการลงทุน
+      * ราคาทองไทยใช้เพื่อข้อมูลเท่านั้น ไม่ได้ใช้คำนวณ Signal
     </div>
-
   </div>
+
+  <!-- NEWS -->
+  <div class="card">
+    <div class="section-title">📰 Market News</div>
+
+    <div class="news-item">USD แข็งค่า → กดดันทอง</div>
+    <div class="news-item">FED มีแนวโน้มขึ้นดอกเบี้ย</div>
+  </div>
+
+  <!-- ADS -->
+  <div class="card">
+    <div class="ad-box">
+      พื้นที่โฆษณา (Google AdSense)
+    </div>
+  </div>
+
 </div>
 
-<script src="./assets/js/config.js"></script>
 <script src="./assets/js/app.js"></script>
+
 </body>
 </html>
