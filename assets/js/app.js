@@ -18,11 +18,11 @@ async function loadSignal() {
 }
 
 function render(data) {
-  const s = data.signal;
+  const s = data.signal || {};
 
   setText("price", data.price);
   setText("signal", s.signal);
-  setText("confidence", s.confidence + "%");
+  setText("confidence", (s.confidence ?? "-") + "%");
   setText("trend", s.trend);
   setText("rsi", s.rsi);
   setText("support", s.support);
@@ -47,6 +47,7 @@ function render(data) {
   const reasonBox = document.getElementById("reason");
   if (reasonBox) {
     reasonBox.innerHTML = "";
+
     if (s.reason && s.reason.length) {
       s.reason.forEach(r => {
         const div = document.createElement("div");
@@ -72,34 +73,6 @@ function setMode(mode) {
   loadSignal();
 }
 
-function findNumberLike(obj, keywords) {
-  const results = [];
-
-  function walk(value, path = "") {
-    if (value === null || value === undefined) return;
-
-    if (typeof value === "object") {
-      Object.keys(value).forEach(key => {
-        walk(value[key], path ? `${path}.${key}` : key);
-      });
-      return;
-    }
-
-    const text = String(value);
-    const pathLower = path.toLowerCase();
-
-    const matchKeyword = keywords.some(k => pathLower.includes(k));
-    const hasNumber = /[0-9]/.test(text);
-
-    if (matchKeyword && hasNumber) {
-      results.push({ path, value: text });
-    }
-  }
-
-  walk(obj);
-  return results;
-}
-
 async function loadThaiGold() {
   try {
     const res = await fetch("https://api.chnwt.dev/thai-gold-api/latest");
@@ -107,62 +80,19 @@ async function loadThaiGold() {
 
     console.log("Thai Gold RAW:", data);
 
-    const found = findNumberLike(data, [
-      "buy",
-      "sell",
-      "bid",
-      "ask",
-      "bar",
-      "jewelry",
-      "ornament",
-      "ทอง"
-    ]);
+    const rawText = JSON.stringify(data);
+    const prices = rawText.match(/\d{2,3},\d{3}(?:\.\d+)?|\d{5}(?:\.\d+)?/g) || [];
 
-    console.log("Thai Gold FOUND:", found);
+    console.log("Thai Gold PRICES:", prices);
 
-    let barBuy = "-";
-    let barSell = "-";
-    let jewBuy = "-";
-    let jewSell = "-";
-
-    const textAll = JSON.stringify(data);
-
-    const nums = textAll.match(/\d{2,3},?\d{3}(?:\.\d+)?/g) || [];
-
-    if (nums.length >= 4) {
-      barBuy = nums[0];
-      barSell = nums[1];
-      jewBuy = nums[2];
-      jewSell = nums[3];
-    }
-
-    // ถ้าเจอ path ที่ชัดกว่า ใช้ก่อน
-    const byPath = (words) => {
-      const item = found.find(x =>
-        words.every(w => x.path.toLowerCase().includes(w))
-      );
-      return item ? item.value : null;
-    };
-
-    barBuy = byPath(["bar", "buy"]) || byPath(["ทองแท่ง", "buy"]) || barBuy;
-    barSell = byPath(["bar", "sell"]) || byPath(["ทองแท่ง", "sell"]) || barSell;
-    jewBuy = byPath(["jewelry", "buy"]) || byPath(["ornament", "buy"]) || byPath(["รูปพรรณ", "buy"]) || jewBuy;
-    jewSell = byPath(["jewelry", "sell"]) || byPath(["ornament", "sell"]) || byPath(["รูปพรรณ", "sell"]) || jewSell;
-
-    console.log("Thai Gold Parsed:", {
-      barBuy,
-      barSell,
-      jewBuy,
-      jewSell
-    });
-
-    setText("thai_buy", barBuy);
-    setText("thai_sell", barSell);
-    setText("thai_buy_jewelry", jewBuy);
-    setText("thai_sell_jewelry", jewSell);
+    setText("thai_buy", prices[0] || "-");
+    setText("thai_sell", prices[1] || "-");
+    setText("thai_buy_jewelry", prices[2] || "-");
+    setText("thai_sell_jewelry", prices[3] || "-");
 
   } catch (e) {
     console.log("Thai gold error:", e);
+
     setText("thai_buy", "-");
     setText("thai_sell", "-");
     setText("thai_buy_jewelry", "-");
