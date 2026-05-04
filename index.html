@@ -40,15 +40,32 @@
       <div id="confidence" class="confidence">-</div>
     </div>
 
+    <div class="section-title">Smart Engine v2</div>
+    <div class="grid">
+      <div class="box"><span>Engine</span><b id="engine">-</b></div>
+      <div class="box"><span>Quality</span><b id="signalQuality">-</b></div>
+      <div class="box"><span>AI Score</span><b id="aiScore">-</b></div>
+      <div class="box"><span>VIP Allowed</span><b id="vipAllowed">-</b></div>
+      <div class="box"><span>Risk/Reward</span><b id="riskReward">-</b></div>
+    </div>
+
+    <div class="section-title">Market Structure</div>
     <div class="grid">
       <div class="box"><span>Trend</span><b id="trend">-</b></div>
       <div class="box"><span>RSI</span><b id="rsi">-</b></div>
       <div class="box"><span>Support</span><b id="support">-</b></div>
       <div class="box"><span>Resistance</span><b id="resistance">-</b></div>
+      <div class="box"><span>Buy Score</span><b id="buyScore">-</b></div>
+      <div class="box"><span>Sell Score</span><b id="sellScore">-</b></div>
+      <div class="box"><span>Fib Zone</span><b id="fibZone">-</b></div>
+      <div class="box"><span>Trap</span><b id="trap">-</b></div>
     </div>
 
     <div class="section-title">Reason</div>
     <div id="reason" class="reason">-</div>
+
+    <div class="section-title">Smart Filters</div>
+    <div id="filters" class="reason">-</div>
 
     <div class="section-title">Trade Plan</div>
     <div class="grid">
@@ -70,6 +87,20 @@
 
     <div class="note" id="validNote">
       ใช้ดูภายในแท่ง 15m นี้ หรือจนกว่าจะมีสัญญาณใหม่ / ราคาแตะ SL หรือ TP
+    </div>
+
+    <div class="section-title">Learning Stats</div>
+    <div class="grid">
+      <div class="box"><span>Memory</span><b id="memoryType">-</b></div>
+      <div class="box"><span>Total Signals</span><b id="totalSignals">-</b></div>
+      <div class="box"><span>Finished</span><b id="totalFinished">-</b></div>
+      <div class="box"><span>Wins</span><b id="wins">-</b></div>
+      <div class="box"><span>Losses</span><b id="losses">-</b></div>
+      <div class="box"><span>Win Rate</span><b id="winRate">-</b></div>
+    </div>
+
+    <div class="note" id="learningNote">
+      Learning จะเริ่มมีผลเมื่อมีข้อมูลย้อนหลังมากพอ
     </div>
 
     <div class="actions">
@@ -165,9 +196,17 @@
   </div>
 
   <div class="card">
+    <div class="section-title">⚠️ Disclaimer</div>
+    <div class="note">
+      ข้อมูลและสัญญาณใน Gold AI Pro ใช้เพื่อการศึกษาและประกอบการวิเคราะห์เท่านั้น
+      ไม่ใช่คำแนะนำการลงทุน ผู้ใช้งานควรบริหารความเสี่ยงและตัดสินใจด้วยตนเอง
+    </div>
+  </div>
+
+  <div class="card">
     <div class="section-title">📰 Market News</div>
-    <div class="news-item">USD แข็งค่า → กดดันทอง</div>
-    <div class="news-item">FED มีแนวโน้มขึ้นดอกเบี้ย</div>
+    <div class="news-item">Market News: Coming soon</div>
+    <div class="news-item">ข่าวเศรษฐกิจ / USD / FED จะเพิ่มในขั้นต่อไป</div>
   </div>
 
   <div class="card">
@@ -176,7 +215,7 @@
 
 </div>
 
-<script src="./assets/js/app.js?v=19"></script>
+<script src="./assets/js/app.js?v=20"></script>
 
 </body>
 </html>
