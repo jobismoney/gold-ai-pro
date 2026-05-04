@@ -1,4 +1,4 @@
-console.log("APP JS VERSION 18 LOADED");
+console.log("APP JS VERSION 19 LOADED");
 
 const API_URL = "https://white-fog-ba70.porapat-su1975.workers.dev";
 
@@ -33,6 +33,13 @@ function requireAdminKey() {
   }
 
   return key;
+}
+
+function toggleAdminPanel() {
+  const panel = document.getElementById("adminPanel");
+  if (!panel) return;
+
+  panel.style.display = panel.style.display === "none" ? "block" : "none";
 }
 
 function toggleAdminKey() {
