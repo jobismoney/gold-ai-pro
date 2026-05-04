@@ -1,4 +1,4 @@
-console.log("APP JS VERSION 15 LOADED");
+console.log("APP JS VERSION 16 LOADED");
 
 const API_URL = "https://white-fog-ba70.porapat-su1975.workers.dev";
 
@@ -12,6 +12,11 @@ const AUTO_REFRESH_SECONDS = 60;
 function setText(id, value) {
   const node = document.getElementById(id);
   if (node) node.innerText = value ?? "-";
+}
+
+function getSettingValue(id, fallback) {
+  const node = document.getElementById(id);
+  return node?.value || fallback;
 }
 
 function formatThaiDateTime(value) {
@@ -110,16 +115,19 @@ async function loadSignal() {
 async function sendVipSignal() {
   const statusEl = document.getElementById("vipAlertStatus");
 
+  const minConf = getSettingValue("minConfidence", "75");
+  const cooldown = getSettingValue("cooldownMinutes", "30");
+
   try {
     if (statusEl) {
-      statusEl.innerText = "VIP Alert: checking signal...";
+      statusEl.innerText = `VIP Alert: checking signal... | Min ${minConf}% | Cooldown ${cooldown}m`;
     }
 
     const url =
       `${API_URL}?mode=${currentMode}` +
       `&vip=true` +
-      `&min_conf=75` +
-      `&cooldown=30` +
+      `&min_conf=${encodeURIComponent(minConf)}` +
+      `&cooldown=${encodeURIComponent(cooldown)}` +
       `&t=${Date.now()}`;
 
     const res = await fetch(url);
@@ -134,7 +142,7 @@ async function sendVipSignal() {
 
     if (data.telegram === true) {
       if (statusEl) {
-        statusEl.innerText = "VIP Alert: ✅ sent to Telegram";
+        statusEl.innerText = `VIP Alert: ✅ sent | Min ${minConf}% | Cooldown ${cooldown}m`;
       }
 
       alert("✅ ส่ง VIP Signal เข้า Telegram แล้ว");
