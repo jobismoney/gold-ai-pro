@@ -34,6 +34,8 @@
       <button id="mode-safe" class="mode-btn" onclick="setMode('safe')">🧠 Swing</button>
     </div>
 
+    <div class="section-title">Current Analysis</div>
+
     <div class="signal-box">
       <div id="price" class="price">-</div>
       <div id="signal" class="signal">-</div>
@@ -47,6 +49,7 @@
       <div class="box"><span>AI Score</span><b id="aiScore">-</b></div>
       <div class="box"><span>VIP Allowed</span><b id="vipAllowed">-</b></div>
       <div class="box"><span>Risk/Reward</span><b id="riskReward">-</b></div>
+      <div class="box"><span>Plan Lock</span><b id="activePlanReason">-</b></div>
     </div>
 
     <div class="section-title">Market Structure</div>
@@ -67,13 +70,57 @@
     <div class="section-title">Smart Filters</div>
     <div id="filters" class="reason">-</div>
 
-    <div class="section-title">Trade Plan</div>
+    <div class="section-title">Current Analysis Trade Plan</div>
     <div class="grid">
       <div class="box"><span>Entry</span><b id="entry">-</b></div>
       <div class="box"><span>SL</span><b id="sl">-</b></div>
       <div class="box"><span>TP1</span><b id="tp1">-</b></div>
       <div class="box"><span>TP2</span><b id="tp2">-</b></div>
       <div class="box"><span>TP3</span><b id="tp3">-</b></div>
+    </div>
+
+    <div class="note">
+      Current Analysis สามารถเปลี่ยนได้เมื่อราคา/แท่งเทียนเปลี่ยน แต่ Active Trade Plan ด้านล่างจะล็อกไว้จนกว่าจะจบ
+    </div>
+
+    <div class="section-title">🔒 Active Trade Plan</div>
+
+    <div class="signal-box">
+      <div id="activeStatus" class="signal">NO ACTIVE PLAN</div>
+      <div id="activeSignal" class="confidence">-</div>
+    </div>
+
+    <div class="grid">
+      <div class="box"><span>Status</span><b id="activePlanStatus">-</b></div>
+      <div class="box"><span>Signal</span><b id="activePlanSignal">-</b></div>
+      <div class="box"><span>Quality</span><b id="activePlanQuality">-</b></div>
+      <div class="box"><span>AI Score</span><b id="activePlanAiScore">-</b></div>
+      <div class="box"><span>Confidence</span><b id="activePlanConfidence">-</b></div>
+      <div class="box"><span>Risk/Reward</span><b id="activePlanRiskReward">-</b></div>
+    </div>
+
+    <div class="section-title">Locked Price Plan</div>
+    <div class="grid">
+      <div class="box"><span>Entry</span><b id="activeEntry">-</b></div>
+      <div class="box"><span>SL</span><b id="activeSl">-</b></div>
+      <div class="box"><span>TP1</span><b id="activeTp1">-</b></div>
+      <div class="box"><span>TP2</span><b id="activeTp2">-</b></div>
+      <div class="box"><span>TP3</span><b id="activeTp3">-</b></div>
+      <div class="box"><span>Last Price</span><b id="activeLastPrice">-</b></div>
+    </div>
+
+    <div class="section-title">Active Plan Timing</div>
+    <div class="grid">
+      <div class="box"><span>Created</span><b id="activeCreatedAt">-</b></div>
+      <div class="box"><span>Expires</span><b id="activeExpiresAt">-</b></div>
+      <div class="box"><span>Closed</span><b id="activeClosedAt">-</b></div>
+      <div class="box"><span>Result</span><b id="activeResult">-</b></div>
+      <div class="box"><span>Hit Type</span><b id="activeHitType">-</b></div>
+      <div class="box"><span>Hit Price</span><b id="activeHitPrice">-</b></div>
+    </div>
+
+    <div class="note" id="activePlanNote">
+      ยังไม่มี Active Trade Plan เพราะระบบยังไม่พบสัญญาณ BUY/SELL ที่คุณภาพผ่าน
     </div>
 
     <div class="section-title">Signal Timing</div>
@@ -86,13 +133,14 @@
     </div>
 
     <div class="note" id="validNote">
-      ใช้ดูภายในแท่ง 15m นี้ หรือจนกว่าจะมีสัญญาณใหม่ / ราคาแตะ SL หรือ TP
+      Current Analysis เปลี่ยนได้ แต่ Active Trade Plan จะล็อกจนกว่า TP1 / SL / Expired
     </div>
 
     <div class="section-title">Learning Stats</div>
     <div class="grid">
       <div class="box"><span>Memory</span><b id="memoryType">-</b></div>
       <div class="box"><span>Total Signals</span><b id="totalSignals">-</b></div>
+      <div class="box"><span>Pending</span><b id="pendingSignals">-</b></div>
       <div class="box"><span>Finished</span><b id="totalFinished">-</b></div>
       <div class="box"><span>Wins</span><b id="wins">-</b></div>
       <div class="box"><span>Losses</span><b id="losses">-</b></div>
@@ -156,6 +204,7 @@
       <div class="actions">
         <button class="btn-main" onclick="sendVipSignal()">📩 Send VIP Alert</button>
         <button class="btn-main" onclick="testTelegram()">🧪 Test Telegram</button>
+        <button class="btn-main" onclick="resetActivePlan()">♻️ Reset Active Plan</button>
       </div>
 
       <div class="note" id="vipAlertStatus">
@@ -164,6 +213,10 @@
 
       <div class="note" id="telegramTestStatus">
         Telegram: ready
+      </div>
+
+      <div class="note" id="resetActiveStatus">
+        Active Plan Reset: ready
       </div>
     </div>
   </div>
@@ -215,7 +268,7 @@
 
 </div>
 
-<script src="./assets/js/app.js?v=20"></script>
+<script src="./assets/js/app.js?v=21"></script>
 
 </body>
 </html>
