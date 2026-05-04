@@ -16,8 +16,7 @@
 
   <div class="app-shell">
 
-    <!-- HEADER -->
-    <header class="app-header">
+    <header class="app-header" id="top">
       <div class="brand-wrap">
         <div class="brand-logo">G</div>
         <div>
@@ -34,32 +33,31 @@
       </div>
     </header>
 
-    <!-- STATUS ROW -->
     <div class="status-row">
       <div id="marketStatus" class="status-chip open">Loading...</div>
-      <div class="status-chip live">
-        <span class="live-dot"></span>
-        LIVE
-      </div>
+      <div class="status-chip live"><span class="live-dot"></span> LIVE</div>
       <div class="status-chip mode" id="modeLabel">🎯 Day Trade</div>
-      <div class="status-chip refresh">⏳ <span id="refreshCountdown">60s</span></div>
+      <div class="status-chip refresh">⏳ API <span id="refreshCountdown">5m</span></div>
     </div>
 
-    <!-- MODE -->
     <div class="mode-row premium-tabs">
       <button id="mode-fast" class="mode-btn" onclick="setMode('fast')">⚡ Scalping</button>
       <button id="mode-balanced" class="mode-btn active" onclick="setMode('balanced')">🎯 Day Trade</button>
       <button id="mode-safe" class="mode-btn" onclick="setMode('safe')">🧠 Swing</button>
     </div>
 
-    <!-- HERO -->
+    <div class="mode-info-card">
+      <b id="modeInfoTitle">Day Trade</b>
+      <span id="modeInfoText">โหมดสมดุล เหมาะกับการดูกราฟ 15 นาที ใช้กติกากลาง</span>
+    </div>
+
     <section class="hero-card">
       <div class="hero-main">
         <div class="gold-stack">🪙</div>
 
         <div class="hero-price-wrap">
           <div id="price" class="hero-price">-</div>
-          <div class="hero-symbol">XAU/USD <span>• USD</span></div>
+          <div class="hero-symbol">XAU/USD <span>• Worker/Twelve Data</span></div>
         </div>
 
         <div class="hero-signal-wrap">
@@ -91,32 +89,30 @@
     </section>
 
     <div class="helper-text">
-      วิเคราะห์สดเปลี่ยนได้ตามตลาด — แผนที่ล็อกไว้จะแสดงใน Active Trade Plan
+      ราคาและกราฟในหน้านี้ใช้ข้อมูลชุดเดียวกันจาก Worker/Twelve Data
     </div>
 
-    <!-- CHART -->
     <section class="card chart-card" id="section-chart">
       <div class="section-head compact">
         <div>
           <h2>📈 XAU/USD Chart</h2>
-          <p>ดูภาพรวมตลาดก่อน แล้วค่อยอ่าน Active Trade Plan</p>
+          <p id="chartSourceText">กราฟนี้วาดจาก Candle ชุดเดียวกับที่ใช้คำนวณ Signal</p>
         </div>
-        <button class="collapse-btn" type="button" onclick="toggleSection('chartBody', this)">ซ่อน</button>
+        <button class="collapse-btn" type="button" onclick="toggleSection('chartBody', this)">ย่อ</button>
       </div>
 
       <div id="chartBody" class="section-body open">
-        <div class="chart-box">
-          <iframe
-            src="https://www.tradingview.com/widgetembed/?symbol=XAUUSD&interval=15&theme=dark"
-            width="100%"
-            height="360"
-            frameborder="0">
-          </iframe>
+        <div class="api-chart-wrap">
+          <canvas id="apiChartCanvas" width="1000" height="360"></canvas>
+        </div>
+        <div class="chart-meta">
+          <span>Source: <b id="priceSource">-</b></span>
+          <span>Last Candle: <b id="lastCandleTime">-</b></span>
+          <span>Next API Update: <b id="nextApiUpdate">-</b></span>
         </div>
       </div>
     </section>
 
-    <!-- ACTIVE PLAN -->
     <section class="card active-card" id="section-plan">
       <div class="section-head">
         <div>
@@ -125,7 +121,7 @@
         </div>
         <div class="section-head-right">
           <div class="lock-badge">LOCK</div>
-          <button class="collapse-btn" type="button" onclick="toggleSection('activePlanBody', this)">ซ่อน</button>
+          <button class="collapse-btn" type="button" onclick="toggleSection('activePlanBody', this)">ย่อ</button>
         </div>
       </div>
 
@@ -168,14 +164,13 @@
       </div>
     </section>
 
-    <!-- CURRENT ANALYSIS -->
     <section class="card" id="section-analysis">
       <div class="section-head compact">
         <div>
           <h2>🧠 Current Analysis</h2>
           <p>ข้อมูลวิเคราะห์สด ใช้ดูสภาพตลาดปัจจุบัน</p>
         </div>
-        <button class="collapse-btn" type="button" onclick="toggleSection('analysisBody', this)">ซ่อน</button>
+        <button class="collapse-btn" type="button" onclick="toggleSection('analysisBody', this)">ย่อ</button>
       </div>
 
       <div id="analysisBody" class="section-body open">
@@ -204,7 +199,6 @@
       </div>
     </section>
 
-    <!-- REASON / FILTER -->
     <section class="two-col">
       <div class="card info-card">
         <div class="section-head compact">
@@ -212,7 +206,7 @@
             <h2>💡 Reason</h2>
             <p>เหตุผลที่ระบบคิดแบบนี้</p>
           </div>
-          <button class="collapse-btn" type="button" onclick="toggleSection('reasonBody', this)">ซ่อน</button>
+          <button class="collapse-btn" type="button" onclick="toggleSection('reasonBody', this)">ย่อ</button>
         </div>
         <div id="reasonBody" class="section-body open">
           <div id="reason" class="reason-list">-</div>
@@ -225,7 +219,7 @@
             <h2>🔎 Smart Filters</h2>
             <p>ตัวกรองความเสี่ยงและคุณภาพสัญญาณ</p>
           </div>
-          <button class="collapse-btn" type="button" onclick="toggleSection('filtersBody', this)">ซ่อน</button>
+          <button class="collapse-btn" type="button" onclick="toggleSection('filtersBody', this)">ย่อ</button>
         </div>
         <div id="filtersBody" class="section-body open">
           <div id="filters" class="reason-list">-</div>
@@ -233,14 +227,13 @@
       </div>
     </section>
 
-    <!-- TIMING -->
     <section class="card slim-card">
       <div class="section-head compact">
         <div>
           <h2>⏱ Signal Timing</h2>
-          <p id="validNote">Current Analysis เปลี่ยนได้ แต่ Active Trade Plan จะล็อกจนกว่า TP1 / SL / Expired</p>
+          <p id="validNote">ราคาและกราฟใช้ข้อมูลชุดเดียวกันจาก Worker/Twelve Data</p>
         </div>
-        <button class="collapse-btn" type="button" onclick="toggleSection('timingBody', this)">ซ่อน</button>
+        <button class="collapse-btn" type="button" onclick="toggleSection('timingBody', this)">ย่อ</button>
       </div>
 
       <div id="timingBody" class="section-body open">
@@ -253,50 +246,32 @@
       </div>
     </section>
 
-    <!-- THAI GOLD -->
     <section class="card thai-card">
       <div class="section-head compact">
         <div>
           <h2>🇹🇭 ราคาทองไทย</h2>
           <p>ใช้เพื่อข้อมูลเท่านั้น ไม่ใช้คำนวณ Signal</p>
         </div>
-        <button class="collapse-btn" type="button" onclick="toggleSection('thaiGoldBody', this)">ซ่อน</button>
+        <button class="collapse-btn" type="button" onclick="toggleSection('thaiGoldBody', this)">ย่อ</button>
       </div>
 
       <div id="thaiGoldBody" class="section-body open">
         <div class="thai-grid">
-          <div>
-            <span>ทองแท่ง ซื้อ</span>
-            <b id="thai_buy">-</b>
-            <small>บาท</small>
-          </div>
-          <div>
-            <span>ทองแท่ง ขาย</span>
-            <b id="thai_sell">-</b>
-            <small>บาท</small>
-          </div>
-          <div>
-            <span>รูปพรรณ ซื้อ</span>
-            <b id="thai_buy_jewelry">-</b>
-            <small>บาท</small>
-          </div>
-          <div>
-            <span>รูปพรรณ ขาย</span>
-            <b id="thai_sell_jewelry">-</b>
-            <small>บาท</small>
-          </div>
+          <div><span>ทองแท่ง ซื้อ</span><b id="thai_buy">-</b><small>บาท</small></div>
+          <div><span>ทองแท่ง ขาย</span><b id="thai_sell">-</b><small>บาท</small></div>
+          <div><span>รูปพรรณ ซื้อ</span><b id="thai_buy_jewelry">-</b><small>บาท</small></div>
+          <div><span>รูปพรรณ ขาย</span><b id="thai_sell_jewelry">-</b><small>บาท</small></div>
         </div>
       </div>
     </section>
 
-    <!-- LEARNING -->
     <section class="card slim-card">
       <div class="section-head compact">
         <div>
           <h2>📊 Learning Stats</h2>
           <p id="learningNote">Learning จะเริ่มมีผลเมื่อมีข้อมูลย้อนหลังมากพอ</p>
         </div>
-        <button class="collapse-btn" type="button" onclick="toggleSection('learningBody', this)">ซ่อน</button>
+        <button class="collapse-btn" type="button" onclick="toggleSection('learningBody', this)">ย่อ</button>
       </div>
 
       <div id="learningBody" class="section-body open">
@@ -312,7 +287,6 @@
       </div>
     </section>
 
-    <!-- ACTIONS -->
     <section class="card action-card">
       <div class="actions">
         <button class="btn-main" onclick="loadSignal()">🚀 Load Signal</button>
@@ -320,7 +294,7 @@
       </div>
 
       <div class="note" id="autoRefreshStatus">
-        Auto refresh: every 60s | API cache: 5 min
+        API refresh in 5m | API cache: 5 min
       </div>
 
       <div id="adminPanel" class="admin-panel" style="display:none;">
@@ -343,7 +317,7 @@
               autocapitalize="off"
               spellcheck="false"
             />
-            <button class="small-btn" type="button" onclick="toggleAdminKey()">👁 แสดง / ซ่อน</button>
+            <button class="small-btn" type="button" onclick="toggleAdminKey()">👁 แสดง / ซ่อนรหัส</button>
           </div>
 
           <div class="mini-card input-card">
@@ -386,7 +360,6 @@
       </div>
     </section>
 
-    <!-- DISCLAIMER -->
     <section class="card disclaimer-card">
       <div class="small-title">⚠️ Disclaimer</div>
       <p>
@@ -395,12 +368,10 @@
       </p>
     </section>
 
-    <!-- AD -->
     <section class="ad-box">
       พื้นที่โฆษณา
     </section>
 
-    <!-- BOTTOM NAV -->
     <nav class="bottom-nav">
       <a class="nav-item active" href="#top">🏠<span>Home</span></a>
       <a class="nav-item" href="#section-chart">📈<span>Chart</span></a>
@@ -409,9 +380,8 @@
     </nav>
   </div>
 
-  <!-- TOAST -->
   <div id="toastContainer" class="toast-container"></div>
 
-  <script src="./assets/js/app.js?v=23"></script>
+  <script src="./assets/js/app.js?v=24"></script>
 </body>
 </html>
