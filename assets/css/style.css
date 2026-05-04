@@ -15,6 +15,7 @@ body{
   padding:16px;
 }
 
+/* CARD */
 .card{
   background:#101923;
   border:1px solid #26364a;
@@ -24,6 +25,7 @@ body{
   box-shadow:0 0 35px rgba(0,0,0,.35);
 }
 
+/* TOP */
 .top{
   display:flex;
   justify-content:space-between;
@@ -36,6 +38,7 @@ body{
   font-weight:900;
 }
 
+/* BADGE */
 .badges{
   display:flex;
   gap:8px;
@@ -65,28 +68,37 @@ body{
   color:#fff;
 }
 
+/* MODE BUTTONS */
 .mode-row{
-  display:grid;
-  grid-template-columns:1fr 1fr 1fr;
-  gap:8px;
+  display:flex;
+  gap:10px;
   margin-top:18px;
 }
 
 .mode-btn{
+  flex:1;
   border:1px solid #2a3c54;
   background:#172536;
   color:#fff;
-  padding:13px;
-  border-radius:14px;
+  padding:14px;
+  border-radius:16px;
   font-weight:900;
   cursor:pointer;
+  transition:all .2s ease;
+}
+
+.mode-btn:hover{
+  transform:translateY(-2px);
+  border-color:#00e676;
 }
 
 .mode-btn.active{
   background:#00e676;
   color:#000;
+  box-shadow:0 0 15px rgba(0,230,118,0.4);
 }
 
+/* SIGNAL */
 .signal-box{
   margin-top:18px;
   text-align:center;
@@ -113,6 +125,7 @@ body{
   font-size:16px;
 }
 
+/* GRID */
 .grid{
   display:grid;
   grid-template-columns:1fr 1fr;
@@ -141,6 +154,7 @@ body{
   font-size:15px;
 }
 
+/* SECTION */
 .section-title{
   margin:18px 0 10px;
   font-size:16px;
@@ -148,6 +162,7 @@ body{
   color:#ffe66d;
 }
 
+/* REASON */
 .reason{
   background:#0c131d;
   border:1px solid #26364a;
@@ -157,6 +172,7 @@ body{
   line-height:1.6;
 }
 
+/* BUTTONS */
 .actions{
   margin-top:16px;
 }
@@ -186,6 +202,7 @@ button{
   color:#000;
 }
 
+/* CHART */
 .chart-box{
   overflow:hidden;
   border-radius:16px;
@@ -193,12 +210,14 @@ button{
   margin-top:12px;
 }
 
+/* THAI GOLD */
 .thai-gold{
   display:grid;
   grid-template-columns:1fr 1fr;
   gap:10px;
 }
 
+/* ADS */
 .ad-box{
   margin-top:16px;
   background:#1e293b;
@@ -209,6 +228,7 @@ button{
   color:#9fb1c7;
 }
 
+/* NEWS */
 .news-item{
   background:#172536;
   border:1px solid #2a3c54;
@@ -218,6 +238,7 @@ button{
   color:#d9e5f5;
 }
 
+/* NOTE */
 .note{
   margin-top:14px;
   color:#9fb1c7;
@@ -225,6 +246,7 @@ button{
   line-height:1.5;
 }
 
+/* MOBILE */
 @media(max-width:700px){
   .app{
     padding:10px;
@@ -239,7 +261,7 @@ button{
   }
 
   .mode-row{
-    grid-template-columns:1fr;
+    flex-direction:column;
   }
 
   .grid,
