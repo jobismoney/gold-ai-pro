@@ -1,4 +1,4 @@
-console.log("APP JS VERSION 14 LOADED");
+console.log("APP JS VERSION 15 LOADED");
 
 const API_URL = "https://white-fog-ba70.porapat-su1975.workers.dev";
 
@@ -60,6 +60,22 @@ function formatSource(source) {
   return source;
 }
 
+function formatTelegramReason(reason) {
+  const map = {
+    sent: "ส่งสัญญาณ VIP เข้า Telegram แล้ว",
+    vip_disabled: "ยังไม่ได้เปิด VIP",
+    demo_mode_no_vip_alert: "ไม่ส่ง เพราะระบบอยู่ใน Demo/Fallback",
+    wait_signal: "ไม่ส่ง เพราะตอนนี้เป็น WAIT",
+    confidence_too_low: "ไม่ส่ง เพราะ Confidence ต่ำกว่าเกณฑ์",
+    too_many_contradictions: "ไม่ส่ง เพราะสัญญาณขัดแย้งหลายจุด",
+    duplicate_signal_cooldown: "ไม่ส่ง เพราะเป็นสัญญาณซ้ำและยังอยู่ใน Cooldown",
+    cooldown_active: "ไม่ส่ง เพราะยังอยู่ใน Cooldown",
+    telegram_config_missing_or_failed: "ส่งไม่สำเร็จ: Telegram config ไม่ครบหรือผิดพลาด"
+  };
+
+  return map[reason] || reason || "ไม่ทราบสาเหตุ";
+}
+
 function updateAutoRefreshStatus() {
   const el = document.getElementById("autoRefreshStatus");
   if (!el || !nextRefreshAt) return;
@@ -88,6 +104,56 @@ async function loadSignal() {
   } catch (err) {
     console.error("Signal error:", err);
     setText("marketStatus", "ERROR");
+  }
+}
+
+async function sendVipSignal() {
+  const statusEl = document.getElementById("vipAlertStatus");
+
+  try {
+    if (statusEl) {
+      statusEl.innerText = "VIP Alert: checking signal...";
+    }
+
+    const url =
+      `${API_URL}?mode=${currentMode}` +
+      `&vip=true` +
+      `&min_conf=75` +
+      `&cooldown=30` +
+      `&t=${Date.now()}`;
+
+    const res = await fetch(url);
+    const data = await res.json();
+
+    console.log("VIP ALERT DATA:", data);
+
+    render(data);
+    resetRefreshCountdown();
+
+    const reasonText = formatTelegramReason(data.telegramReason);
+
+    if (data.telegram === true) {
+      if (statusEl) {
+        statusEl.innerText = "VIP Alert: ✅ sent to Telegram";
+      }
+
+      alert("✅ ส่ง VIP Signal เข้า Telegram แล้ว");
+    } else {
+      if (statusEl) {
+        statusEl.innerText = "VIP Alert: " + reasonText;
+      }
+
+      alert("ℹ️ ยังไม่ส่ง Telegram\n\nเหตุผล: " + reasonText);
+    }
+
+  } catch (err) {
+    console.error("VIP alert error:", err);
+
+    if (statusEl) {
+      statusEl.innerText = "VIP Alert: ❌ connection error";
+    }
+
+    alert("❌ VIP Alert error");
   }
 }
 
