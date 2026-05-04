@@ -1,4 +1,4 @@
-console.log("APP JS VERSION 20 LOADED");
+console.log("APP JS VERSION 21 LOADED");
 
 const API_URL = "https://white-fog-ba70.porapat-su1975.workers.dev";
 
@@ -107,10 +107,27 @@ function formatTelegramReason(reason) {
     duplicate_signal_cooldown: "ไม่ส่ง เพราะเป็นสัญญาณซ้ำและยังอยู่ใน Cooldown",
     cooldown_active: "ไม่ส่ง เพราะยังอยู่ใน Cooldown",
     telegram_config_missing_or_failed: "ส่งไม่สำเร็จ: Telegram config ไม่ครบหรือผิดพลาด",
-    vip_quality_filter_blocked: "ไม่ส่ง เพราะ Smart Filter ยังไม่อนุญาตให้ส่ง VIP"
+    vip_quality_filter_blocked: "ไม่ส่ง เพราะ Smart Filter ยังไม่อนุญาตให้ส่ง VIP",
+    active_plan_running: "ไม่ส่ง เพราะมี Active Trade Plan กำลังทำงานอยู่",
+    current_signal_wait: "ไม่ส่ง เพราะ Current Analysis เป็น WAIT",
+    quality_not_allowed: "ไม่ส่ง เพราะคุณภาพสัญญาณยังไม่ผ่าน",
+    active_plan_not_created: "ไม่ส่ง เพราะยังไม่ได้สร้าง Active Plan"
   };
 
   return map[reason] || reason || "ไม่ทราบสาเหตุ";
+}
+
+function formatPlanReason(reason) {
+  const map = {
+    active_plan_created: "Created",
+    active_plan_running: "Locked: Active plan running",
+    current_signal_wait: "No plan: Current signal is WAIT",
+    demo_no_active_plan: "No plan: Demo/Fallback",
+    quality_not_allowed: "No plan: Quality not allowed",
+    missing_trade_plan: "No plan: Missing Entry/SL/TP"
+  };
+
+  return map[reason] || reason || "-";
 }
 
 function formatQuality(q) {
@@ -290,22 +307,71 @@ async function testTelegram() {
   }
 }
 
+async function resetActivePlan() {
+  const statusEl = document.getElementById("resetActiveStatus");
+  const adminKey = requireAdminKey();
+
+  if (!adminKey) return;
+
+  if (!confirm("ต้องการ Reset Active Trade Plan ใช่ไหม?")) {
+    return;
+  }
+
+  try {
+    if (statusEl) {
+      statusEl.innerText = "Active Plan Reset: resetting...";
+    }
+
+    const res = await fetch(
+      `${API_URL}/reset-active-plan?admin_key=${encodeURIComponent(adminKey)}&t=${Date.now()}`
+    );
+
+    const data = await res.json();
+
+    console.log("RESET ACTIVE PLAN:", data);
+
+    if (data.ok === true) {
+      if (statusEl) {
+        statusEl.innerText = "Active Plan Reset: ✅ done";
+      }
+
+      alert("✅ Reset Active Plan สำเร็จ");
+      loadSignal();
+    } else {
+      if (statusEl) {
+        statusEl.innerText = `Active Plan Reset: ❌ ${data.reason || "failed"}`;
+      }
+
+      alert("❌ Reset ไม่สำเร็จ: " + (data.reason || data.message || "unknown"));
+    }
+
+  } catch (err) {
+    console.error("Reset active plan error:", err);
+
+    if (statusEl) {
+      statusEl.innerText = "Active Plan Reset: ❌ connection error";
+    }
+
+    alert("❌ Reset Active Plan error");
+  }
+}
+
 function render(data) {
-  const s = data.signal || {};
+  const s = data.currentAnalysis || data.signal || {};
+  const activePlan = data.activePlan || s.activePlan || null;
   const learning = data.learning || s.learningStats || {};
 
   setText("price", data.price);
   setText("signal", s.signal);
   setText("confidence", (s.confidence ?? "-") + "%");
 
-  // Smart Engine v2
   setText("engine", s.engine || "-");
   setText("signalQuality", formatQuality(s.signalQuality));
   setText("aiScore", s.aiScore !== undefined ? `${s.aiScore}/100` : "-");
   setText("vipAllowed", formatYesNo(s.vipAllowed));
   setText("riskReward", s.riskReward ?? "-");
+  setText("activePlanReason", formatPlanReason(s.activePlanReason));
 
-  // Market Structure
   setText("trend", s.trend);
   setText("rsi", s.rsi);
   setText("support", s.support);
@@ -315,17 +381,14 @@ function render(data) {
   setText("fibZone", s.fibZone);
   setText("trap", s.trap);
 
-  // Trade Plan
   setText("entry", s.entry);
   setText("sl", s.sl || "-");
   setText("tp1", s.tp1 || "-");
   setText("tp2", s.tp2 || "-");
   setText("tp3", s.tp3 || "-");
 
-  // Market status
   setText("marketStatus", data.market === "open" ? "OPEN" : "CLOSED");
 
-  // Timing
   const baseTime =
     s.signalTime ||
     data.updated ||
@@ -349,12 +412,14 @@ function render(data) {
   if (validNote) {
     validNote.innerText =
       s.validNote ||
-      "ใช้ดูภายในแท่ง 15m นี้ หรือจนกว่าจะมีสัญญาณใหม่ / ราคาแตะ SL หรือ TP";
+      "Current Analysis เปลี่ยนได้ แต่ Active Trade Plan จะล็อกจนกว่า TP1 / SL / Expired";
   }
 
-  // Learning Stats
+  renderActivePlan(activePlan);
+
   setText("memoryType", learning.memoryType || "-");
   setText("totalSignals", learning.totalSignals ?? 0);
+  setText("pendingSignals", learning.pending ?? 0);
   setText("totalFinished", learning.totalFinished ?? 0);
   setText("wins", learning.wins ?? 0);
   setText("losses", learning.losses ?? 0);
@@ -394,7 +459,6 @@ function render(data) {
     }
   }
 
-  // Quality color
   const qualityEl = document.getElementById("signalQuality");
   if (qualityEl) {
     if (s.signalQuality === "A_STRONG") qualityEl.style.color = "#00c853";
@@ -418,6 +482,97 @@ function render(data) {
 
   renderList("reason", s.reason);
   renderList("filters", s.filters);
+}
+
+function renderActivePlan(plan) {
+  const activeStatus = document.getElementById("activeStatus");
+  const activeSignal = document.getElementById("activeSignal");
+  const activeNote = document.getElementById("activePlanNote");
+
+  if (!plan) {
+    setText("activeStatus", "NO ACTIVE PLAN");
+    setText("activeSignal", "-");
+
+    setText("activePlanStatus", "-");
+    setText("activePlanSignal", "-");
+    setText("activePlanQuality", "-");
+    setText("activePlanAiScore", "-");
+    setText("activePlanConfidence", "-");
+    setText("activePlanRiskReward", "-");
+
+    setText("activeEntry", "-");
+    setText("activeSl", "-");
+    setText("activeTp1", "-");
+    setText("activeTp2", "-");
+    setText("activeTp3", "-");
+    setText("activeLastPrice", "-");
+
+    setText("activeCreatedAt", "-");
+    setText("activeExpiresAt", "-");
+    setText("activeClosedAt", "-");
+    setText("activeResult", "-");
+    setText("activeHitType", "-");
+    setText("activeHitPrice", "-");
+
+    if (activeStatus) activeStatus.style.color = "#999";
+    if (activeSignal) activeSignal.style.color = "#999";
+    if (activeNote) {
+      activeNote.innerText = "ยังไม่มี Active Trade Plan เพราะระบบยังไม่พบสัญญาณ BUY/SELL ที่คุณภาพผ่าน";
+    }
+
+    return;
+  }
+
+  setText("activeStatus", plan.status || "-");
+  setText("activeSignal", plan.signal || "-");
+
+  setText("activePlanStatus", plan.status || "-");
+  setText("activePlanSignal", plan.signal || "-");
+  setText("activePlanQuality", formatQuality(plan.signalQuality));
+  setText("activePlanAiScore", plan.aiScore !== undefined ? `${plan.aiScore}/100` : "-");
+  setText("activePlanConfidence", plan.confidence !== undefined ? `${plan.confidence}%` : "-");
+  setText("activePlanRiskReward", plan.riskReward ?? "-");
+
+  setText("activeEntry", plan.entry ?? "-");
+  setText("activeSl", plan.sl ?? "-");
+  setText("activeTp1", plan.tp1 ?? "-");
+  setText("activeTp2", plan.tp2 ?? "-");
+  setText("activeTp3", plan.tp3 ?? "-");
+  setText("activeLastPrice", plan.lastPrice ?? "-");
+
+  setText("activeCreatedAt", formatThaiDateTime(plan.createdAt));
+  setText("activeExpiresAt", formatThaiDateTime(plan.expiresAt));
+  setText("activeClosedAt", formatThaiDateTime(plan.closedAt));
+  setText("activeResult", plan.result || "-");
+  setText("activeHitType", plan.hitType || "-");
+  setText("activeHitPrice", plan.hitPrice ?? "-");
+
+  if (activeStatus) {
+    if (plan.status === "ACTIVE") activeStatus.style.color = "#f5c542";
+    else if (plan.status === "TP1_HIT") activeStatus.style.color = "#00c853";
+    else if (plan.status === "SL_HIT") activeStatus.style.color = "#ff1744";
+    else activeStatus.style.color = "#999";
+  }
+
+  if (activeSignal) {
+    if (plan.signal === "BUY") activeSignal.style.color = "#00c853";
+    else if (plan.signal === "SELL") activeSignal.style.color = "#ff1744";
+    else activeSignal.style.color = "#999";
+  }
+
+  if (activeNote) {
+    if (plan.status === "ACTIVE") {
+      activeNote.innerText = "แผนนี้ถูกล็อกไว้แล้ว Entry / SL / TP จะไม่เปลี่ยนจนกว่า TP1 / SL / Expired";
+    } else if (plan.status === "TP1_HIT") {
+      activeNote.innerText = "แผนนี้จบแล้ว: ราคาแตะ TP1";
+    } else if (plan.status === "SL_HIT") {
+      activeNote.innerText = "แผนนี้จบแล้ว: ราคาแตะ SL";
+    } else if (plan.status === "EXPIRED") {
+      activeNote.innerText = "แผนนี้หมดเวลาแล้ว: ยังไม่แตะ TP1 หรือ SL ภายในช่วงที่กำหนด";
+    } else {
+      activeNote.innerText = "Active Trade Plan มีสถานะล่าสุดตามที่แสดง";
+    }
+  }
 }
 
 function setMode(mode) {
