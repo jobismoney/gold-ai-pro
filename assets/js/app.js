@@ -17,7 +17,12 @@ const el = {
   tp2: document.getElementById("tp2"),
   tp3: document.getElementById("tp3"),
   market: document.getElementById("marketStatus"),
-  demo: document.getElementById("demoBadge")
+  demo: document.getElementById("demoBadge"),
+
+  thai_buy: document.getElementById("thai_buy"),
+  thai_sell: document.getElementById("thai_sell"),
+  thai_buy_jewelry: document.getElementById("thai_buy_jewelry"),
+  thai_sell_jewelry: document.getElementById("thai_sell_jewelry")
 };
 
 // =========================
@@ -31,12 +36,12 @@ async function loadSignal() {
     render(data);
 
   } catch (err) {
-    console.error(err);
+    console.error("Signal error:", err);
   }
 }
 
 // =========================
-// RENDER SIGNAL
+// RENDER
 // =========================
 function render(data) {
   const s = data.signal;
@@ -59,7 +64,6 @@ function render(data) {
 
   el.market.innerText = data.market === "open" ? "OPEN" : "CLOSED";
 
-  // Demo badge
   el.demo.style.display = data.demo ? "inline-block" : "none";
 
   // สี signal
@@ -96,27 +100,50 @@ function setMode(mode) {
 }
 
 // =========================
-// THAI GOLD REAL DATA
+// THAI GOLD (REAL + SAFE)
 // =========================
 async function loadThaiGold() {
   try {
     const res = await fetch("https://api.chnwt.dev/thai-gold-api/latest");
     const data = await res.json();
 
-    document.getElementById("thai_buy").innerText =
-      data.response.price.gold.bar.buy;
+    console.log("Thai Gold API:", data);
 
-    document.getElementById("thai_sell").innerText =
-      data.response.price.gold.bar.sell;
+    const d = data.response || data;
 
-    document.getElementById("thai_buy_jewelry").innerText =
-      data.response.price.gold.jewelry.buy;
+    const barBuy =
+      d.price?.gold?.bar?.buy ||
+      d.gold?.bar_buy ||
+      "-";
 
-    document.getElementById("thai_sell_jewelry").innerText =
-      data.response.price.gold.jewelry.sell;
+    const barSell =
+      d.price?.gold?.bar?.sell ||
+      d.gold?.bar_sell ||
+      "-";
+
+    const jewBuy =
+      d.price?.gold?.jewelry?.buy ||
+      d.gold?.ornament_buy ||
+      "-";
+
+    const jewSell =
+      d.price?.gold?.jewelry?.sell ||
+      d.gold?.ornament_sell ||
+      "-";
+
+    el.thai_buy.innerText = barBuy;
+    el.thai_sell.innerText = barSell;
+    el.thai_buy_jewelry.innerText = jewBuy;
+    el.thai_sell_jewelry.innerText = jewSell;
 
   } catch (e) {
-    console.log("Thai gold error", e);
+    console.log("Thai gold error:", e);
+
+    // fallback กันหน้าว่าง
+    el.thai_buy.innerText = "-";
+    el.thai_sell.innerText = "-";
+    el.thai_buy_jewelry.innerText = "-";
+    el.thai_sell_jewelry.innerText = "-";
   }
 }
 
