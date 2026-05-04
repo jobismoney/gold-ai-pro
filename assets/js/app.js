@@ -1,4 +1,4 @@
-console.log("APP JS VERSION 21 LOADED");
+console.log("APP JS VERSION 23 LOADED");
 
 const API_URL = "https://white-fog-ba70.porapat-su1975.workers.dev";
 
@@ -8,6 +8,11 @@ let countdownTimer = null;
 let nextRefreshAt = null;
 
 const AUTO_REFRESH_SECONDS = 60;
+
+let previousPrice = null;
+let previousSignal = null;
+let previousActiveStatus = null;
+let soundEnabled = true;
 
 function setText(id, value) {
   const node = document.getElementById(id);
@@ -20,15 +25,14 @@ function getSettingValue(id, fallback) {
 }
 
 function getAdminKey() {
-  const key = getSettingValue("adminKey", "").trim();
-  return key;
+  return getSettingValue("adminKey", "").trim();
 }
 
 function requireAdminKey() {
   const key = getAdminKey();
 
   if (!key) {
-    alert("กรุณาใส่ Admin Key ก่อน");
+    showToast("กรุณาใส่ Admin Key ก่อน", "กรอก Admin Key ใน Admin Panel", "warning");
     return null;
   }
 
@@ -39,7 +43,12 @@ function toggleAdminPanel() {
   const panel = document.getElementById("adminPanel");
   if (!panel) return;
 
-  panel.style.display = panel.style.display === "none" ? "block" : "none";
+  const isHidden = panel.style.display === "none" || panel.style.display === "";
+  panel.style.display = isHidden ? "block" : "none";
+
+  if (isHidden) {
+    showToast("เปิด Admin Panel", "ตั้งค่า Telegram / Sound / VIP ได้ที่นี่", "warning");
+  }
 }
 
 function toggleAdminKey() {
@@ -69,7 +78,6 @@ function formatThaiDateTime(value) {
       minute: "2-digit",
       second: "2-digit"
     });
-
   } catch (e) {
     return String(value);
   }
@@ -87,11 +95,9 @@ function addMinutesToIso(value, minutes) {
 
 function formatSource(source) {
   if (!source) return "-";
-
   if (source.includes("twelve_data_real")) return "Real Candles";
   if (source.includes("twelve_data_cache")) return "Real Cache";
   if (source.includes("demo")) return "Demo/Fallback";
-
   return source;
 }
 
@@ -132,12 +138,10 @@ function formatPlanReason(reason) {
 
 function formatQuality(q) {
   if (!q) return "-";
-
   if (q === "A_STRONG") return "A | Strong";
   if (q === "B_MEDIUM") return "B | Medium";
   if (q === "C_WEAK") return "C | Weak";
   if (q === "C_WAIT") return "C | Wait";
-
   return q;
 }
 
@@ -147,12 +151,20 @@ function formatYesNo(value) {
 
 function updateAutoRefreshStatus() {
   const el = document.getElementById("autoRefreshStatus");
-  if (!el || !nextRefreshAt) return;
+  const miniEl = document.getElementById("refreshCountdown");
+
+  if (!nextRefreshAt) return;
 
   const remainMs = nextRefreshAt - Date.now();
   const remainSec = Math.max(0, Math.ceil(remainMs / 1000));
 
-  el.innerText = `Auto refresh: ${remainSec}s | API cache: 5 min`;
+  if (el) {
+    el.innerText = `Auto refresh in ${remainSec}s | API cache: 5 min`;
+  }
+
+  if (miniEl) {
+    miniEl.innerText = `${remainSec}s`;
+  }
 }
 
 function resetRefreshCountdown() {
@@ -178,6 +190,113 @@ function renderList(id, items) {
   });
 }
 
+function showToast(title, message = "", type = "warning") {
+  const container = document.getElementById("toastContainer");
+  if (!container) return;
+
+  const toast = document.createElement("div");
+  toast.className = `toast toast-${type}`;
+
+  toast.innerHTML = `
+    <strong>${escapeHtml(title)}</strong>
+    <div>${escapeHtml(message)}</div>
+  `;
+
+  container.appendChild(toast);
+
+  setTimeout(() => {
+    toast.style.opacity = "0";
+    toast.style.transform = "translateY(-6px)";
+    toast.style.transition = "0.2s ease";
+    setTimeout(() => toast.remove(), 220);
+  }, 2600);
+}
+
+function escapeHtml(text) {
+  return String(text ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function playTone(kind = "info") {
+  if (!soundEnabled) return;
+
+  try {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtx) return;
+
+    const ctx = new AudioCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    if (kind === "success") {
+      osc.frequency.value = 880;
+    } else if (kind === "danger") {
+      osc.frequency.value = 320;
+    } else {
+      osc.frequency.value = 620;
+    }
+
+    gain.gain.value = 0.001;
+    osc.start();
+
+    gain.gain.exponentialRampToValueAtTime(0.03, ctx.currentTime + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.25);
+
+    osc.stop(ctx.currentTime + 0.28);
+  } catch (e) {
+    console.log("Sound blocked:", e);
+  }
+}
+
+function loadSoundSetting() {
+  const saved = localStorage.getItem("gold_ai_sound_enabled");
+  soundEnabled = saved !== "off";
+
+  const icon = document.getElementById("soundIcon");
+  const select = document.getElementById("soundEnabledSelect");
+
+  if (icon) icon.innerText = soundEnabled ? "🔊" : "🔇";
+  if (select) select.value = soundEnabled ? "on" : "off";
+}
+
+function toggleSound() {
+  soundEnabled = !soundEnabled;
+  localStorage.setItem("gold_ai_sound_enabled", soundEnabled ? "on" : "off");
+  loadSoundSetting();
+  showToast(
+    soundEnabled ? "เปิดเสียงแจ้งเตือน" : "ปิดเสียงแจ้งเตือน",
+    soundEnabled ? "ระบบจะมีเสียงเบา ๆ เมื่อเกิด event สำคัญ" : "ระบบจะเงียบทั้งหมด",
+    "warning"
+  );
+}
+
+function applySoundSettingFromSelect() {
+  const select = document.getElementById("soundEnabledSelect");
+  if (!select) return;
+
+  soundEnabled = select.value === "on";
+  localStorage.setItem("gold_ai_sound_enabled", soundEnabled ? "on" : "off");
+  loadSoundSetting();
+}
+
+function toggleSection(bodyId, btn) {
+  const body = document.getElementById(bodyId);
+  if (!body) return;
+
+  body.classList.toggle("closed");
+
+  if (btn) {
+    btn.innerText = body.classList.contains("closed") ? "เปิด" : "ซ่อน";
+  }
+}
+
 async function loadSignal() {
   try {
     const res = await fetch(`${API_URL}?mode=${currentMode}&t=${Date.now()}`);
@@ -191,13 +310,13 @@ async function loadSignal() {
   } catch (err) {
     console.error("Signal error:", err);
     setText("marketStatus", "ERROR");
+    showToast("โหลดสัญญาณไม่สำเร็จ", "กรุณาลองใหม่อีกครั้ง", "danger");
   }
 }
 
 async function sendVipSignal() {
   const statusEl = document.getElementById("vipAlertStatus");
   const adminKey = requireAdminKey();
-
   if (!adminKey) return;
 
   const minConf = getSettingValue("minConfidence", "75");
@@ -223,7 +342,8 @@ async function sendVipSignal() {
 
     if (data.reason === "unauthorized_admin_key") {
       if (statusEl) statusEl.innerText = "VIP Alert: ❌ Admin Key ไม่ถูกต้อง";
-      alert("❌ Admin Key ไม่ถูกต้อง");
+      showToast("Admin Key ไม่ถูกต้อง", "ตรวจสอบรหัสอีกครั้ง", "danger");
+      playTone("danger");
       return;
     }
 
@@ -237,13 +357,14 @@ async function sendVipSignal() {
         statusEl.innerText = `VIP Alert: ✅ sent | Min ${minConf}% | Cooldown ${cooldown}m`;
       }
 
-      alert("✅ ส่ง VIP Signal เข้า Telegram แล้ว");
+      showToast("ส่ง VIP Alert สำเร็จ", "ส่งเข้า Telegram แล้ว", "success");
+      playTone("success");
     } else {
       if (statusEl) {
         statusEl.innerText = "VIP Alert: " + reasonText;
       }
 
-      alert("ℹ️ ยังไม่ส่ง Telegram\n\nเหตุผล: " + reasonText);
+      showToast("ยังไม่ส่ง Telegram", reasonText, "warning");
     }
 
   } catch (err) {
@@ -253,14 +374,14 @@ async function sendVipSignal() {
       statusEl.innerText = "VIP Alert: ❌ connection error";
     }
 
-    alert("❌ VIP Alert error");
+    showToast("VIP Alert error", "เกิดปัญหาการเชื่อมต่อ", "danger");
+    playTone("danger");
   }
 }
 
 async function testTelegram() {
   const statusEl = document.getElementById("telegramTestStatus");
   const adminKey = requireAdminKey();
-
   if (!adminKey) return;
 
   try {
@@ -278,7 +399,8 @@ async function testTelegram() {
 
     if (data.reason === "unauthorized_admin_key") {
       if (statusEl) statusEl.innerText = "Telegram: ❌ Admin Key ไม่ถูกต้อง";
-      alert("❌ Admin Key ไม่ถูกต้อง");
+      showToast("Admin Key ไม่ถูกต้อง", "ตรวจสอบรหัสอีกครั้ง", "danger");
+      playTone("danger");
       return;
     }
 
@@ -287,13 +409,15 @@ async function testTelegram() {
         statusEl.innerText = "Telegram: ✅ test sent successfully";
       }
 
-      alert("✅ ส่งข้อความทดสอบเข้า Telegram สำเร็จ");
+      showToast("Telegram Test สำเร็จ", "ส่งข้อความทดสอบแล้ว", "success");
+      playTone("success");
     } else {
       if (statusEl) {
         statusEl.innerText = `Telegram: ❌ ${data.reason || "test failed"}`;
       }
 
-      alert("❌ ส่ง Telegram ไม่สำเร็จ: " + (data.reason || data.message || "unknown"));
+      showToast("ส่ง Telegram ไม่สำเร็จ", data.reason || data.message || "unknown", "danger");
+      playTone("danger");
     }
 
   } catch (err) {
@@ -303,19 +427,15 @@ async function testTelegram() {
       statusEl.innerText = "Telegram: ❌ connection error";
     }
 
-    alert("❌ Telegram test error");
+    showToast("Telegram test error", "เกิดปัญหาการเชื่อมต่อ", "danger");
+    playTone("danger");
   }
 }
 
 async function resetActivePlan() {
   const statusEl = document.getElementById("resetActiveStatus");
   const adminKey = requireAdminKey();
-
   if (!adminKey) return;
-
-  if (!confirm("ต้องการ Reset Active Trade Plan ใช่ไหม?")) {
-    return;
-  }
 
   try {
     if (statusEl) {
@@ -335,14 +455,16 @@ async function resetActivePlan() {
         statusEl.innerText = "Active Plan Reset: ✅ done";
       }
 
-      alert("✅ Reset Active Plan สำเร็จ");
+      showToast("Reset Active Plan สำเร็จ", "ระบบล้างแผนที่ล็อกไว้แล้ว", "success");
+      playTone("success");
       loadSignal();
     } else {
       if (statusEl) {
         statusEl.innerText = `Active Plan Reset: ❌ ${data.reason || "failed"}`;
       }
 
-      alert("❌ Reset ไม่สำเร็จ: " + (data.reason || data.message || "unknown"));
+      showToast("Reset ไม่สำเร็จ", data.reason || data.message || "unknown", "danger");
+      playTone("danger");
     }
 
   } catch (err) {
@@ -352,8 +474,68 @@ async function resetActivePlan() {
       statusEl.innerText = "Active Plan Reset: ❌ connection error";
     }
 
-    alert("❌ Reset Active Plan error");
+    showToast("Reset Active Plan error", "เกิดปัญหาการเชื่อมต่อ", "danger");
+    playTone("danger");
   }
+}
+
+function applyPriceAnimation(newPrice) {
+  const priceEl = document.getElementById("price");
+  if (!priceEl) return;
+
+  priceEl.classList.remove("flash-up", "flash-down");
+
+  if (previousPrice === null || !Number.isFinite(Number(newPrice))) {
+    previousPrice = Number(newPrice);
+    return;
+  }
+
+  const current = Number(newPrice);
+
+  if (current > previousPrice) {
+    priceEl.classList.add("flash-up");
+  } else if (current < previousPrice) {
+    priceEl.classList.add("flash-down");
+  }
+
+  setTimeout(() => {
+    priceEl.classList.remove("flash-up", "flash-down");
+  }, 450);
+
+  previousPrice = current;
+}
+
+function applySignalAnimation(signal) {
+  const el = document.getElementById("signal");
+  if (!el) return;
+
+  el.classList.remove("signal-buy", "signal-sell", "signal-wait", "signal-pop");
+
+  if (signal === "BUY") el.classList.add("signal-buy");
+  else if (signal === "SELL") el.classList.add("signal-sell");
+  else el.classList.add("signal-wait");
+
+  if (previousSignal !== null && previousSignal !== signal) {
+    el.classList.add("signal-pop");
+    showToast("Signal changed", `${previousSignal} → ${signal}`, "warning");
+
+    if (signal === "BUY" || signal === "SELL") {
+      playTone("info");
+    }
+
+    setTimeout(() => el.classList.remove("signal-pop"), 300);
+  }
+
+  previousSignal = signal;
+}
+
+function updateModeLabel() {
+  const label = document.getElementById("modeLabel");
+  if (!label) return;
+
+  if (currentMode === "fast") label.innerText = "⚡ Scalping";
+  else if (currentMode === "safe") label.innerText = "🧠 Swing";
+  else label.innerText = "🎯 Day Trade";
 }
 
 function render(data) {
@@ -362,8 +544,10 @@ function render(data) {
   const learning = data.learning || s.learningStats || {};
 
   setText("price", data.price);
+  applyPriceAnimation(data.price);
+
   setText("signal", s.signal);
-  setText("confidence", (s.confidence ?? "-") + "%");
+  applySignalAnimation(s.signal);
 
   setText("engine", s.engine || "-");
   setText("signalQuality", formatQuality(s.signalQuality));
@@ -389,18 +573,17 @@ function render(data) {
 
   setText("marketStatus", data.market === "open" ? "OPEN" : "CLOSED");
 
-  const baseTime =
-    s.signalTime ||
-    data.updated ||
-    new Date().toISOString();
+  const conf = Number(s.confidence || 0);
+  const confText =
+    conf >= 80 ? `${conf}% | Strong` :
+    conf >= 70 ? `${conf}% | Medium` :
+    conf > 0 ? `${conf}% | Weak` : "-";
 
-  const validUntil =
-    s.validUntil ||
-    addMinutesToIso(baseTime, 15);
+  setText("confidence", confText);
 
-  const nextCheck =
-    s.nextCheck ||
-    addMinutesToIso(baseTime, data.apiCacheMinutes || 5);
+  const baseTime = s.signalTime || data.updated || new Date().toISOString();
+  const validUntil = s.validUntil || addMinutesToIso(baseTime, 15);
+  const nextCheck = s.nextCheck || addMinutesToIso(baseTime, data.apiCacheMinutes || 5);
 
   setText("signalTime", formatThaiDateTime(baseTime));
   setText("validUntil", formatThaiDateTime(validUntil));
@@ -423,61 +606,15 @@ function render(data) {
   setText("totalFinished", learning.totalFinished ?? 0);
   setText("wins", learning.wins ?? 0);
   setText("losses", learning.losses ?? 0);
-  setText("winRate", learning.winRate === null || learning.winRate === undefined ? "-" : `${learning.winRate}%`);
+  setText(
+    "winRate",
+    learning.winRate === null || learning.winRate === undefined ? "-" : `${learning.winRate}%`
+  );
 
   const learningNote = document.getElementById("learningNote");
   if (learningNote) {
     learningNote.innerText =
-      learning.note ||
-      "Learning จะเริ่มมีผลเมื่อมีข้อมูลย้อนหลังมากพอ";
-  }
-
-  const demo = document.getElementById("demoBadge");
-  if (demo) {
-    demo.style.display = data.demo ? "inline-block" : "none";
-  }
-
-  const signalEl = document.getElementById("signal");
-  if (signalEl) {
-    if (s.signal === "BUY") signalEl.style.color = "#00c853";
-    else if (s.signal === "SELL") signalEl.style.color = "#ff1744";
-    else signalEl.style.color = "#999";
-  }
-
-  const confidenceEl = document.getElementById("confidence");
-  if (confidenceEl) {
-    const conf = Number(s.confidence || 0);
-
-    if (conf >= 80) {
-      confidenceEl.innerText = `${conf}% | Strong`;
-    } else if (conf >= 70) {
-      confidenceEl.innerText = `${conf}% | Medium`;
-    } else if (conf > 0) {
-      confidenceEl.innerText = `${conf}% | Weak`;
-    } else {
-      confidenceEl.innerText = "-";
-    }
-  }
-
-  const qualityEl = document.getElementById("signalQuality");
-  if (qualityEl) {
-    if (s.signalQuality === "A_STRONG") qualityEl.style.color = "#00c853";
-    else if (s.signalQuality === "B_MEDIUM") qualityEl.style.color = "#f5c542";
-    else qualityEl.style.color = "#ff9800";
-  }
-
-  const aiScoreEl = document.getElementById("aiScore");
-  if (aiScoreEl) {
-    const score = Number(s.aiScore || 0);
-
-    if (score >= 75) aiScoreEl.style.color = "#00c853";
-    else if (score >= 60) aiScoreEl.style.color = "#f5c542";
-    else aiScoreEl.style.color = "#ff9800";
-  }
-
-  const vipAllowedEl = document.getElementById("vipAllowed");
-  if (vipAllowedEl) {
-    vipAllowedEl.style.color = s.vipAllowed ? "#00c853" : "#ff9800";
+      learning.note || "Learning จะเริ่มมีผลเมื่อมีข้อมูลย้อนหลังมากพอ";
   }
 
   renderList("reason", s.reason);
@@ -514,12 +651,16 @@ function renderActivePlan(plan) {
     setText("activeHitType", "-");
     setText("activeHitPrice", "-");
 
-    if (activeStatus) activeStatus.style.color = "#999";
+    if (activeStatus) {
+      activeStatus.className = "active-status";
+    }
+
     if (activeSignal) activeSignal.style.color = "#999";
     if (activeNote) {
       activeNote.innerText = "ยังไม่มี Active Trade Plan เพราะระบบยังไม่พบสัญญาณ BUY/SELL ที่คุณภาพผ่าน";
     }
 
+    previousActiveStatus = null;
     return;
   }
 
@@ -548,15 +689,17 @@ function renderActivePlan(plan) {
   setText("activeHitPrice", plan.hitPrice ?? "-");
 
   if (activeStatus) {
-    if (plan.status === "ACTIVE") activeStatus.style.color = "#f5c542";
-    else if (plan.status === "TP1_HIT") activeStatus.style.color = "#00c853";
-    else if (plan.status === "SL_HIT") activeStatus.style.color = "#ff1744";
-    else activeStatus.style.color = "#999";
+    activeStatus.className = "active-status";
+
+    if (plan.status === "ACTIVE") activeStatus.classList.add("status-active");
+    else if (plan.status === "TP1_HIT") activeStatus.classList.add("status-win");
+    else if (plan.status === "SL_HIT") activeStatus.classList.add("status-loss");
+    else if (plan.status === "EXPIRED") activeStatus.classList.add("status-expired");
   }
 
   if (activeSignal) {
     if (plan.signal === "BUY") activeSignal.style.color = "#00c853";
-    else if (plan.signal === "SELL") activeSignal.style.color = "#ff1744";
+    else if (plan.signal === "SELL") activeSignal.style.color = "#ff455e";
     else activeSignal.style.color = "#999";
   }
 
@@ -573,6 +716,26 @@ function renderActivePlan(plan) {
       activeNote.innerText = "Active Trade Plan มีสถานะล่าสุดตามที่แสดง";
     }
   }
+
+  if (previousActiveStatus && previousActiveStatus !== plan.status) {
+    if (plan.status === "TP1_HIT") {
+      showToast("TP1 Hit", "Active Trade Plan ทำกำไรถึงเป้าแรกแล้ว", "success");
+      playTone("success");
+    } else if (plan.status === "SL_HIT") {
+      showToast("SL Hit", "Active Trade Plan แตะ Stop Loss", "danger");
+      playTone("danger");
+    } else if (plan.status === "EXPIRED") {
+      showToast("Plan Expired", "แผนหมดเวลาโดยยังไม่ถึง TP1/SL", "warning");
+    } else if (plan.status === "ACTIVE") {
+      showToast("New Active Plan", `${plan.signal} plan locked`, "success");
+      playTone("info");
+    }
+  } else if (!previousActiveStatus && plan.status === "ACTIVE") {
+    showToast("New Active Plan", `${plan.signal} plan locked`, "success");
+    playTone("info");
+  }
+
+  previousActiveStatus = plan.status;
 }
 
 function setMode(mode) {
@@ -585,6 +748,8 @@ function setMode(mode) {
   const activeBtn = document.getElementById(`mode-${mode}`);
   if (activeBtn) activeBtn.classList.add("active");
 
+  updateModeLabel();
+  showToast("เปลี่ยนโหมด", mode === "fast" ? "Scalping" : mode === "safe" ? "Swing" : "Day Trade", "warning");
   loadSignal();
 }
 
@@ -630,7 +795,20 @@ function startAutoRefresh() {
   resetRefreshCountdown();
 }
 
+window.toggleSound = toggleSound;
+window.applySoundSettingFromSelect = applySoundSettingFromSelect;
+window.toggleAdminPanel = toggleAdminPanel;
+window.toggleAdminKey = toggleAdminKey;
+window.setMode = setMode;
+window.loadSignal = loadSignal;
+window.sendVipSignal = sendVipSignal;
+window.testTelegram = testTelegram;
+window.resetActivePlan = resetActivePlan;
+window.toggleSection = toggleSection;
+
 window.addEventListener("DOMContentLoaded", () => {
+  loadSoundSetting();
+  updateModeLabel();
   loadSignal();
   loadThaiGold();
   startAutoRefresh();
