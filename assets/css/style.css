@@ -98,6 +98,12 @@ body{
   box-shadow:0 0 15px rgba(0,230,118,0.4);
 }
 
+.mode-btn{
+  flex:1;
+  white-space:nowrap;
+  font-size:13px;
+}
+
 /* SIGNAL */
 .signal-box{
   margin-top:18px;
@@ -260,9 +266,11 @@ button{
     justify-content:flex-start;
   }
 
-  .mode-row{
-    flex-direction:column;
-  }
+ .mode-row{
+  display:flex;
+  flex-direction:row !important;
+  gap:8px;
+}
 
   .grid,
   .thai-gold{
