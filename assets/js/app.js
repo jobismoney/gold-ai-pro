@@ -1,8 +1,13 @@
-console.log("APP JS VERSION 12 LOADED");
+console.log("APP JS VERSION 13 LOADED");
 
 const API_URL = "https://white-fog-ba70.porapat-su1975.workers.dev";
 
 let currentMode = "balanced";
+let autoRefreshTimer = null;
+let countdownTimer = null;
+let nextRefreshAt = null;
+
+const AUTO_REFRESH_SECONDS = 60;
 
 function setText(id, value) {
   const node = document.getElementById(id);
@@ -55,6 +60,21 @@ function formatSource(source) {
   return source;
 }
 
+function updateAutoRefreshStatus() {
+  const el = document.getElementById("autoRefreshStatus");
+  if (!el || !nextRefreshAt) return;
+
+  const remainMs = nextRefreshAt - Date.now();
+  const remainSec = Math.max(0, Math.ceil(remainMs / 1000));
+
+  el.innerText = `Auto refresh: ${remainSec}s | API cache: 5 min`;
+}
+
+function resetRefreshCountdown() {
+  nextRefreshAt = Date.now() + AUTO_REFRESH_SECONDS * 1000;
+  updateAutoRefreshStatus();
+}
+
 async function loadSignal() {
   try {
     const res = await fetch(`${API_URL}?mode=${currentMode}&t=${Date.now()}`);
@@ -63,9 +83,11 @@ async function loadSignal() {
     console.log("SIGNAL DATA:", data);
 
     render(data);
+    resetRefreshCountdown();
 
   } catch (err) {
     console.error("Signal error:", err);
+    setText("marketStatus", "ERROR");
   }
 }
 
@@ -127,6 +149,21 @@ function render(data) {
     else signalEl.style.color = "#999";
   }
 
+  const confidenceEl = document.getElementById("confidence");
+  if (confidenceEl) {
+    const conf = Number(s.confidence || 0);
+
+    if (conf >= 80) {
+      confidenceEl.innerText = `${conf}% | Strong`;
+    } else if (conf >= 70) {
+      confidenceEl.innerText = `${conf}% | Medium`;
+    } else if (conf > 0) {
+      confidenceEl.innerText = `${conf}% | Weak`;
+    } else {
+      confidenceEl.innerText = "-";
+    }
+  }
+
   const reasonBox = document.getElementById("reason");
   if (reasonBox) {
     reasonBox.innerHTML = "";
@@ -183,7 +220,23 @@ async function loadThaiGold() {
   }
 }
 
+function startAutoRefresh() {
+  if (autoRefreshTimer) clearInterval(autoRefreshTimer);
+  if (countdownTimer) clearInterval(countdownTimer);
+
+  autoRefreshTimer = setInterval(() => {
+    loadSignal();
+  }, AUTO_REFRESH_SECONDS * 1000);
+
+  countdownTimer = setInterval(() => {
+    updateAutoRefreshStatus();
+  }, 1000);
+
+  resetRefreshCountdown();
+}
+
 window.addEventListener("DOMContentLoaded", () => {
   loadSignal();
   loadThaiGold();
+  startAutoRefresh();
 });
