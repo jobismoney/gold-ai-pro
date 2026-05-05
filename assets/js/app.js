@@ -1,4 +1,4 @@
-console.log("APP JS VERSION 26 LOADED");
+console.log("APP JS VERSION 27 LOADED");
 
 const API_URL = "https://white-fog-ba70.porapat-su1975.workers.dev";
 
@@ -70,7 +70,7 @@ function toggleAdminPanel() {
   panel.style.display = isHidden ? "block" : "none";
 
   if (isHidden) {
-    showToast("เปิด Admin Panel", "ตั้งค่า Telegram / Sound / VIP ได้ที่นี่", "warning");
+    showToast("เปิด Admin Panel", "ตั้งค่า Price Calibration / Telegram / VIP ได้ที่นี่", "warning");
   }
 }
 
@@ -121,9 +121,17 @@ function money(value) {
   return n.toFixed(2);
 }
 
+function signed(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return "-";
+  return n >= 0 ? `+${n.toFixed(2)}` : n.toFixed(2);
+}
+
 function formatSource(source) {
   if (!source) return "-";
 
+  if (source.includes("binance_vision_spot")) return "Binance Vision Spot PAXGUSDT";
+  if (source.includes("binance_main_spot")) return "Binance Main Spot PAXGUSDT";
   if (source.includes("binance_futures")) return "Binance Futures PAXGUSDT";
   if (source.includes("binance_proxy")) return "Binance Proxy Cache";
   if (source.includes("binance_paxgusdt")) return "Binance PAXGUSDT";
@@ -202,7 +210,7 @@ function updateApiCountdown() {
   const text = formatCountdown(remainMs);
 
   if (el) {
-    el.innerText = `Next API update in ${text} | Source: Binance Futures PAXGUSDT`;
+    el.innerText = `Next API update in ${text} | TV-Calibrated Proxy`;
   }
 
   if (miniEl) {
@@ -633,6 +641,213 @@ function updateModeLabel() {
   }
 }
 
+/* =========================
+   PRICE CALIBRATION ADMIN
+========================= */
+
+function updateCalibrationUiFromData(data) {
+  if (!data) return;
+
+  const raw = Number(data.rawPrice);
+  const offset = Number(data.priceOffset);
+  const adjusted = Number(data.adjustedPrice || data.price);
+
+  if (Number.isFinite(raw)) {
+    setText("calibrationRawPrice", money(raw));
+    setText("adminRawPrice", money(raw));
+  }
+
+  if (Number.isFinite(offset)) {
+    setText("calibrationOffsetText", signed(offset));
+
+    const input = document.getElementById("calibrationOffsetInput");
+    if (input && document.activeElement !== input) {
+      input.value = offset.toFixed(2);
+    }
+  }
+
+  if (Number.isFinite(adjusted)) {
+    setText("calibrationAdjustedPrice", money(adjusted));
+    setText("adminAdjustedPrice", money(adjusted));
+  }
+
+  if (data.calibration) {
+    setText("calibrationMode", data.calibration.mode || "-");
+    setText("calibrationSource", data.calibration.source || "-");
+  }
+}
+
+async function loadCalibrationInfo() {
+  try {
+    const res = await fetch(`${API_URL}/calibration?t=${Date.now()}`, {
+      method: "GET",
+      cache: "no-store",
+      headers: {
+        "Cache-Control": "no-cache",
+        "Pragma": "no-cache"
+      }
+    });
+
+    const data = await res.json();
+
+    console.log("CALIBRATION INFO:", data);
+
+    if (data.ok && data.calibration) {
+      const offset = Number(data.calibration.priceOffset);
+
+      if (Number.isFinite(offset)) {
+        const input = document.getElementById("calibrationOffsetInput");
+        if (input) input.value = offset.toFixed(2);
+      }
+
+      setText("calibrationMode", data.calibration.mode || "-");
+      setText("calibrationSource", data.calibration.source || "-");
+      setText("calibrationStatus", `Price Calibration: loaded offset ${signed(offset)}`);
+    }
+
+  } catch (err) {
+    console.error("Load calibration error:", err);
+    setText("calibrationStatus", "Price Calibration: load error");
+  }
+}
+
+async function saveCalibrationOffset() {
+  const statusEl = document.getElementById("calibrationStatus");
+  const adminKey = requireAdminKey();
+  if (!adminKey) return;
+
+  const input = document.getElementById("calibrationOffsetInput");
+  const offset = Number(input?.value);
+
+  if (!Number.isFinite(offset) || offset < -50 || offset > 50) {
+    showToast("Offset ไม่ถูกต้อง", "กรุณาใส่ค่าระหว่าง -50 ถึง +50", "danger");
+    if (statusEl) statusEl.innerText = "Price Calibration: invalid offset";
+    return;
+  }
+
+  try {
+    if (statusEl) {
+      statusEl.innerText = `Price Calibration: saving offset ${signed(offset)}...`;
+    }
+
+    const url =
+      `${API_URL}/calibration` +
+      `?action=save` +
+      `&offset=${encodeURIComponent(offset.toFixed(2))}` +
+      `&admin_key=${encodeURIComponent(adminKey)}` +
+      `&t=${Date.now()}`;
+
+    const res = await fetch(url, {
+      method: "GET",
+      cache: "no-store",
+      headers: {
+        "Cache-Control": "no-cache",
+        "Pragma": "no-cache"
+      }
+    });
+
+    const data = await res.json();
+
+    console.log("SAVE CALIBRATION:", data);
+
+    if (data.ok === true) {
+      if (statusEl) {
+        statusEl.innerText = `Price Calibration: ✅ saved offset ${signed(offset)}`;
+      }
+
+      showToast("บันทึก Offset สำเร็จ", `Offset ใหม่ = ${signed(offset)}`, "success");
+      playTone("success");
+
+      await loadSignal();
+      await loadCalibrationInfo();
+      return;
+    }
+
+    if (statusEl) {
+      statusEl.innerText = `Price Calibration: ❌ ${data.reason || "save failed"}`;
+    }
+
+    showToast("บันทึก Offset ไม่สำเร็จ", data.message || data.reason || "unknown", "danger");
+    playTone("danger");
+
+  } catch (err) {
+    console.error("Save calibration error:", err);
+
+    if (statusEl) {
+      statusEl.innerText = "Price Calibration: ❌ connection error";
+    }
+
+    showToast("Calibration error", "เกิดปัญหาการเชื่อมต่อ", "danger");
+    playTone("danger");
+  }
+}
+
+async function resetCalibrationOffset() {
+  const statusEl = document.getElementById("calibrationStatus");
+  const adminKey = requireAdminKey();
+  if (!adminKey) return;
+
+  try {
+    if (statusEl) {
+      statusEl.innerText = "Price Calibration: resetting to +6.50...";
+    }
+
+    const url =
+      `${API_URL}/calibration` +
+      `?action=reset` +
+      `&admin_key=${encodeURIComponent(adminKey)}` +
+      `&t=${Date.now()}`;
+
+    const res = await fetch(url, {
+      method: "GET",
+      cache: "no-store",
+      headers: {
+        "Cache-Control": "no-cache",
+        "Pragma": "no-cache"
+      }
+    });
+
+    const data = await res.json();
+
+    console.log("RESET CALIBRATION:", data);
+
+    if (data.ok === true) {
+      const offset = Number(data.calibration?.priceOffset ?? 6.5);
+
+      const input = document.getElementById("calibrationOffsetInput");
+      if (input) input.value = offset.toFixed(2);
+
+      if (statusEl) {
+        statusEl.innerText = `Price Calibration: ✅ reset to ${signed(offset)}`;
+      }
+
+      showToast("Reset Offset สำเร็จ", `กลับไปใช้ค่า default ${signed(offset)}`, "success");
+      playTone("success");
+
+      await loadSignal();
+      await loadCalibrationInfo();
+      return;
+    }
+
+    if (statusEl) {
+      statusEl.innerText = `Price Calibration: ❌ ${data.reason || "reset failed"}`;
+    }
+
+    showToast("Reset Offset ไม่สำเร็จ", data.message || data.reason || "unknown", "danger");
+    playTone("danger");
+
+  } catch (err) {
+    console.error("Reset calibration error:", err);
+
+    if (statusEl) {
+      statusEl.innerText = "Price Calibration: ❌ connection error";
+    }
+
+    showToast("Calibration reset error", "เกิดปัญหาการเชื่อมต่อ", "danger");
+    playTone("danger");
+  }
+}
+
 function render(data) {
   const s = data.currentAnalysis || data.signal || {};
   const activePlan = data.activePlan || s.activePlan || null;
@@ -640,6 +855,8 @@ function render(data) {
 
   latestData = data;
   latestAnalysis = s;
+
+  updateCalibrationUiFromData(data);
 
   setText("price", data.price);
   applyPriceAnimation(data.price);
@@ -695,21 +912,21 @@ function render(data) {
   if (validNote) {
     validNote.innerText =
       s.validNote ||
-      "ระบบอัปเดตข้อมูลตามรอบ API และใช้ข้อมูลจริงจาก Binance Futures PAXGUSDT";
+      "ระบบอัปเดตข้อมูลตามรอบ API และใช้ข้อมูลจริงจาก Binance Futures PAXGUSDT + Offset";
   }
 
   const chartSourceText = document.getElementById("chartSourceText");
   if (chartSourceText) {
     chartSourceText.innerText =
       data.dataNotice ||
-      "กราฟนี้วาดจาก Binance Futures PAXGUSDT 15m candles";
+      "กราฟนี้วาดจาก Binance Futures PAXGUSDT 15m candles + Offset";
   }
 
   const sourceNotice = document.getElementById("sourceNotice");
   if (sourceNotice) {
     sourceNotice.innerText =
       data.proxyNotice ||
-      "Gold Proxy Source: Binance Futures PAXGUSDT — อาจต่างจาก XAU/USD Spot/OANDA เล็กน้อย";
+      "TV-Calibrated Proxy — Binance Futures PAXGUSDT + Admin Offset";
   }
 
   latestChartData = Array.isArray(data.chartData) ? data.chartData : [];
@@ -981,7 +1198,7 @@ function drawApiChart(candles) {
 
   ctx.fillStyle = "#9aa3b2";
   ctx.font = "13px sans-serif";
-  ctx.fillText("Binance Futures PAXGUSDT 15m candles", padLeft, h - 12);
+  ctx.fillText("TV-Calibrated Proxy | PAXGUSDT + Offset", padLeft, h - 12);
 }
 
 function drawManualAtpLevelsOnChart(ctx, candles, helper) {
@@ -1420,7 +1637,9 @@ function addManualAtp() {
     createdAt: now.toISOString(),
     expiresAt: expiresAt.toISOString(),
     updatedAt: now.toISOString(),
-    source: latestData.priceSource || latestData.source || "binance_futures_paxgusdt",
+    source: latestData.priceSource || latestData.source || "tv_calibrated_proxy",
+    priceOffset: latestData.priceOffset ?? 0,
+    rawPrice: latestData.rawPrice ?? null,
     createdPrice: Number(latestData.price)
   };
 
@@ -1633,6 +1852,7 @@ function renderManualAtp() {
         <div class="mini-card"><span>RR TP1</span><b>${plan.rr1 ?? "-"}</b></div>
         <div class="mini-card"><span>RR TP3</span><b>${plan.rr3 ?? "-"}</b></div>
         <div class="mini-card"><span>Last Price</span><b>${plan.lastPrice ? money(plan.lastPrice) : "-"}</b></div>
+        <div class="mini-card"><span>Offset</span><b>${signed(plan.priceOffset || 0)}</b></div>
         <div class="mini-card"><span>Created</span><b>${formatThaiDateTime(plan.createdAt)}</b></div>
         <div class="mini-card"><span>Expires</span><b>${formatThaiDateTime(plan.expiresAt)}</b></div>
       </div>
@@ -1664,10 +1884,6 @@ function renderManualStats() {
   const active = manualAtpPlans.filter(p =>
     ["WAITING_ENTRY", "ACTIVE", "TP1_HIT", "TP2_HIT"].includes(p.status)
   ).length;
-
-  const closed = manualAtpPlans.filter(p =>
-    ["TP3_HIT", "SL_HIT", "EXPIRED", "CANCELLED"].includes(p.status)
-  );
 
   const wins = manualAtpPlans.filter(p => p.status === "TP3_HIT" || p.result === "win_tp3").length;
   const losses = manualAtpPlans.filter(p => p.result === "loss_sl").length;
@@ -1766,6 +1982,10 @@ window.cancelManualAtp = cancelManualAtp;
 window.clearClosedManualPlans = clearClosedManualPlans;
 window.clearAllManualPlans = clearAllManualPlans;
 
+window.saveCalibrationOffset = saveCalibrationOffset;
+window.resetCalibrationOffset = resetCalibrationOffset;
+window.loadCalibrationInfo = loadCalibrationInfo;
+
 window.addEventListener("resize", () => {
   drawApiChart(latestChartData);
 });
@@ -1775,6 +1995,7 @@ window.addEventListener("DOMContentLoaded", () => {
   loadManualAtp();
   updateModeLabel();
   renderManualAtp();
+  loadCalibrationInfo();
   loadSignal();
   loadThaiGold();
   startAutoRefresh();
