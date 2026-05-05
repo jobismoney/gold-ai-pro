@@ -1,4 +1,4 @@
-console.log("APP JS VERSION 25 LOADED");
+console.log("APP JS VERSION 26 LOADED");
 
 const API_URL = "https://white-fog-ba70.porapat-su1975.workers.dev";
 
@@ -8,12 +8,18 @@ let countdownTimer = null;
 let nextApiUpdateAt = null;
 
 const API_REFRESH_SECONDS = 30;
+const MAX_MANUAL_ATP = 10;
+const MANUAL_ATP_KEY = "gold_ai_manual_atp_v1";
 
 let previousPrice = null;
 let previousSignal = null;
 let previousActiveStatus = null;
 let soundEnabled = true;
 let latestChartData = [];
+let latestData = null;
+let latestAnalysis = null;
+let builderSide = "BUY";
+let manualAtpPlans = [];
 
 function setText(id, value) {
   const node = document.getElementById(id);
@@ -23,6 +29,22 @@ function setText(id, value) {
 function getSettingValue(id, fallback) {
   const node = document.getElementById(id);
   return node?.value || fallback;
+}
+
+function getNumberValue(id, fallback = 0) {
+  const node = document.getElementById(id);
+  const value = Number(node?.value);
+  return Number.isFinite(value) ? value : fallback;
+}
+
+function setInputValue(id, value) {
+  const node = document.getElementById(id);
+  if (node) node.value = value ?? "";
+}
+
+function isChecked(id) {
+  const node = document.getElementById(id);
+  return node ? node.checked === true : false;
 }
 
 function getAdminKey() {
@@ -89,6 +111,16 @@ function formatCountdown(ms) {
   return `${m}m ${String(s).padStart(2, "0")}s`;
 }
 
+function round2(value) {
+  return Math.round(Number(value) * 100) / 100;
+}
+
+function money(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return "-";
+  return n.toFixed(2);
+}
+
 function formatSource(source) {
   if (!source) return "-";
 
@@ -116,7 +148,7 @@ function formatTelegramReason(reason) {
     telegram_config_missing_or_failed: "ส่งไม่สำเร็จ: Telegram config ไม่ครบหรือผิดพลาด",
     vip_quality_filter_blocked: "ไม่ส่ง เพราะ Smart Filter ยังไม่อนุญาตให้ส่ง VIP",
     active_plan_running: "ไม่ส่ง เพราะมี Active Trade Plan กำลังทำงานอยู่",
-    current_signal_wait: "ไม่ส่ง เพราะ Current Analysis เป็น WAIT",
+    current_signal_wait: "ไม่ส่ง เพราะตอนนี้เป็น WAIT",
     quality_not_allowed: "ไม่ส่ง เพราะคุณภาพสัญญาณยังไม่ผ่าน",
     active_plan_not_created: "ไม่ส่ง เพราะยังไม่ได้สร้าง Active Plan"
   };
@@ -507,7 +539,7 @@ async function resetActivePlan() {
         statusEl.innerText = "Active Plan Reset: ✅ done";
       }
 
-      showToast("Reset Active Plan สำเร็จ", "ระบบล้างแผนที่ล็อกไว้แล้ว", "success");
+      showToast("Reset AI Active Plan สำเร็จ", "ระบบล้างแผน AI ที่ล็อกไว้แล้ว", "success");
       playTone("success");
       loadSignal();
     } else {
@@ -606,6 +638,9 @@ function render(data) {
   const activePlan = data.activePlan || s.activePlan || null;
   const learning = data.learning || s.learningStats || {};
 
+  latestData = data;
+  latestAnalysis = s;
+
   setText("price", data.price);
   applyPriceAnimation(data.price);
 
@@ -701,6 +736,10 @@ function render(data) {
 
   renderList("reason", s.reason);
   renderList("filters", s.filters);
+
+  updateManualAtpByPrice(Number(data.price));
+  generateSuggestedPlan(false);
+  renderManualAtp();
 }
 
 function renderActivePlan(plan) {
@@ -736,7 +775,7 @@ function renderActivePlan(plan) {
     if (activeStatus) activeStatus.className = "active-status";
     if (activeSignal) activeSignal.style.color = "#999";
     if (activeNote) {
-      activeNote.innerText = "ยังไม่มี Active Trade Plan เพราะระบบยังไม่พบสัญญาณ BUY/SELL ที่คุณภาพผ่าน";
+      activeNote.innerText = "ยังไม่มี AI Active Trade Plan เพราะระบบยังไม่พบสัญญาณ BUY/SELL ที่คุณภาพผ่าน";
     }
 
     previousActiveStatus = null;
@@ -784,33 +823,33 @@ function renderActivePlan(plan) {
 
   if (activeNote) {
     if (plan.status === "ACTIVE") {
-      activeNote.innerText = "แผนนี้ถูกล็อกไว้แล้ว Entry / SL / TP จะไม่เปลี่ยนจนกว่า TP1 / SL / Expired";
+      activeNote.innerText = "แผน AI นี้ถูกล็อกไว้แล้ว Entry / SL / TP จะไม่เปลี่ยนจนกว่า TP1 / SL / Expired";
     } else if (plan.status === "TP1_HIT") {
-      activeNote.innerText = "แผนนี้จบแล้ว: ราคาแตะ TP1";
+      activeNote.innerText = "แผน AI นี้จบแล้ว: ราคาแตะ TP1";
     } else if (plan.status === "SL_HIT") {
-      activeNote.innerText = "แผนนี้จบแล้ว: ราคาแตะ SL";
+      activeNote.innerText = "แผน AI นี้จบแล้ว: ราคาแตะ SL";
     } else if (plan.status === "EXPIRED") {
-      activeNote.innerText = "แผนนี้หมดเวลาแล้ว: ยังไม่แตะ TP1 หรือ SL ภายในช่วงที่กำหนด";
+      activeNote.innerText = "แผน AI นี้หมดเวลาแล้ว: ยังไม่แตะ TP1 หรือ SL ภายในช่วงที่กำหนด";
     } else {
-      activeNote.innerText = "Active Trade Plan มีสถานะล่าสุดตามที่แสดง";
+      activeNote.innerText = "AI Active Trade Plan มีสถานะล่าสุดตามที่แสดง";
     }
   }
 
   if (previousActiveStatus && previousActiveStatus !== plan.status) {
     if (plan.status === "TP1_HIT") {
-      showToast("TP1 Hit", "Active Trade Plan ทำกำไรถึงเป้าแรกแล้ว", "success");
+      showToast("AI TP1 Hit", "AI Active Trade Plan ทำกำไรถึงเป้าแรกแล้ว", "success");
       playTone("success");
     } else if (plan.status === "SL_HIT") {
-      showToast("SL Hit", "Active Trade Plan แตะ Stop Loss", "danger");
+      showToast("AI SL Hit", "AI Active Trade Plan แตะ Stop Loss", "danger");
       playTone("danger");
     } else if (plan.status === "EXPIRED") {
-      showToast("Plan Expired", "แผนหมดเวลาโดยยังไม่ถึง TP1/SL", "warning");
+      showToast("AI Plan Expired", "แผน AI หมดเวลาโดยยังไม่ถึง TP1/SL", "warning");
     } else if (plan.status === "ACTIVE") {
-      showToast("New Active Plan", `${plan.signal} plan locked`, "success");
+      showToast("New AI Active Plan", `${plan.signal} plan locked`, "success");
       playTone("info");
     }
   } else if (!previousActiveStatus && plan.status === "ACTIVE") {
-    showToast("New Active Plan", `${plan.signal} plan locked`, "success");
+    showToast("New AI Active Plan", `${plan.signal} plan locked`, "success");
     playTone("info");
   }
 
@@ -938,9 +977,43 @@ function drawApiChart(candles) {
     ctx.fillText(price.toFixed(2), w - padRight + 8, y + 4);
   }
 
+  drawManualAtpLevelsOnChart(ctx, candles, { yAt, padLeft, w, padRight });
+
   ctx.fillStyle = "#9aa3b2";
   ctx.font = "13px sans-serif";
   ctx.fillText("Binance Futures PAXGUSDT 15m candles", padLeft, h - 12);
+}
+
+function drawManualAtpLevelsOnChart(ctx, candles, helper) {
+  if (!manualAtpPlans || !manualAtpPlans.length) return;
+
+  const activePlans = manualAtpPlans.filter(p =>
+    ["WAITING_ENTRY", "ACTIVE", "TP1_HIT", "TP2_HIT"].includes(p.status)
+  ).slice(0, 5);
+
+  activePlans.forEach(plan => {
+    const levels = [
+      { label: `${plan.side} E`, price: plan.entry },
+      { label: "SL", price: plan.sl },
+      { label: "TP1", price: plan.tp1 }
+    ];
+
+    levels.forEach(level => {
+      const y = helper.yAt(level.price);
+
+      ctx.setLineDash([3, 6]);
+      ctx.strokeStyle = level.label === "SL" ? "rgba(255,69,94,0.55)" : "rgba(0,200,83,0.45)";
+      ctx.beginPath();
+      ctx.moveTo(helper.padLeft, y);
+      ctx.lineTo(helper.w - helper.padRight, y);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      ctx.fillStyle = level.label === "SL" ? "#ff9baa" : "#8effb0";
+      ctx.font = "bold 11px sans-serif";
+      ctx.fillText(level.label, helper.padLeft + 4, y - 4);
+    });
+  });
 }
 
 function setMode(mode) {
@@ -999,6 +1072,667 @@ async function loadThaiGold() {
   }
 }
 
+/* =========================
+   PLAN BUILDER + MY ATP
+========================= */
+
+function loadManualAtp() {
+  try {
+    const raw = localStorage.getItem(MANUAL_ATP_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    manualAtpPlans = Array.isArray(parsed) ? parsed : [];
+  } catch (e) {
+    manualAtpPlans = [];
+  }
+}
+
+function saveManualAtp() {
+  localStorage.setItem(MANUAL_ATP_KEY, JSON.stringify(manualAtpPlans));
+}
+
+function setBuilderSide(side) {
+  builderSide = side === "SELL" ? "SELL" : "BUY";
+
+  const buyBtn = document.getElementById("builderSideBuy");
+  const sellBtn = document.getElementById("builderSideSell");
+
+  if (buyBtn) buyBtn.classList.toggle("active", builderSide === "BUY");
+  if (sellBtn) sellBtn.classList.toggle("active", builderSide === "SELL");
+
+  generateSuggestedPlan();
+}
+
+function getBuilderRisk(mode) {
+  if (mode === "fast") return 6;
+  if (mode === "safe") return 12;
+  return 8;
+}
+
+function generateSuggestedPlan(updateStatus = true) {
+  if (!latestAnalysis || !latestData) return;
+
+  const price = Number(latestData.price);
+  if (!Number.isFinite(price)) return;
+
+  const mode = getSettingValue("builderMode", "balanced");
+  const entryStyle = getSettingValue("builderEntryStyle", "hybrid");
+  const riskBase = getBuilderRisk(mode);
+
+  const support = Number(latestAnalysis.support || price - riskBase * 2);
+  const resistance = Number(latestAnalysis.resistance || price + riskBase * 2);
+  const fvg = latestAnalysis.nearestFvg;
+
+  let entry = price;
+
+  if (entryStyle === "support_resistance") {
+    entry = builderSide === "BUY" ? support : resistance;
+  }
+
+  if (entryStyle === "fvg" && fvg) {
+    entry = Number(fvg.midpoint || ((Number(fvg.top) + Number(fvg.bottom)) / 2));
+  }
+
+  if (entryStyle === "hybrid") {
+    if (isChecked("indFvg") && fvg && Number.isFinite(Number(fvg.midpoint))) {
+      entry = Number(fvg.midpoint);
+    } else if (isChecked("indSr")) {
+      entry = builderSide === "BUY" ? support : resistance;
+    } else {
+      entry = price;
+    }
+  }
+
+  if (!Number.isFinite(entry)) entry = price;
+
+  let risk = riskBase;
+
+  if (isChecked("indAtr")) {
+    const range = Number(latestAnalysis.range || riskBase * 4);
+    risk = Math.max(riskBase, Math.min(18, range / 6));
+  }
+
+  let sl, tp1, tp2, tp3;
+
+  if (builderSide === "BUY") {
+    sl = Math.min(entry - risk, support - 1);
+    tp1 = entry + risk;
+    tp2 = entry + risk * 2;
+    tp3 = entry + risk * 3;
+  } else {
+    sl = Math.max(entry + risk, resistance + 1);
+    tp1 = entry - risk;
+    tp2 = entry - risk * 2;
+    tp3 = entry - risk * 3;
+  }
+
+  setInputValue("builderEntry", money(entry));
+  setInputValue("builderSl", money(sl));
+  setInputValue("builderTp1", money(tp1));
+  setInputValue("builderTp2", money(tp2));
+  setInputValue("builderTp3", money(tp3));
+
+  analyzeBuilderPlan();
+
+  if (updateStatus) {
+    setText("builderStatus", "ระบบคำนวณแผนใหม่แล้ว");
+  }
+}
+
+function analyzeBuilderPlan() {
+  if (!latestAnalysis || !latestData) return null;
+
+  const side = builderSide;
+  const entry = getNumberValue("builderEntry", 0);
+  const sl = getNumberValue("builderSl", 0);
+  const tp1 = getNumberValue("builderTp1", 0);
+  const tp2 = getNumberValue("builderTp2", 0);
+  const tp3 = getNumberValue("builderTp3", 0);
+
+  if (!entry || !sl || !tp1 || !tp2 || !tp3) return null;
+
+  const risk = Math.abs(entry - sl);
+  const reward1 = Math.abs(tp1 - entry);
+  const reward3 = Math.abs(tp3 - entry);
+
+  const rr1 = risk > 0 ? reward1 / risk : 0;
+  const rr3 = risk > 0 ? reward3 / risk : 0;
+
+  let score = 50;
+  const reasons = [];
+  const cautions = [];
+
+  if (isChecked("indEma")) {
+    if (side === "BUY" && latestAnalysis.trend === "UPTREND") {
+      score += 12;
+      reasons.push("แผน BUY ไปตามเทรนด์หลักขาขึ้น");
+    } else if (side === "SELL" && latestAnalysis.trend === "DOWNTREND") {
+      score += 12;
+      reasons.push("แผน SELL ไปตามเทรนด์หลักขาลง");
+    } else if (latestAnalysis.trend === "SIDEWAY") {
+      score -= 4;
+      cautions.push("ตลาด Sideway อาจทำให้แผนแกว่งและรอจังหวะนาน");
+    } else {
+      score -= 10;
+      cautions.push("แผนนี้มีโอกาสสวนเทรนด์หลัก");
+    }
+  }
+
+  if (isChecked("indRsi")) {
+    const rsi = Number(latestAnalysis.rsi || 50);
+
+    if (side === "BUY" && rsi > 35 && rsi < 65) {
+      score += 6;
+      reasons.push("RSI อยู่ในโซนที่ยังพอสนับสนุน BUY ได้");
+    } else if (side === "SELL" && rsi > 35 && rsi < 65) {
+      score += 6;
+      reasons.push("RSI อยู่ในโซนที่ยังพอสนับสนุน SELL ได้");
+    }
+
+    if (side === "BUY" && rsi >= 70) {
+      score -= 12;
+      cautions.push("BUY ขณะ RSI สูงมาก ระวังไล่ราคา");
+    }
+
+    if (side === "SELL" && rsi <= 30) {
+      score -= 12;
+      cautions.push("SELL ขณะ RSI ต่ำมาก ระวังเด้งกลับ");
+    }
+  }
+
+  if (isChecked("indSr")) {
+    const support = Number(latestAnalysis.support);
+    const resistance = Number(latestAnalysis.resistance);
+
+    if (side === "BUY") {
+      const nearSupport = Math.abs(entry - support);
+      const nearResistance = Math.abs(entry - resistance);
+
+      if (nearSupport <= 6) {
+        score += 8;
+        reasons.push("Entry BUY อยู่ใกล้แนวรับ");
+      }
+
+      if (nearResistance <= 5) {
+        score -= 12;
+        cautions.push("Entry BUY ใกล้แนวต้านเกินไป");
+      }
+    }
+
+    if (side === "SELL") {
+      const nearResistance = Math.abs(entry - resistance);
+      const nearSupport = Math.abs(entry - support);
+
+      if (nearResistance <= 6) {
+        score += 8;
+        reasons.push("Entry SELL อยู่ใกล้แนวต้าน");
+      }
+
+      if (nearSupport <= 5) {
+        score -= 12;
+        cautions.push("Entry SELL ใกล้แนวรับเกินไป");
+      }
+    }
+  }
+
+  if (isChecked("indFib")) {
+    if (side === "BUY" && latestAnalysis.fibZone === "BUY_ZONE") {
+      score += 8;
+      reasons.push("Fibonacci สนับสนุนฝั่ง BUY");
+    } else if (side === "SELL" && latestAnalysis.fibZone === "SELL_ZONE") {
+      score += 8;
+      reasons.push("Fibonacci สนับสนุนฝั่ง SELL");
+    } else if (latestAnalysis.fibZone && latestAnalysis.fibZone !== "NONE") {
+      score -= 5;
+      cautions.push(`Fib Zone ตอนนี้คือ ${latestAnalysis.fibZone} อาจไม่ตรงกับแผน`);
+    }
+  }
+
+  if (isChecked("indFvg")) {
+    const fvg = latestAnalysis.nearestFvg;
+
+    if (fvg) {
+      if (side === "BUY" && fvg.type === "bullish") {
+        score += 10;
+        reasons.push(`พบ Bullish FVG ใกล้ราคา ${fvg.bottom}-${fvg.top}`);
+      } else if (side === "SELL" && fvg.type === "bearish") {
+        score += 10;
+        reasons.push(`พบ Bearish FVG ใกล้ราคา ${fvg.bottom}-${fvg.top}`);
+      } else {
+        score -= 5;
+        cautions.push("FVG ใกล้ราคายังไม่สนับสนุนฝั่งของแผนชัดเจน");
+      }
+    } else {
+      cautions.push("ยังไม่พบ FVG ใกล้ราคาที่ใช้สนับสนุนแผน");
+    }
+  }
+
+  if (rr1 >= 1) {
+    score += 8;
+    reasons.push("Risk/Reward TP1 คุ้มกว่า 1:1");
+  } else {
+    score -= 8;
+    cautions.push("Risk/Reward TP1 ยังต่ำกว่า 1:1");
+  }
+
+  if (rr3 >= 2) {
+    score += 8;
+    reasons.push("TP3 ให้ Risk/Reward ระยะไกลที่น่าสนใจ");
+  }
+
+  if (risk > 20) {
+    score -= 8;
+    cautions.push("SL กว้างเกินไป อาจใช้เงินประกัน/ความเสี่ยงสูง");
+  }
+
+  score = Math.max(0, Math.min(100, Math.round(score)));
+
+  let quality = "Caution";
+  if (score >= 80) quality = "Strong";
+  else if (score >= 65) quality = "Good";
+  else if (score >= 50) quality = "Caution";
+  else quality = "Risky";
+
+  setText("planScore", `${score}/100`);
+  setText("planQuality", quality);
+  setText("planRr1", rr1.toFixed(2));
+  setText("planRr3", rr3.toFixed(2));
+
+  renderList("builderReasons", reasons.length ? reasons : ["ยังไม่มีเหตุผลสนับสนุนเด่น"]);
+  renderList("builderCautions", cautions.length ? cautions : ["ยังไม่พบจุดเสี่ยงเด่น"]);
+
+  return {
+    score,
+    quality,
+    rr1: round2(rr1),
+    rr3: round2(rr3),
+    reasons,
+    cautions
+  };
+}
+
+function addManualAtp() {
+  if (!latestData || !latestAnalysis) {
+    showToast("ยังไม่มีข้อมูลราคา", "รอให้ระบบโหลด Signal ก่อน", "warning");
+    return;
+  }
+
+  const activeCount = manualAtpPlans.filter(p =>
+    !["TP3_HIT", "SL_HIT", "CANCELLED", "EXPIRED"].includes(p.status)
+  ).length;
+
+  if (activeCount >= MAX_MANUAL_ATP) {
+    showToast("My ATP เต็มแล้ว", "จำกัดแผนที่ยังใช้งานอยู่ 10 แผน", "danger");
+    return;
+  }
+
+  const entry = getNumberValue("builderEntry", 0);
+  const sl = getNumberValue("builderSl", 0);
+  const tp1 = getNumberValue("builderTp1", 0);
+  const tp2 = getNumberValue("builderTp2", 0);
+  const tp3 = getNumberValue("builderTp3", 0);
+
+  if (!entry || !sl || !tp1 || !tp2 || !tp3) {
+    showToast("ข้อมูลแผนไม่ครบ", "กรุณากดคำนวณหรือกรอก Entry / SL / TP ให้ครบ", "warning");
+    return;
+  }
+
+  if (builderSide === "BUY" && !(sl < entry && tp1 > entry && tp2 > tp1 && tp3 > tp2)) {
+    showToast("โครง BUY ไม่ถูกต้อง", "BUY ต้องมี SL ต่ำกว่า Entry และ TP สูงกว่า Entry", "danger");
+    return;
+  }
+
+  if (builderSide === "SELL" && !(sl > entry && tp1 < entry && tp2 < tp1 && tp3 < tp2)) {
+    showToast("โครง SELL ไม่ถูกต้อง", "SELL ต้องมี SL สูงกว่า Entry และ TP ต่ำกว่า Entry", "danger");
+    return;
+  }
+
+  const analysis = analyzeBuilderPlan();
+  const now = new Date();
+  const expireHours = Number(getSettingValue("builderExpireHours", "24"));
+  const expiresAt = new Date(now.getTime() + expireHours * 60 * 60 * 1000);
+
+  const plan = {
+    id: `manual_${Date.now()}_${Math.random().toString(16).slice(2)}`,
+    type: "MANUAL_ATP",
+    side: builderSide,
+    mode: getSettingValue("builderMode", "balanced"),
+    entry: round2(entry),
+    sl: round2(sl),
+    tp1: round2(tp1),
+    tp2: round2(tp2),
+    tp3: round2(tp3),
+    note: getSettingValue("builderNote", "").trim(),
+    status: "WAITING_ENTRY",
+    result: "pending",
+    hits: {
+      entry: false,
+      tp1: false,
+      tp2: false,
+      tp3: false,
+      sl: false
+    },
+    score: analysis?.score ?? 0,
+    quality: analysis?.quality ?? "Caution",
+    rr1: analysis?.rr1 ?? 0,
+    rr3: analysis?.rr3 ?? 0,
+    reasons: analysis?.reasons ?? [],
+    cautions: analysis?.cautions ?? [],
+    createdAt: now.toISOString(),
+    expiresAt: expiresAt.toISOString(),
+    updatedAt: now.toISOString(),
+    source: latestData.priceSource || latestData.source || "binance_futures_paxgusdt",
+    createdPrice: Number(latestData.price)
+  };
+
+  manualAtpPlans.unshift(plan);
+  saveManualAtp();
+
+  updateManualAtpByPrice(Number(latestData.price));
+  renderManualAtp();
+
+  showToast("เพิ่ม My ATP สำเร็จ", `${plan.side} ${money(plan.entry)} ถูกเพิ่มเข้า Journal แล้ว`, "success");
+  playTone("success");
+}
+
+function updateManualAtpByPrice(price) {
+  if (!Number.isFinite(price)) return;
+  let changed = false;
+  const now = new Date();
+
+  manualAtpPlans = manualAtpPlans.map(plan => {
+    if (["TP3_HIT", "SL_HIT", "CANCELLED", "EXPIRED"].includes(plan.status)) {
+      return plan;
+    }
+
+    const updated = { ...plan, hits: { ...plan.hits } };
+
+    if (updated.expiresAt && now.getTime() >= new Date(updated.expiresAt).getTime()) {
+      updated.status = "EXPIRED";
+      updated.result = "expired";
+      updated.closedAt = now.toISOString();
+      updated.updatedAt = now.toISOString();
+      updated.lastPrice = round2(price);
+      changed = true;
+      return updated;
+    }
+
+    if (updated.status === "WAITING_ENTRY") {
+      if (updated.side === "BUY" && price <= updated.entry) {
+        updated.status = "ACTIVE";
+        updated.hits.entry = true;
+        updated.activatedAt = now.toISOString();
+        changed = true;
+        showToast("My ATP Entry Hit", `BUY Entry ${money(updated.entry)} ทำงานแล้ว`, "success");
+        playTone("info");
+      }
+
+      if (updated.side === "SELL" && price >= updated.entry) {
+        updated.status = "ACTIVE";
+        updated.hits.entry = true;
+        updated.activatedAt = now.toISOString();
+        changed = true;
+        showToast("My ATP Entry Hit", `SELL Entry ${money(updated.entry)} ทำงานแล้ว`, "success");
+        playTone("info");
+      }
+    }
+
+    if (updated.status === "ACTIVE" || updated.status === "TP1_HIT" || updated.status === "TP2_HIT") {
+      if (updated.side === "BUY") {
+        if (price <= updated.sl) {
+          updated.hits.sl = true;
+          updated.status = "SL_HIT";
+          updated.result = updated.hits.tp1 ? "partial_win_then_sl" : "loss_sl";
+          updated.closedAt = now.toISOString();
+          changed = true;
+          showToast("My ATP SL Hit", `${updated.side} แตะ SL ${money(updated.sl)}`, "danger");
+          playTone("danger");
+        } else {
+          if (price >= updated.tp1 && !updated.hits.tp1) {
+            updated.hits.tp1 = true;
+            updated.status = "TP1_HIT";
+            updated.result = "running_profit";
+            changed = true;
+            showToast("My ATP TP1 Hit", `${updated.side} ถึง TP1 ${money(updated.tp1)}`, "success");
+            playTone("success");
+          }
+
+          if (price >= updated.tp2 && !updated.hits.tp2) {
+            updated.hits.tp2 = true;
+            updated.status = "TP2_HIT";
+            updated.result = "running_profit";
+            changed = true;
+            showToast("My ATP TP2 Hit", `${updated.side} ถึง TP2 ${money(updated.tp2)}`, "success");
+            playTone("success");
+          }
+
+          if (price >= updated.tp3 && !updated.hits.tp3) {
+            updated.hits.tp3 = true;
+            updated.status = "TP3_HIT";
+            updated.result = "win_tp3";
+            updated.closedAt = now.toISOString();
+            changed = true;
+            showToast("My ATP TP3 Hit", `${updated.side} ถึง TP3 ${money(updated.tp3)}`, "success");
+            playTone("success");
+          }
+        }
+      }
+
+      if (updated.side === "SELL") {
+        if (price >= updated.sl) {
+          updated.hits.sl = true;
+          updated.status = "SL_HIT";
+          updated.result = updated.hits.tp1 ? "partial_win_then_sl" : "loss_sl";
+          updated.closedAt = now.toISOString();
+          changed = true;
+          showToast("My ATP SL Hit", `${updated.side} แตะ SL ${money(updated.sl)}`, "danger");
+          playTone("danger");
+        } else {
+          if (price <= updated.tp1 && !updated.hits.tp1) {
+            updated.hits.tp1 = true;
+            updated.status = "TP1_HIT";
+            updated.result = "running_profit";
+            changed = true;
+            showToast("My ATP TP1 Hit", `${updated.side} ถึง TP1 ${money(updated.tp1)}`, "success");
+            playTone("success");
+          }
+
+          if (price <= updated.tp2 && !updated.hits.tp2) {
+            updated.hits.tp2 = true;
+            updated.status = "TP2_HIT";
+            updated.result = "running_profit";
+            changed = true;
+            showToast("My ATP TP2 Hit", `${updated.side} ถึง TP2 ${money(updated.tp2)}`, "success");
+            playTone("success");
+          }
+
+          if (price <= updated.tp3 && !updated.hits.tp3) {
+            updated.hits.tp3 = true;
+            updated.status = "TP3_HIT";
+            updated.result = "win_tp3";
+            updated.closedAt = now.toISOString();
+            changed = true;
+            showToast("My ATP TP3 Hit", `${updated.side} ถึง TP3 ${money(updated.tp3)}`, "success");
+            playTone("success");
+          }
+        }
+      }
+    }
+
+    updated.updatedAt = now.toISOString();
+    updated.lastPrice = round2(price);
+
+    return updated;
+  });
+
+  if (changed) {
+    saveManualAtp();
+  }
+}
+
+function renderManualAtp() {
+  const list = document.getElementById("manualAtpList");
+  if (!list) return;
+
+  const activeCount = manualAtpPlans.filter(p =>
+    !["TP3_HIT", "SL_HIT", "CANCELLED", "EXPIRED"].includes(p.status)
+  ).length;
+
+  setText("myAtpCountBadge", `${activeCount}/${MAX_MANUAL_ATP}`);
+  setText("myAtpLimitText", `${activeCount}/${MAX_MANUAL_ATP}`);
+
+  renderManualStats();
+
+  if (!manualAtpPlans.length) {
+    list.innerHTML = `<div class="note">ยังไม่มี My ATP กด Add to My ATP จาก Plan Builder เพื่อเริ่มเก็บแผน</div>`;
+    return;
+  }
+
+  list.innerHTML = "";
+
+  manualAtpPlans.forEach(plan => {
+    const card = document.createElement("div");
+    card.className = "card";
+    card.style.marginBottom = "12px";
+    card.style.padding = "16px";
+
+    const statusColor =
+      plan.status === "TP3_HIT" ? "#00c853" :
+      plan.status === "SL_HIT" ? "#ff455e" :
+      plan.status === "EXPIRED" ? "#9aa3b2" :
+      plan.status === "CANCELLED" ? "#9aa3b2" :
+      plan.status.includes("TP") ? "#8effb0" :
+      plan.status === "ACTIVE" ? "#f5c542" :
+      "#cbd2df";
+
+    card.innerHTML = `
+      <div class="section-head compact" style="margin-bottom:12px;">
+        <div>
+          <h2 style="font-size:20px;">
+            ${escapeHtml(plan.side)} ${money(plan.entry)}
+          </h2>
+          <p>
+            ${escapeHtml(plan.mode)} • Score ${plan.score}/100 • ${escapeHtml(plan.quality)}
+          </p>
+        </div>
+        <div class="section-head-right">
+          <div class="lock-badge" style="color:${statusColor};">${escapeHtml(plan.status)}</div>
+          <button class="collapse-btn" type="button" onclick="cancelManualAtp('${plan.id}')">ปิด</button>
+        </div>
+      </div>
+
+      <div class="plan-strip">
+        <div><span>Entry</span><b>${hitIcon(plan.hits.entry)} ${money(plan.entry)}</b></div>
+        <div><span>SL</span><b>${hitIcon(plan.hits.sl)} ${money(plan.sl)}</b></div>
+        <div><span>TP1</span><b>${hitIcon(plan.hits.tp1)} ${money(plan.tp1)}</b></div>
+        <div><span>TP2</span><b>${hitIcon(plan.hits.tp2)} ${money(plan.tp2)}</b></div>
+        <div><span>TP3</span><b>${hitIcon(plan.hits.tp3)} ${money(plan.tp3)}</b></div>
+      </div>
+
+      <div class="mini-grid" style="margin-top:12px;">
+        <div class="mini-card"><span>Result</span><b>${escapeHtml(plan.result || "-")}</b></div>
+        <div class="mini-card"><span>RR TP1</span><b>${plan.rr1 ?? "-"}</b></div>
+        <div class="mini-card"><span>RR TP3</span><b>${plan.rr3 ?? "-"}</b></div>
+        <div class="mini-card"><span>Last Price</span><b>${plan.lastPrice ? money(plan.lastPrice) : "-"}</b></div>
+        <div class="mini-card"><span>Created</span><b>${formatThaiDateTime(plan.createdAt)}</b></div>
+        <div class="mini-card"><span>Expires</span><b>${formatThaiDateTime(plan.expiresAt)}</b></div>
+      </div>
+
+      ${plan.note ? `<div class="note" style="margin-top:12px;">Note: ${escapeHtml(plan.note)}</div>` : ""}
+
+      <div class="two-col" style="margin-top:12px;">
+        <div class="reason-list">
+          <b>เหตุผลสนับสนุน</b>
+          ${(plan.reasons || []).slice(0, 4).map(r => `<div>• ${escapeHtml(r)}</div>`).join("") || "<div>-</div>"}
+        </div>
+        <div class="reason-list">
+          <b>จุดที่ต้องระวัง</b>
+          ${(plan.cautions || []).slice(0, 4).map(r => `<div>• ${escapeHtml(r)}</div>`).join("") || "<div>-</div>"}
+        </div>
+      </div>
+    `;
+
+    list.appendChild(card);
+  });
+}
+
+function hitIcon(value) {
+  return value ? "✅" : "○";
+}
+
+function renderManualStats() {
+  const total = manualAtpPlans.length;
+  const active = manualAtpPlans.filter(p =>
+    ["WAITING_ENTRY", "ACTIVE", "TP1_HIT", "TP2_HIT"].includes(p.status)
+  ).length;
+
+  const closed = manualAtpPlans.filter(p =>
+    ["TP3_HIT", "SL_HIT", "EXPIRED", "CANCELLED"].includes(p.status)
+  );
+
+  const wins = manualAtpPlans.filter(p => p.status === "TP3_HIT" || p.result === "win_tp3").length;
+  const losses = manualAtpPlans.filter(p => p.result === "loss_sl").length;
+  const partial = manualAtpPlans.filter(p => p.result === "partial_win_then_sl" || p.status === "TP1_HIT" || p.status === "TP2_HIT").length;
+
+  const judged = wins + losses + partial;
+  const winRate = judged > 0 ? Math.round(((wins + partial * 0.5) / judged) * 100) : null;
+
+  setText("manualTotalPlans", total);
+  setText("manualActivePlans", active);
+  setText("manualWins", wins);
+  setText("manualLosses", losses);
+  setText("manualPartial", partial);
+  setText("manualWinRate", winRate === null ? "-" : `${winRate}%`);
+}
+
+function cancelManualAtp(id) {
+  manualAtpPlans = manualAtpPlans.map(plan => {
+    if (plan.id !== id) return plan;
+
+    if (["TP3_HIT", "SL_HIT", "EXPIRED", "CANCELLED"].includes(plan.status)) {
+      return plan;
+    }
+
+    return {
+      ...plan,
+      status: "CANCELLED",
+      result: "cancelled",
+      closedAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+  });
+
+  saveManualAtp();
+  renderManualAtp();
+  drawApiChart(latestChartData);
+  showToast("ปิด My ATP แล้ว", "แผนนี้ถูกบันทึกเป็น CANCELLED", "warning");
+}
+
+function clearClosedManualPlans() {
+  manualAtpPlans = manualAtpPlans.filter(p =>
+    !["TP3_HIT", "SL_HIT", "EXPIRED", "CANCELLED"].includes(p.status)
+  );
+
+  saveManualAtp();
+  renderManualAtp();
+  drawApiChart(latestChartData);
+  showToast("ล้างแผนที่ปิดแล้ว", "เหลือเฉพาะแผนที่ยังทำงานอยู่", "success");
+}
+
+function clearAllManualPlans() {
+  const ok = confirm("ต้องการล้าง My ATP ทั้งหมดในเครื่องนี้ใช่ไหม?");
+  if (!ok) return;
+
+  manualAtpPlans = [];
+  saveManualAtp();
+  renderManualAtp();
+  drawApiChart(latestChartData);
+  showToast("ล้าง My ATP ทั้งหมดแล้ว", "เริ่มสร้างแผนใหม่ได้เลย", "success");
+}
+
+/* =========================
+   AUTO REFRESH
+========================= */
+
 function startAutoRefresh() {
   if (autoRefreshTimer) clearInterval(autoRefreshTimer);
   if (countdownTimer) clearInterval(countdownTimer);
@@ -1025,13 +1759,22 @@ window.testTelegram = testTelegram;
 window.resetActivePlan = resetActivePlan;
 window.toggleSection = toggleSection;
 
+window.setBuilderSide = setBuilderSide;
+window.generateSuggestedPlan = generateSuggestedPlan;
+window.addManualAtp = addManualAtp;
+window.cancelManualAtp = cancelManualAtp;
+window.clearClosedManualPlans = clearClosedManualPlans;
+window.clearAllManualPlans = clearAllManualPlans;
+
 window.addEventListener("resize", () => {
   drawApiChart(latestChartData);
 });
 
 window.addEventListener("DOMContentLoaded", () => {
   loadSoundSetting();
+  loadManualAtp();
   updateModeLabel();
+  renderManualAtp();
   loadSignal();
   loadThaiGold();
   startAutoRefresh();
