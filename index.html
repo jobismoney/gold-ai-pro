@@ -7,7 +7,7 @@
   <title>Gold AI Pro | XAU/USD Smart Signal</title>
   <meta
     name="description"
-    content="Gold AI Pro วิเคราะห์ทองคำ XAU/USD พร้อม Smart Signal, Active Trade Plan และราคาทองไทย"
+    content="Gold AI Pro วิเคราะห์ทองคำ XAU/USD พร้อม Smart Signal, FVG, Active Trade Plan และราคาทองไทย"
   />
 
   <link rel="stylesheet" href="./assets/css/style.css?v=23" />
@@ -37,7 +37,7 @@
       <div id="marketStatus" class="status-chip open">Loading...</div>
       <div class="status-chip live"><span class="live-dot"></span> LIVE</div>
       <div class="status-chip mode" id="modeLabel">🎯 Day Trade</div>
-      <div class="status-chip refresh">⏳ API <span id="refreshCountdown">5m</span></div>
+      <div class="status-chip refresh">⏳ API <span id="refreshCountdown">30s</span></div>
     </div>
 
     <div class="mode-row premium-tabs">
@@ -57,7 +57,7 @@
 
         <div class="hero-price-wrap">
           <div id="price" class="hero-price">-</div>
-          <div class="hero-symbol">XAU/USD <span>• Worker/Twelve Data</span></div>
+          <div class="hero-symbol">XAU/USD <span>• Binance Futures PAXGUSDT</span></div>
         </div>
 
         <div class="hero-signal-wrap">
@@ -88,15 +88,15 @@
       </div>
     </section>
 
-    <div class="helper-text">
-      ราคาและกราฟในหน้านี้ใช้ข้อมูลชุดเดียวกันจาก Worker/Twelve Data
+    <div class="helper-text" id="sourceNotice">
+      Gold Proxy Source: Binance Futures PAXGUSDT — อาจต่างจาก XAU/USD Spot/OANDA เล็กน้อย
     </div>
 
     <section class="card chart-card" id="section-chart">
       <div class="section-head compact">
         <div>
-          <h2>📈 XAU/USD Chart</h2>
-          <p id="chartSourceText">กราฟนี้วาดจาก Candle ชุดเดียวกับที่ใช้คำนวณ Signal</p>
+          <h2>📈 XAU/USD Proxy Chart</h2>
+          <p id="chartSourceText">กราฟนี้วาดจาก Binance Futures PAXGUSDT 15m candles</p>
         </div>
         <button class="collapse-btn" type="button" onclick="toggleSection('chartBody', this)">ย่อ</button>
       </div>
@@ -106,7 +106,8 @@
           <canvas id="apiChartCanvas" width="1000" height="360"></canvas>
         </div>
         <div class="chart-meta">
-          <span>Source: <b id="priceSource">-</b></span>
+          <span>Price Source: <b id="priceSource">-</b></span>
+          <span>Chart Source: <b id="chartSource">-</b></span>
           <span>Last Candle: <b id="lastCandleTime">-</b></span>
           <span>Next API Update: <b id="nextApiUpdate">-</b></span>
         </div>
@@ -183,6 +184,8 @@
           <div class="mini-card"><span>Sell Score</span><b id="sellScore">-</b></div>
           <div class="mini-card"><span>Fib Zone</span><b id="fibZone">-</b></div>
           <div class="mini-card"><span>Trap</span><b id="trap">-</b></div>
+          <div class="mini-card"><span>CMI</span><b id="customMomentumIndex">-</b></div>
+          <div class="mini-card"><span>Nearest FVG</span><b id="nearestFvg">-</b></div>
           <div class="mini-card"><span>Risk/Reward</span><b id="riskReward">-</b></div>
           <div class="mini-card"><span>Plan Lock</span><b id="activePlanReason">-</b></div>
           <div class="mini-card"><span>Engine</span><b id="engine">-</b></div>
@@ -231,7 +234,7 @@
       <div class="section-head compact">
         <div>
           <h2>⏱ Signal Timing</h2>
-          <p id="validNote">ราคาและกราฟใช้ข้อมูลชุดเดียวกันจาก Worker/Twelve Data</p>
+          <p id="validNote">ระบบอัปเดตข้อมูลตามรอบ API และใช้ข้อมูลจริงจาก Binance Futures PAXGUSDT</p>
         </div>
         <button class="collapse-btn" type="button" onclick="toggleSection('timingBody', this)">ย่อ</button>
       </div>
@@ -294,7 +297,7 @@
       </div>
 
       <div class="note" id="autoRefreshStatus">
-        API refresh in 5m | API cache: 5 min
+        API refresh in 30s | Binance Futures PAXGUSDT
       </div>
 
       <div id="adminPanel" class="admin-panel" style="display:none;">
@@ -382,6 +385,6 @@
 
   <div id="toastContainer" class="toast-container"></div>
 
-  <script src="./assets/js/app.js?v=24"></script>
+  <script src="./assets/js/app.js?v=25"></script>
 </body>
 </html>
