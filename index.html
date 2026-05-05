@@ -10,7 +10,7 @@
     content="Gold AI Pro วิเคราะห์ทองคำ XAU/USD พร้อม Smart Signal, FVG, Active Trade Plan, Plan Builder และราคาทองไทย"
   />
 
-  <link rel="stylesheet" href="./assets/css/style.css?v=23" />
+  <link rel="stylesheet" href="./assets/css/style.css?v=30" />
 </head>
 <body>
 
@@ -105,6 +105,7 @@
         <div class="api-chart-wrap">
           <canvas id="apiChartCanvas" width="1000" height="360"></canvas>
         </div>
+
         <div class="chart-meta">
           <span>Raw: <b id="calibrationRawPrice">-</b></span>
           <span>Offset: <b id="calibrationOffsetText">-</b></span>
@@ -113,6 +114,59 @@
           <span>Chart Source: <b id="chartSource">-</b></span>
           <span>Last Candle: <b id="lastCandleTime">-</b></span>
           <span>Next API Update: <b id="nextApiUpdate">-</b></span>
+        </div>
+
+        <div class="chart-indicator-panel">
+          <div class="indicator-panel-head">
+            <div>
+              <h3>Indicators</h3>
+              <p>เลือกเปิด / ปิดอินดิเคเตอร์บนกราฟหลัก</p>
+            </div>
+          </div>
+
+          <div class="indicator-toggle-row">
+            <button id="toggleEma" class="indicator-toggle active" type="button" onclick="toggleChartIndicator('ema')">
+              EMA
+            </button>
+
+            <button id="toggleBollinger" class="indicator-toggle active" type="button" onclick="toggleChartIndicator('bollinger')">
+              Bollinger Bands
+            </button>
+
+            <button id="toggleRsi" class="indicator-toggle" type="button" onclick="toggleChartIndicator('rsi')">
+              RSI
+            </button>
+
+            <button id="toggleMacd" class="indicator-toggle" type="button" onclick="toggleChartIndicator('macd')">
+              MACD
+            </button>
+          </div>
+        </div>
+
+        <div class="quick-trade-flow">
+          <div class="quick-trade-head">
+            <div>
+              <h2>⚡ Quick Trade Flow</h2>
+              <p>ดูกราฟให้ชัดก่อน แล้วค่อยกด BUY / SELL เพื่อสร้าง My ATP</p>
+            </div>
+            <div class="quick-live-price">
+              Live <b id="quickLivePrice">-</b>
+            </div>
+          </div>
+
+          <div class="quick-trade-actions">
+            <button class="quick-trade-btn buy" type="button" onclick="quickCreateAtp('BUY')">
+              BUY
+            </button>
+
+            <button class="quick-trade-btn sell" type="button" onclick="quickCreateAtp('SELL')">
+              SELL
+            </button>
+          </div>
+
+          <div class="quick-trade-note">
+            Raw Binance PAXGUSDT + Offset = Display Price | กราฟหลักจะไม่แสดงเส้น Entry / TP / SL เพื่อให้ดูสะอาด
+          </div>
         </div>
       </div>
     </section>
@@ -646,6 +700,6 @@
 
   <div id="toastContainer" class="toast-container"></div>
 
-  <script src="./assets/js/app.js?v=28"></script>
+  <script src="./assets/js/app.js?v=30"></script>
 </body>
 </html>
