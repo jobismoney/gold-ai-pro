@@ -4,964 +4,649 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <title>Gold AI Pro</title>
-
-  <meta name="description" content="Gold AI Pro - XAU/USD AI Signal, ATP, Thai Gold Price and Smart Trading Dashboard" />
-  <meta name="theme-color" content="#050816" />
-
-  <!-- Main CSS -->
-  <link rel="stylesheet" href="assets/css/style.css?v=29e" />
-
-  <style>
-    :root {
-      --bg-main: #070707;
-      --bg-card: rgba(15, 23, 42, 0.92);
-      --bg-card-soft: rgba(15, 23, 42, 0.72);
-      --gold: #facc15;
-      --gold-soft: rgba(250, 204, 21, 0.18);
-      --green: #22c55e;
-      --red: #ef4444;
-      --blue: #38bdf8;
-      --text-main: #f8fafc;
-      --text-soft: #cbd5e1;
-      --border-gold: rgba(250, 204, 21, 0.45);
-      --border-soft: rgba(148, 163, 184, 0.22);
-      --shadow: 0 24px 60px rgba(0, 0, 0, 0.48);
-      --radius-xl: 26px;
-      --radius-lg: 20px;
-      --radius-md: 16px;
-    }
-
-    * {
-      box-sizing: border-box;
-    }
-
-    html {
-      scroll-behavior: smooth;
-    }
-
-    body {
-      margin: 0;
-      font-family: Arial, Helvetica, sans-serif;
-      color: var(--text-main);
-      background:
-        radial-gradient(circle at top left, rgba(250, 204, 21, 0.14), transparent 32%),
-        radial-gradient(circle at top right, rgba(56, 189, 248, 0.08), transparent 28%),
-        linear-gradient(180deg, #050505 0%, #11100a 42%, #050505 100%);
-      min-height: 100vh;
-      padding-bottom: 92px;
-    }
-
-    a {
-      color: inherit;
-      text-decoration: none;
-    }
-
-    button {
-      font-family: inherit;
-    }
-
-    .app-shell {
-      width: min(1080px, calc(100% - 28px));
-      margin: 0 auto;
-      padding: 18px 0 40px;
-    }
-
-    .top-header {
-      border: 1px solid var(--border-gold);
-      background:
-        linear-gradient(135deg, rgba(250, 204, 21, 0.12), rgba(15, 23, 42, 0.78)),
-        rgba(2, 6, 23, 0.88);
-      border-radius: var(--radius-xl);
-      padding: 20px;
-      box-shadow: var(--shadow);
-      margin-bottom: 18px;
-    }
-
-    .top-header-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      gap: 16px;
-      flex-wrap: wrap;
-    }
-
-    .brand-block {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-    }
-
-    .brand-icon {
-      width: 54px;
-      height: 54px;
-      display: grid;
-      place-items: center;
-      border-radius: 18px;
-      background: linear-gradient(135deg, #facc15, #f59e0b);
-      color: #111827;
-      font-size: 30px;
-      box-shadow: 0 18px 34px rgba(250, 204, 21, 0.18);
-    }
-
-    .brand-title {
-      margin: 0;
-      font-size: 30px;
-      line-height: 1.05;
-      letter-spacing: -0.04em;
-    }
-
-    .brand-subtitle {
-      margin: 6px 0 0;
-      color: var(--text-soft);
-      font-size: 14px;
-    }
-
-    .status-pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      border: 1px solid var(--border-gold);
-      background: var(--gold-soft);
-      color: var(--gold);
-      border-radius: 999px;
-      padding: 9px 13px;
-      font-size: 13px;
-      font-weight: 800;
-      white-space: nowrap;
-    }
-
-    .dot-live {
-      width: 9px;
-      height: 9px;
-      border-radius: 50%;
-      background: var(--green);
-      box-shadow: 0 0 16px rgba(34, 197, 94, 0.9);
-    }
-
-    .price-strip {
-      display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 12px;
-      margin-top: 18px;
-    }
-
-    .mini-card {
-      border: 1px solid var(--border-soft);
-      background: rgba(2, 6, 23, 0.48);
-      border-radius: 18px;
-      padding: 13px;
-      min-height: 76px;
-    }
-
-    .mini-label {
-      color: var(--text-soft);
-      font-size: 12px;
-      margin-bottom: 8px;
-    }
-
-    .mini-value {
-      font-size: 18px;
-      font-weight: 900;
-      color: #ffffff;
-    }
-
-    .mini-value.gold {
-      color: var(--gold);
-    }
-
-    .section-card {
-      border: 1px solid var(--border-gold);
-      background: var(--bg-card);
-      border-radius: var(--radius-xl);
-      padding: 20px;
-      box-shadow: var(--shadow);
-      margin-bottom: 18px;
-    }
-
-    .section-card.soft {
-      border-color: var(--border-soft);
-      background: var(--bg-card-soft);
-    }
-
-    .section-title-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 14px;
-    }
-
-    .section-title {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin: 0;
-      font-size: 22px;
-      line-height: 1.15;
-      letter-spacing: -0.03em;
-    }
-
-    .section-desc {
-      margin: 4px 0 0;
-      color: var(--text-soft);
-      font-size: 13px;
-      line-height: 1.5;
-    }
-
-    .live-price {
-      color: var(--gold);
-      font-size: 18px;
-      font-weight: 900;
-      white-space: nowrap;
-    }
-
-    .quick-trade-card {
-      border: 1px solid var(--border-gold);
-      background:
-        linear-gradient(135deg, rgba(250, 204, 21, 0.08), rgba(2, 6, 23, 0.9)),
-        rgba(15, 23, 42, 0.88);
-      border-radius: var(--radius-xl);
-      padding: 16px;
-      margin-bottom: 18px;
-    }
-
-    .quick-top {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 12px;
-      flex-wrap: wrap;
-    }
-
-    .quick-title {
-      margin: 0;
-      font-size: 22px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .quick-desc {
-      margin: 4px 0 0;
-      color: var(--text-soft);
-      font-size: 12px;
-    }
-
-    .trade-buttons {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-    }
-
-    .trade-btn {
-      border: 1px solid transparent;
-      border-radius: 18px;
-      min-height: 74px;
-      padding: 16px;
-      color: #ffffff;
-      font-size: 30px;
-      font-weight: 900;
-      letter-spacing: 0.02em;
-      cursor: pointer;
-      transition: transform 0.15s ease, filter 0.15s ease;
-    }
-
-    .trade-btn:active {
-      transform: scale(0.98);
-    }
-
-    .trade-btn.buy {
-      border-color: rgba(34, 197, 94, 0.78);
-      background:
-        linear-gradient(135deg, rgba(34, 197, 94, 0.24), rgba(22, 101, 52, 0.38)),
-        #052e16;
-    }
-
-    .trade-btn.sell {
-      border-color: rgba(239, 68, 68, 0.78);
-      background:
-        linear-gradient(135deg, rgba(239, 68, 68, 0.24), rgba(127, 29, 29, 0.42)),
-        #450a0a;
-    }
-
-    .price-note {
-      text-align: center;
-      color: var(--text-soft);
-      font-size: 14px;
-      margin: 16px 0 22px;
-      line-height: 1.5;
-    }
-
-    .chart-card {
-      border: 1px solid var(--border-soft);
-      background: rgba(15, 23, 42, 0.92);
-      border-radius: var(--radius-xl);
-      padding: 22px;
-      box-shadow: var(--shadow);
-      margin-bottom: 18px;
-    }
-
-    .chart-head {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      gap: 12px;
-      margin-bottom: 18px;
-    }
-
-    .chart-title {
-      margin: 0;
-      font-size: 22px;
-      letter-spacing: -0.03em;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .chart-subtitle {
-      margin: 8px 0 0;
-      color: #bfdbfe;
-      font-size: 13px;
-    }
-
-    .chart-mini-btn {
-      border: 1px solid var(--border-soft);
-      background: rgba(255, 255, 255, 0.95);
-      color: #111827;
-      font-weight: 900;
-      font-size: 12px;
-      border-radius: 4px;
-      padding: 4px 7px;
-      cursor: pointer;
-    }
-
-    .chart-frame {
-      width: 100%;
-      background: #020617;
-      border: 1px solid rgba(148, 163, 184, 0.14);
-      border-radius: 0;
-      overflow: hidden;
-      position: relative;
-      min-height: 330px;
-    }
-
-    .chart-frame canvas {
-      display: block;
-      width: 100%;
-      height: 330px;
-    }
-
-    .chart-info {
-      color: #ffffff;
-      font-size: 14px;
-      font-weight: 800;
-      line-height: 1.55;
-      margin-top: 14px;
-    }
-
-    .chart-info span {
-      color: #ffffff;
-    }
-
-    .chart-clean-actions {
-      margin-top: 14px;
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 10px;
-    }
-
-    .indicator-toggle {
-      width: 100%;
-      border: 1px solid rgba(250, 204, 21, 0.38);
-      background: rgba(250, 204, 21, 0.12);
-      color: var(--gold);
-      border-radius: 16px;
-      padding: 13px 14px;
-      font-size: 14px;
-      font-weight: 900;
-      cursor: pointer;
-    }
-
-    .indicator-panel {
-      display: none;
-      border: 1px solid var(--border-soft);
-      background: rgba(2, 6, 23, 0.48);
-      border-radius: 18px;
-      padding: 14px;
-    }
-
-    .indicator-panel.active {
-      display: block;
-    }
-
-    .indicator-grid {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 10px;
-    }
-
-    .indicator-item {
-      border: 1px solid rgba(148, 163, 184, 0.18);
-      background: rgba(15, 23, 42, 0.72);
-      border-radius: 14px;
-      padding: 11px 12px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 8px;
-      font-size: 13px;
-    }
-
-    .indicator-name {
-      color: var(--text-soft);
-      font-weight: 700;
-    }
-
-    .indicator-status {
-      color: var(--blue);
-      font-weight: 900;
-    }
-
-    .analysis-grid {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 12px;
-    }
-
-    .analysis-box {
-      border: 1px solid var(--border-soft);
-      background: rgba(2, 6, 23, 0.38);
-      border-radius: 18px;
-      padding: 14px;
-    }
-
-    .analysis-label {
-      color: var(--text-soft);
-      font-size: 12px;
-      margin-bottom: 8px;
-    }
-
-    .analysis-value {
-      font-size: 18px;
-      font-weight: 900;
-    }
-
-    .analysis-value.buy {
-      color: var(--green);
-    }
-
-    .analysis-value.sell {
-      color: var(--red);
-    }
-
-    .analysis-value.wait {
-      color: var(--gold);
-    }
-
-    .thai-gold-grid {
-      display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 12px;
-    }
-
-    .thai-card {
-      border: 1px solid var(--border-soft);
-      background: rgba(2, 6, 23, 0.38);
-      border-radius: 18px;
-      padding: 14px;
-    }
-
-    .thai-label {
-      color: var(--text-soft);
-      font-size: 12px;
-      margin-bottom: 8px;
-    }
-
-    .thai-value {
-      font-size: 18px;
-      font-weight: 900;
-      color: var(--gold);
-    }
-
-    .thai-note {
-      color: var(--text-soft);
-      font-size: 12px;
-      margin-top: 12px;
-      line-height: 1.55;
-    }
-
-    .bottom-nav {
-      position: fixed;
-      left: 50%;
-      bottom: 14px;
-      transform: translateX(-50%);
-      width: min(720px, calc(100% - 28px));
-      background: rgba(2, 6, 23, 0.96);
-      border: 1px solid rgba(148, 163, 184, 0.22);
-      border-radius: 24px;
-      padding: 9px;
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 8px;
-      z-index: 50;
-      box-shadow: 0 18px 45px rgba(0, 0, 0, 0.55);
-      backdrop-filter: blur(14px);
-    }
-
-    .nav-btn {
-      border: none;
-      background: transparent;
-      color: var(--text-soft);
-      border-radius: 18px;
-      padding: 10px 8px;
-      font-size: 12px;
-      font-weight: 800;
-      cursor: pointer;
-    }
-
-    .nav-btn.active {
-      background: rgba(250, 204, 21, 0.13);
-      color: var(--gold);
-    }
-
-    .nav-icon {
-      display: block;
-      font-size: 22px;
-      margin-bottom: 4px;
-    }
-
-    .hidden {
-      display: none !important;
-    }
-
-    @media (max-width: 820px) {
-      .price-strip,
-      .analysis-grid,
-      .thai-gold-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-      }
-
-      .indicator-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-      }
-
-      .brand-title {
-        font-size: 26px;
-      }
-    }
-
-    @media (max-width: 560px) {
-      .app-shell {
-        width: min(100% - 18px, 1080px);
-        padding-top: 10px;
-      }
-
-      .top-header,
-      .section-card,
-      .quick-trade-card,
-      .chart-card {
-        border-radius: 22px;
-        padding: 15px;
-      }
-
-      .price-strip,
-      .analysis-grid,
-      .thai-gold-grid,
-      .trade-buttons,
-      .indicator-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .trade-btn {
-        min-height: 64px;
-        font-size: 26px;
-      }
-
-      .chart-frame {
-        min-height: 300px;
-      }
-
-      .chart-frame canvas {
-        height: 300px;
-      }
-
-      .bottom-nav {
-        grid-template-columns: repeat(4, 1fr);
-        border-radius: 20px;
-      }
-
-      .nav-btn {
-        font-size: 11px;
-        padding: 9px 4px;
-      }
-    }
-  </style>
+  <title>Gold AI Pro | XAU/USD Smart Signal</title>
+  <meta
+    name="description"
+    content="Gold AI Pro วิเคราะห์ทองคำ XAU/USD พร้อม Smart Signal, FVG, Active Trade Plan, Plan Builder และราคาทองไทย"
+  />
+
+  <link rel="stylesheet" href="./assets/css/style.css?v=23" />
 </head>
-
 <body>
-  <main class="app-shell">
 
-    <!-- HEADER -->
-    <header class="top-header" id="home">
-      <div class="top-header-row">
-        <div class="brand-block">
-          <div class="brand-icon">🐯</div>
-          <div>
-            <h1 class="brand-title">Gold AI Pro</h1>
-            <p class="brand-subtitle">XAU/USD Smart Signal • ATP • Thai Gold Price</p>
-          </div>
-        </div>
+  <div class="app-shell">
 
-        <div class="status-pill">
-          <span class="dot-live"></span>
-          <span id="marketStatus">Market Checking</span>
+    <header class="app-header" id="top">
+      <div class="brand-wrap">
+        <div class="brand-logo">G</div>
+        <div>
+          <div class="brand-title">Gold AI Pro</div>
+          <div class="brand-subtitle">AI Trade Coach • Gold Proxy System</div>
         </div>
       </div>
 
-      <div class="price-strip">
-        <div class="mini-card">
-          <div class="mini-label">Live XAU/USD</div>
-          <div class="mini-value gold" id="livePrice">--</div>
-        </div>
-
-        <div class="mini-card">
-          <div class="mini-label">Signal</div>
-          <div class="mini-value" id="mainSignal">WAIT</div>
-        </div>
-
-        <div class="mini-card">
-          <div class="mini-label">Confidence</div>
-          <div class="mini-value" id="confidenceValue">--%</div>
-        </div>
-
-        <div class="mini-card">
-          <div class="mini-label">Mode</div>
-          <div class="mini-value gold" id="userMode">FREE</div>
-        </div>
+      <div class="header-actions">
+        <button class="icon-btn" type="button" onclick="toggleSound()">
+          <span id="soundIcon">🔊</span>
+        </button>
+        <button class="icon-btn" type="button" onclick="toggleAdminPanel()">⚙️</button>
       </div>
     </header>
 
-    <!-- CURRENT ANALYSIS -->
-    <section class="section-card" id="currentAnalysis">
-      <div class="section-title-row">
-        <div>
-          <h2 class="section-title">🧠 Current Analysis</h2>
-          <p class="section-desc">สรุปภาพรวมล่าสุดของ XAU/USD ก่อนตัดสินใจ</p>
-        </div>
-        <div class="live-price">
-          Live <span id="analysisLivePrice">--</span>
-        </div>
-      </div>
-
-      <div class="analysis-grid">
-        <div class="analysis-box">
-          <div class="analysis-label">AI Direction</div>
-          <div class="analysis-value wait" id="aiDirection">WAIT</div>
-        </div>
-
-        <div class="analysis-box">
-          <div class="analysis-label">Market Force</div>
-          <div class="analysis-value" id="marketForce">Neutral</div>
-        </div>
-
-        <div class="analysis-box">
-          <div class="analysis-label">Momentum</div>
-          <div class="analysis-value" id="momentumValue">--</div>
-        </div>
-      </div>
-    </section>
-
-    <!-- QUICK TRADE FLOW -->
-    <section class="quick-trade-card" id="quickTradeFlow">
-      <div class="quick-top">
-        <div>
-          <h2 class="quick-title">⚡ Quick Trade Flow</h2>
-          <p class="quick-desc">เห็นราคาที่จ่อแนวคิด กด BUY / SELL เพื่อสร้าง ATP ทันที</p>
-        </div>
-
-        <div class="live-price">
-          Live <span id="quickLivePrice">--</span>
-        </div>
-      </div>
-
-      <div class="trade-buttons">
-        <button class="trade-btn buy" id="buyBtn" type="button" data-action="buy">BUY</button>
-        <button class="trade-btn sell" id="sellBtn" type="button" data-action="sell">SELL</button>
-      </div>
-    </section>
-
-    <div class="price-note" id="priceNote">
-      Raw Binance PAXGUSDT + Offset +6.5 = Display Price
+    <div class="status-row">
+      <div id="marketStatus" class="status-chip open">Loading...</div>
+      <div class="status-chip live"><span class="live-dot"></span> LIVE</div>
+      <div class="status-chip mode" id="modeLabel">🎯 Day Trade</div>
+      <div class="status-chip refresh">⏳ API <span id="refreshCountdown">30s</span></div>
     </div>
 
-    <!-- CHART -->
-    <section class="chart-card" id="chartSection">
-      <div class="chart-head">
-        <div>
-          <h2 class="chart-title">📈 XAU/USD Proxy Chart</h2>
-          <p class="chart-subtitle">TV-Calibrated Proxy: Binance Futures PAXGUSDT + Admin Offset</p>
+    <div class="mode-row premium-tabs">
+      <button id="mode-fast" class="mode-btn" onclick="setMode('fast')">⚡ Scalping</button>
+      <button id="mode-balanced" class="mode-btn active" onclick="setMode('balanced')">🎯 Day Trade</button>
+      <button id="mode-safe" class="mode-btn" onclick="setMode('safe')">🧠 Swing</button>
+    </div>
+
+    <div class="mode-info-card">
+      <b id="modeInfoTitle">Day Trade</b>
+      <span id="modeInfoText">โหมดสมดุล เหมาะกับการดูกราฟ 15 นาที ใช้กติกากลาง</span>
+    </div>
+
+    <section class="hero-card">
+      <div class="hero-main">
+        <div class="gold-stack">🪙</div>
+
+        <div class="hero-price-wrap">
+          <div id="price" class="hero-price">-</div>
+          <div class="hero-symbol">XAU/USD <span>• TV-Calibrated Proxy</span></div>
         </div>
 
-        <button class="chart-mini-btn" id="chartMiniBtn" type="button">ย่อ</button>
+        <div class="hero-signal-wrap">
+          <div id="signal" class="hero-signal">-</div>
+        </div>
+
+        <div class="hero-confidence-wrap">
+          <span>Confidence</span>
+          <b id="confidence">-</b>
+        </div>
       </div>
 
-      <div class="chart-frame" id="chartContainer">
-        <canvas id="proxyChart" width="1000" height="330"></canvas>
+      <div class="hero-metrics">
+        <div class="hero-mini">
+          <span>🤖 AI Score</span>
+          <b id="aiScore">-</b>
+        </div>
+
+        <div class="hero-mini">
+          <span>🛡 Quality</span>
+          <b id="signalQuality">-</b>
+        </div>
+
+        <div class="hero-mini">
+          <span>👤 VIP</span>
+          <b id="vipAllowed">-</b>
+        </div>
+      </div>
+    </section>
+
+    <div class="helper-text" id="sourceNotice">
+      TV-Calibrated Proxy — Binance Futures PAXGUSDT + Admin Offset
+    </div>
+
+    <section class="card chart-card" id="section-chart">
+      <div class="section-head compact">
+        <div>
+          <h2>📈 XAU/USD Proxy Chart</h2>
+          <p id="chartSourceText">กราฟนี้วาดจาก Binance Futures PAXGUSDT 15m candles + Offset</p>
+        </div>
+        <button class="collapse-btn" type="button" onclick="toggleSection('chartBody', this)">ย่อ</button>
       </div>
 
-      <div class="chart-info" id="chartInfo">
-        Raw: <span id="rawPrice">--</span>
-        Offset: <span id="offsetValue">+6.50</span>
-        Adjusted: <span id="adjustedPrice">--</span>
-        Price Source: <span id="priceSource">Binance Vision Spot PAXGUSDT</span>
-        Chart Source: <span id="chartSource">Binance Proxy Cache</span>
-        Last Candle: <span id="lastCandle">--</span>
-        Next API Update: <span id="nextApiUpdate">--</span>
+      <div id="chartBody" class="section-body open">
+        <div class="api-chart-wrap">
+          <canvas id="apiChartCanvas" width="1000" height="360"></canvas>
+        </div>
+        <div class="chart-meta">
+          <span>Raw: <b id="calibrationRawPrice">-</b></span>
+          <span>Offset: <b id="calibrationOffsetText">-</b></span>
+          <span>Adjusted: <b id="calibrationAdjustedPrice">-</b></span>
+          <span>Price Source: <b id="priceSource">-</b></span>
+          <span>Chart Source: <b id="chartSource">-</b></span>
+          <span>Last Candle: <b id="lastCandleTime">-</b></span>
+          <span>Next API Update: <b id="nextApiUpdate">-</b></span>
+        </div>
+      </div>
+    </section>
+
+    <section class="card active-card" id="section-plan">
+      <div class="section-head">
+        <div>
+          <h2>🔒 AI Active Trade Plan</h2>
+          <p>แผนจากระบบ AI ที่ล็อกไว้ ไม่เปลี่ยนจนกว่า TP1 / SL / Expired</p>
+        </div>
+        <div class="section-head-right">
+          <div class="lock-badge">AI ATP</div>
+          <button class="collapse-btn" type="button" onclick="toggleSection('activePlanBody', this)">ย่อ</button>
+        </div>
       </div>
 
-      <div class="chart-clean-actions">
-        <button class="indicator-toggle" id="indicatorToggle" type="button">
-          เปิด / ปิด Indicator
-        </button>
+      <div id="activePlanBody" class="section-body open">
+        <div class="active-status-wrap">
+          <div id="activeStatus" class="active-status">NO ACTIVE PLAN</div>
+          <div id="activeSignal" class="active-signal">-</div>
+        </div>
 
-        <div class="indicator-panel" id="indicatorPanel">
-          <div class="indicator-grid">
-            <div class="indicator-item">
-              <span class="indicator-name">EMA</span>
-              <span class="indicator-status">ON</span>
-            </div>
-            <div class="indicator-item">
-              <span class="indicator-name">RSI</span>
-              <span class="indicator-status">ON</span>
-            </div>
-            <div class="indicator-item">
-              <span class="indicator-name">MACD</span>
-              <span class="indicator-status">ON</span>
-            </div>
-            <div class="indicator-item">
-              <span class="indicator-name">FVG</span>
-              <span class="indicator-status">ON</span>
-            </div>
-            <div class="indicator-item">
-              <span class="indicator-name">Tiger Claw</span>
-              <span class="indicator-status">ON</span>
-            </div>
-            <div class="indicator-item">
-              <span class="indicator-name">Support / Resistance</span>
-              <span class="indicator-status">ON</span>
-            </div>
+        <div id="activePlanNote" class="active-note">
+          ยังไม่มี AI Active Trade Plan เพราะระบบยังไม่พบสัญญาณ BUY/SELL ที่คุณภาพผ่าน
+        </div>
+
+        <div class="plan-strip">
+          <div><span>Status</span><b id="activePlanStatus">-</b></div>
+          <div><span>Signal</span><b id="activePlanSignal">-</b></div>
+          <div><span>Entry</span><b id="activeEntry">-</b></div>
+          <div><span>SL</span><b id="activeSl">-</b></div>
+          <div><span>TP1</span><b id="activeTp1">-</b></div>
+        </div>
+
+        <div class="mini-grid active-mini-grid">
+          <div class="mini-card"><span>TP2</span><b id="activeTp2">-</b></div>
+          <div class="mini-card"><span>TP3</span><b id="activeTp3">-</b></div>
+          <div class="mini-card"><span>Last Price</span><b id="activeLastPrice">-</b></div>
+          <div class="mini-card"><span>Quality</span><b id="activePlanQuality">-</b></div>
+          <div class="mini-card"><span>AI Score</span><b id="activePlanAiScore">-</b></div>
+          <div class="mini-card"><span>Confidence</span><b id="activePlanConfidence">-</b></div>
+          <div class="mini-card"><span>Risk/Reward</span><b id="activePlanRiskReward">-</b></div>
+          <div class="mini-card"><span>Result</span><b id="activeResult">-</b></div>
+        </div>
+
+        <div class="timeline-grid">
+          <div><span>Created</span><b id="activeCreatedAt">-</b></div>
+          <div><span>Expires</span><b id="activeExpiresAt">-</b></div>
+          <div><span>Closed</span><b id="activeClosedAt">-</b></div>
+          <div><span>Hit Type</span><b id="activeHitType">-</b></div>
+          <div><span>Hit Price</span><b id="activeHitPrice">-</b></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card active-card" id="section-builder">
+      <div class="section-head">
+        <div>
+          <h2>🧩 Plan Builder</h2>
+          <p>สร้าง My ATP จากราคาที่ระบบคำนวณให้ หรือแก้เลขเองก่อนบันทึก</p>
+        </div>
+        <div class="section-head-right">
+          <div class="lock-badge">MY ATP</div>
+          <button class="collapse-btn" type="button" onclick="toggleSection('builderBody', this)">ย่อ</button>
+        </div>
+      </div>
+
+      <div id="builderBody" class="section-body open">
+
+        <div class="mode-row premium-tabs">
+          <button id="builderSideBuy" class="mode-btn active" type="button" onclick="setBuilderSide('BUY')">BUY</button>
+          <button id="builderSideSell" class="mode-btn" type="button" onclick="setBuilderSide('SELL')">SELL</button>
+        </div>
+
+        <div class="mini-grid">
+          <div class="mini-card input-card">
+            <span>Trade Mode</span>
+            <select id="builderMode" class="setting-input" onchange="generateSuggestedPlan()">
+              <option value="fast">Scalping</option>
+              <option value="balanced" selected>Day Trade</option>
+              <option value="safe">Swing</option>
+            </select>
+          </div>
+
+          <div class="mini-card input-card">
+            <span>Entry Style</span>
+            <select id="builderEntryStyle" class="setting-input" onchange="generateSuggestedPlan()">
+              <option value="current">Current Price</option>
+              <option value="support_resistance" selected>Support / Resistance</option>
+              <option value="fvg">Nearest FVG</option>
+              <option value="hybrid">Hybrid</option>
+            </select>
+          </div>
+
+          <div class="mini-card input-card">
+            <span>Expire</span>
+            <select id="builderExpireHours" class="setting-input">
+              <option value="4">4 Hours</option>
+              <option value="8">8 Hours</option>
+              <option value="24" selected>24 Hours</option>
+              <option value="48">48 Hours</option>
+            </select>
+          </div>
+
+          <div class="mini-card input-card">
+            <span>Plan Limit</span>
+            <b id="myAtpLimitText">0/10</b>
           </div>
         </div>
+
+        <div class="section-head compact" style="margin-top:18px;">
+          <div>
+            <h2>Indicators</h2>
+            <p>เลือกตัวช่วยวิเคราะห์ที่ต้องการให้ระบบนำไปคิดคะแนนแผน</p>
+          </div>
+        </div>
+
+        <div class="mini-grid">
+          <label class="mini-card input-card">
+            <span>EMA / Trend</span>
+            <input id="indEma" type="checkbox" checked onchange="generateSuggestedPlan()" />
+          </label>
+
+          <label class="mini-card input-card">
+            <span>RSI</span>
+            <input id="indRsi" type="checkbox" checked onchange="generateSuggestedPlan()" />
+          </label>
+
+          <label class="mini-card input-card">
+            <span>Support / Resistance</span>
+            <input id="indSr" type="checkbox" checked onchange="generateSuggestedPlan()" />
+          </label>
+
+          <label class="mini-card input-card">
+            <span>Fibonacci</span>
+            <input id="indFib" type="checkbox" checked onchange="generateSuggestedPlan()" />
+          </label>
+
+          <label class="mini-card input-card">
+            <span>FVG</span>
+            <input id="indFvg" type="checkbox" checked onchange="generateSuggestedPlan()" />
+          </label>
+
+          <label class="mini-card input-card">
+            <span>ATR / Range TP-SL</span>
+            <input id="indAtr" type="checkbox" checked onchange="generateSuggestedPlan()" />
+          </label>
+        </div>
+
+        <div class="section-head compact" style="margin-top:18px;">
+          <div>
+            <h2>Suggested Levels</h2>
+            <p>ระบบคำนวณเลขให้ก่อน ลูกค้าสามารถแก้เองได้</p>
+          </div>
+          <button class="collapse-btn" type="button" onclick="generateSuggestedPlan()">คำนวณ</button>
+        </div>
+
+        <div class="mini-grid">
+          <div class="mini-card input-card">
+            <span>Entry</span>
+            <input id="builderEntry" class="setting-input" type="number" step="0.01" />
+          </div>
+
+          <div class="mini-card input-card">
+            <span>SL</span>
+            <input id="builderSl" class="setting-input" type="number" step="0.01" />
+          </div>
+
+          <div class="mini-card input-card">
+            <span>TP1</span>
+            <input id="builderTp1" class="setting-input" type="number" step="0.01" />
+          </div>
+
+          <div class="mini-card input-card">
+            <span>TP2</span>
+            <input id="builderTp2" class="setting-input" type="number" step="0.01" />
+          </div>
+
+          <div class="mini-card input-card">
+            <span>TP3</span>
+            <input id="builderTp3" class="setting-input" type="number" step="0.01" />
+          </div>
+
+          <div class="mini-card input-card">
+            <span>Note</span>
+            <input id="builderNote" class="setting-input" type="text" placeholder="เช่น รอราคาแตะแนวต้าน / ตาม FVG" />
+          </div>
+        </div>
+
+        <div class="section-head compact" style="margin-top:18px;">
+          <div>
+            <h2>Plan Analysis</h2>
+            <p>ระบบวิเคราะห์แผนก่อนเพิ่มเข้า My ATP</p>
+          </div>
+        </div>
+
+        <div class="mini-grid">
+          <div class="mini-card"><span>Plan Score</span><b id="planScore">-</b></div>
+          <div class="mini-card"><span>Quality</span><b id="planQuality">-</b></div>
+          <div class="mini-card"><span>RR TP1</span><b id="planRr1">-</b></div>
+          <div class="mini-card"><span>RR TP3</span><b id="planRr3">-</b></div>
+        </div>
+
+        <div class="two-col" style="margin-top:18px;">
+          <div class="card info-card" style="margin-bottom:0;">
+            <div class="section-head compact">
+              <div>
+                <h2>✅ Supporting Reasons</h2>
+                <p>จุดที่สนับสนุนแผนนี้</p>
+              </div>
+            </div>
+            <div id="builderReasons" class="reason-list">-</div>
+          </div>
+
+          <div class="card info-card" style="margin-bottom:0;">
+            <div class="section-head compact">
+              <div>
+                <h2>⚠️ Caution Notes</h2>
+                <p>จุดที่ต้องระวังก่อนใช้แผน</p>
+              </div>
+            </div>
+            <div id="builderCautions" class="reason-list">-</div>
+          </div>
+        </div>
+
+        <div class="actions" style="margin-top:18px;">
+          <button class="btn-main" type="button" onclick="addManualAtp()">➕ Add to My ATP</button>
+          <button class="btn-main ghost" type="button" onclick="generateSuggestedPlan()">🧠 Recalculate</button>
+        </div>
+
+        <div class="note" id="builderStatus" style="margin-top:12px;">
+          Plan Builder พร้อมใช้งาน
+        </div>
+
       </div>
     </section>
 
-    <!-- AI ACTIVE TRADE / ATP -->
-    <section class="section-card" id="atpSection">
-      <div class="section-title-row">
+    <section class="card active-card" id="section-my-atp">
+      <div class="section-head">
         <div>
-          <h2 class="section-title">🔒 AI Active Trade Plan</h2>
-          <p class="section-desc">แผนเข้าเทรดจาก AI ATP หลังจากกด BUY หรือ SELL</p>
+          <h2>📋 My ATP Journal</h2>
+          <p>แผนที่ลูกค้าสร้างเอง ระบบจะติดตาม Entry / TP / SL และเก็บประวัติให้เรียนรู้</p>
         </div>
-
-        <div class="status-pill">
-          <span>AI ATP</span>
+        <div class="section-head-right">
+          <div class="lock-badge" id="myAtpCountBadge">0/10</div>
+          <button class="collapse-btn" type="button" onclick="toggleSection('myAtpBody', this)">ย่อ</button>
         </div>
       </div>
 
-      <div class="analysis-grid">
-        <div class="analysis-box">
-          <div class="analysis-label">Entry</div>
-          <div class="analysis-value" id="atpEntry">--</div>
+      <div id="myAtpBody" class="section-body open">
+
+        <div class="mini-grid">
+          <div class="mini-card"><span>Total Plans</span><b id="manualTotalPlans">0</b></div>
+          <div class="mini-card"><span>Active</span><b id="manualActivePlans">0</b></div>
+          <div class="mini-card"><span>Wins</span><b id="manualWins">0</b></div>
+          <div class="mini-card"><span>Losses</span><b id="manualLosses">0</b></div>
+          <div class="mini-card"><span>Partial</span><b id="manualPartial">0</b></div>
+          <div class="mini-card"><span>Win Rate</span><b id="manualWinRate">-</b></div>
         </div>
 
-        <div class="analysis-box">
-          <div class="analysis-label">Take Profit</div>
-          <div class="analysis-value buy" id="atpTp">--</div>
+        <div id="manualAtpList" style="margin-top:18px;">
+          <div class="note">ยังไม่มี My ATP</div>
         </div>
 
-        <div class="analysis-box">
-          <div class="analysis-label">Stop Loss</div>
-          <div class="analysis-value sell" id="atpSl">--</div>
+        <div class="actions" style="margin-top:18px;">
+          <button class="btn-main ghost" type="button" onclick="clearClosedManualPlans()">🧹 Clear Closed</button>
+          <button class="btn-main danger" type="button" onclick="clearAllManualPlans()">🗑 Clear All My ATP</button>
         </div>
+
       </div>
     </section>
 
-    <!-- THAI GOLD -->
-    <section class="section-card soft" id="thaiGoldSection">
-      <div class="section-title-row">
+    <section class="card" id="section-analysis">
+      <div class="section-head compact">
         <div>
-          <h2 class="section-title">🇹🇭 ราคาทองไทย</h2>
-          <p class="section-desc">ข้อมูลเพื่อดูประกอบและ SEO เท่านั้น ไม่ใช้คำนวณสัญญาณ XAU/USD</p>
+          <h2>🧠 Current Analysis</h2>
+          <p>ข้อมูลวิเคราะห์สด ใช้ดูสภาพตลาดปัจจุบัน</p>
         </div>
+        <button class="collapse-btn" type="button" onclick="toggleSection('analysisBody', this)">ย่อ</button>
       </div>
 
-      <div class="thai-gold-grid">
-        <div class="thai-card">
-          <div class="thai-label">ทองคำแท่ง รับซื้อ</div>
-          <div class="thai-value" id="thaiBarBuy">--</div>
+      <div id="analysisBody" class="section-body open">
+        <div class="mini-grid">
+          <div class="mini-card"><span>Trend</span><b id="trend">-</b></div>
+          <div class="mini-card"><span>RSI</span><b id="rsi">-</b></div>
+          <div class="mini-card"><span>Support</span><b id="support">-</b></div>
+          <div class="mini-card"><span>Resistance</span><b id="resistance">-</b></div>
+          <div class="mini-card"><span>Buy Score</span><b id="buyScore">-</b></div>
+          <div class="mini-card"><span>Sell Score</span><b id="sellScore">-</b></div>
+          <div class="mini-card"><span>Fib Zone</span><b id="fibZone">-</b></div>
+          <div class="mini-card"><span>Trap</span><b id="trap">-</b></div>
+          <div class="mini-card"><span>CMI</span><b id="customMomentumIndex">-</b></div>
+          <div class="mini-card"><span>Nearest FVG</span><b id="nearestFvg">-</b></div>
+          <div class="mini-card"><span>Risk/Reward</span><b id="riskReward">-</b></div>
+          <div class="mini-card"><span>Plan Lock</span><b id="activePlanReason">-</b></div>
+          <div class="mini-card"><span>Engine</span><b id="engine">-</b></div>
+          <div class="mini-card"><span>Source</span><b id="signalSource">-</b></div>
         </div>
 
-        <div class="thai-card">
-          <div class="thai-label">ทองคำแท่ง ขายออก</div>
-          <div class="thai-value" id="thaiBarSell">--</div>
+        <div class="plan-strip muted">
+          <div><span>Entry</span><b id="entry">-</b></div>
+          <div><span>SL</span><b id="sl">-</b></div>
+          <div><span>TP1</span><b id="tp1">-</b></div>
+          <div><span>TP2</span><b id="tp2">-</b></div>
+          <div><span>TP3</span><b id="tp3">-</b></div>
         </div>
-
-        <div class="thai-card">
-          <div class="thai-label">ทองรูปพรรณ รับซื้อ</div>
-          <div class="thai-value" id="thaiJewelryBuy">--</div>
-        </div>
-
-        <div class="thai-card">
-          <div class="thai-label">ทองรูปพรรณ ขายออก</div>
-          <div class="thai-value" id="thaiJewelrySell">--</div>
-        </div>
-      </div>
-
-      <div class="thai-note" id="thaiGoldNote">
-        หมายเหตุ: ราคาทองไทยใช้สำหรับแสดงข้อมูลเท่านั้น ระบบ Gold AI Pro ยังใช้ XAU/USD เป็นแกนหลักในการวิเคราะห์สัญญาณ
       </div>
     </section>
 
-  </main>
+    <section class="two-col">
+      <div class="card info-card">
+        <div class="section-head compact">
+          <div>
+            <h2>💡 Reason</h2>
+            <p>เหตุผลที่ระบบคิดแบบนี้</p>
+          </div>
+          <button class="collapse-btn" type="button" onclick="toggleSection('reasonBody', this)">ย่อ</button>
+        </div>
+        <div id="reasonBody" class="section-body open">
+          <div id="reason" class="reason-list">-</div>
+        </div>
+      </div>
 
-  <!-- BOTTOM NAV -->
-  <nav class="bottom-nav">
-    <button class="nav-btn active" type="button" data-target="home">
-      <span class="nav-icon">🏠</span>
-      Home
-    </button>
+      <div class="card info-card">
+        <div class="section-head compact">
+          <div>
+            <h2>🔎 Smart Filters</h2>
+            <p>ตัวกรองความเสี่ยงและคุณภาพสัญญาณ</p>
+          </div>
+          <button class="collapse-btn" type="button" onclick="toggleSection('filtersBody', this)">ย่อ</button>
+        </div>
+        <div id="filtersBody" class="section-body open">
+          <div id="filters" class="reason-list">-</div>
+        </div>
+      </div>
+    </section>
 
-    <button class="nav-btn" type="button" data-target="chartSection">
-      <span class="nav-icon">📈</span>
-      Chart
-    </button>
+    <section class="card slim-card">
+      <div class="section-head compact">
+        <div>
+          <h2>⏱ Signal Timing</h2>
+          <p id="validNote">ระบบอัปเดตข้อมูลตามรอบ API และใช้ข้อมูลจริงจาก Binance Futures PAXGUSDT + Offset</p>
+        </div>
+        <button class="collapse-btn" type="button" onclick="toggleSection('timingBody', this)">ย่อ</button>
+      </div>
 
-    <button class="nav-btn" type="button" data-target="atpSection">
-      <span class="nav-icon">🧩</span>
-      ATP
-    </button>
+      <div id="timingBody" class="section-body open">
+        <div class="mini-grid timing-grid">
+          <div class="mini-card"><span>Signal Time</span><b id="signalTime">-</b></div>
+          <div class="mini-card"><span>Valid Until</span><b id="validUntil">-</b></div>
+          <div class="mini-card"><span>Next Check</span><b id="nextCheck">-</b></div>
+          <div class="mini-card"><span>Candle</span><b id="candleInterval">-</b></div>
+        </div>
+      </div>
+    </section>
 
-    <button class="nav-btn" type="button" data-target="thaiGoldSection">
-      <span class="nav-icon">📋</span>
-      Thai Gold
-    </button>
-  </nav>
+    <section class="card thai-card">
+      <div class="section-head compact">
+        <div>
+          <h2>🇹🇭 ราคาทองไทย</h2>
+          <p>ใช้เพื่อข้อมูลเท่านั้น ไม่ใช้คำนวณ Signal</p>
+        </div>
+        <button class="collapse-btn" type="button" onclick="toggleSection('thaiGoldBody', this)">ย่อ</button>
+      </div>
 
-  <!-- Small UI Script -->
-  <script>
-    (function () {
-      "use strict";
+      <div id="thaiGoldBody" class="section-body open">
+        <div class="thai-grid">
+          <div><span>ทองแท่ง ซื้อ</span><b id="thai_buy">-</b><small>บาท</small></div>
+          <div><span>ทองแท่ง ขาย</span><b id="thai_sell">-</b><small>บาท</small></div>
+          <div><span>รูปพรรณ ซื้อ</span><b id="thai_buy_jewelry">-</b><small>บาท</small></div>
+          <div><span>รูปพรรณ ขาย</span><b id="thai_sell_jewelry">-</b><small>บาท</small></div>
+        </div>
+      </div>
+    </section>
 
-      function byId(id) {
-        return document.getElementById(id);
-      }
+    <section class="card slim-card">
+      <div class="section-head compact">
+        <div>
+          <h2>📊 AI Learning Stats</h2>
+          <p id="learningNote">Learning จะเริ่มมีผลเมื่อมีข้อมูลย้อนหลังมากพอ</p>
+        </div>
+        <button class="collapse-btn" type="button" onclick="toggleSection('learningBody', this)">ย่อ</button>
+      </div>
 
-      function setText(id, value) {
-        const el = byId(id);
-        if (el) el.textContent = value;
-      }
+      <div id="learningBody" class="section-body open">
+        <div class="mini-grid">
+          <div class="mini-card"><span>Memory</span><b id="memoryType">-</b></div>
+          <div class="mini-card"><span>Total</span><b id="totalSignals">-</b></div>
+          <div class="mini-card"><span>Pending</span><b id="pendingSignals">-</b></div>
+          <div class="mini-card"><span>Finished</span><b id="totalFinished">-</b></div>
+          <div class="mini-card"><span>Wins</span><b id="wins">-</b></div>
+          <div class="mini-card"><span>Losses</span><b id="losses">-</b></div>
+          <div class="mini-card"><span>Win Rate</span><b id="winRate">-</b></div>
+        </div>
+      </div>
+    </section>
 
-      function syncPriceText() {
-        const live = byId("livePrice");
-        const value = live ? live.textContent : "--";
+    <section class="card action-card">
+      <div class="actions">
+        <button class="btn-main" onclick="loadSignal()">🚀 Load Signal</button>
+        <button class="btn-main ghost" onclick="toggleAdminPanel()">🔐 Admin Panel</button>
+      </div>
 
-        setText("analysisLivePrice", value);
-        setText("quickLivePrice", value);
-      }
+      <div class="note" id="autoRefreshStatus">
+        API refresh in 30s | TV-Calibrated Proxy
+      </div>
 
-      function setupIndicatorToggle() {
-        const btn = byId("indicatorToggle");
-        const panel = byId("indicatorPanel");
+      <div id="adminPanel" class="admin-panel" style="display:none;">
+        <div class="section-head compact">
+          <div>
+            <h2>⚙️ Admin Panel</h2>
+            <p>ตั้งค่า Price Calibration / Telegram / VIP / Sound</p>
+          </div>
+        </div>
 
-        if (!btn || !panel) return;
+        <div class="mini-grid">
+          <div class="mini-card input-card">
+            <span>Admin Key</span>
+            <input
+              id="adminKey"
+              class="setting-input"
+              type="password"
+              placeholder="ใส่รหัส Admin"
+              autocomplete="off"
+              autocapitalize="off"
+              spellcheck="false"
+            />
+            <button class="small-btn" type="button" onclick="toggleAdminKey()">👁 แสดง / ซ่อนรหัส</button>
+          </div>
 
-        btn.addEventListener("click", function () {
-          panel.classList.toggle("active");
-        });
-      }
+          <div class="mini-card input-card">
+            <span>Raw Binance Price</span>
+            <b id="adminRawPrice">-</b>
+          </div>
 
-      function setupMiniChartButton() {
-        const btn = byId("chartMiniBtn");
-        const frame = byId("chartContainer");
+          <div class="mini-card input-card">
+            <span>TV / MT5 Offset</span>
+            <input
+              id="calibrationOffsetInput"
+              class="setting-input"
+              type="number"
+              step="0.01"
+              value="6.50"
+              placeholder="+6.50"
+            />
+          </div>
 
-        if (!btn || !frame) return;
+          <div class="mini-card input-card">
+            <span>Adjusted Price</span>
+            <b id="adminAdjustedPrice">-</b>
+          </div>
 
-        btn.addEventListener("click", function () {
-          frame.classList.toggle("hidden");
-          btn.textContent = frame.classList.contains("hidden") ? "แสดง" : "ย่อ";
-        });
-      }
+          <div class="mini-card input-card">
+            <span>Calibration Mode</span>
+            <b id="calibrationMode">manual_admin_offset</b>
+          </div>
 
-      function setupBottomNav() {
-        const buttons = Array.from(document.querySelectorAll(".nav-btn"));
+          <div class="mini-card input-card">
+            <span>Calibration Source</span>
+            <b id="calibrationSource">default</b>
+          </div>
 
-        buttons.forEach(function (btn) {
-          btn.addEventListener("click", function () {
-            buttons.forEach(function (b) {
-              b.classList.remove("active");
-            });
+          <div class="mini-card input-card">
+            <span>Min Confidence</span>
+            <select id="minConfidence" class="setting-input">
+              <option value="70">70%</option>
+              <option value="75" selected>75%</option>
+              <option value="80">80%</option>
+              <option value="85">85%</option>
+            </select>
+          </div>
 
-            btn.classList.add("active");
+          <div class="mini-card input-card">
+            <span>Cooldown</span>
+            <select id="cooldownMinutes" class="setting-input">
+              <option value="15">15 min</option>
+              <option value="30" selected>30 min</option>
+              <option value="60">60 min</option>
+            </select>
+          </div>
 
-            const targetId = btn.getAttribute("data-target");
-            const target = byId(targetId);
+          <div class="mini-card input-card">
+            <span>Sound</span>
+            <select id="soundEnabledSelect" class="setting-input" onchange="applySoundSettingFromSelect()">
+              <option value="on">ON</option>
+              <option value="off">OFF</option>
+            </select>
+          </div>
+        </div>
 
-            if (target) {
-              target.scrollIntoView({
-                behavior: "smooth",
-                block: "start"
-              });
-            }
-          });
-        });
-      }
+        <div class="actions admin-actions">
+          <button class="btn-main" onclick="saveCalibrationOffset()">💾 Save Offset</button>
+          <button class="btn-main ghost" onclick="resetCalibrationOffset()">♻️ Reset Offset +6.50</button>
+        </div>
 
-      function setupBuySellFallback() {
-        const buy = byId("buyBtn");
-        const sell = byId("sellBtn");
+        <div class="note" id="calibrationStatus">
+          Price Calibration: ready
+        </div>
 
-        if (buy) {
-          buy.addEventListener("click", function () {
-            window.dispatchEvent(new CustomEvent("gold-ai-pro-buy"));
-            console.log("BUY clicked from index");
-          });
-        }
+        <div class="actions admin-actions">
+          <button class="btn-main" onclick="sendVipSignal()">📩 Send VIP Alert</button>
+          <button class="btn-main ghost" onclick="testTelegram()">🧪 Test Telegram</button>
+          <button class="btn-main danger" onclick="resetActivePlan()">♻️ Reset AI Active Plan</button>
+        </div>
 
-        if (sell) {
-          sell.addEventListener("click", function () {
-            window.dispatchEvent(new CustomEvent("gold-ai-pro-sell"));
-            console.log("SELL clicked from index");
-          });
-        }
-      }
+        <div class="note" id="vipAlertStatus">VIP Alert: ready</div>
+        <div class="note" id="telegramTestStatus">Telegram: ready</div>
+        <div class="note" id="resetActiveStatus">Active Plan Reset: ready</div>
+      </div>
+    </section>
 
-      function run() {
-        setupIndicatorToggle();
-        setupMiniChartButton();
-        setupBottomNav();
-        setupBuySellFallback();
+    <section class="card disclaimer-card">
+      <div class="small-title">⚠️ Disclaimer</div>
+      <p>
+        ข้อมูลและสัญญาณใน Gold AI Pro ใช้เพื่อการศึกษาและประกอบการวิเคราะห์เท่านั้น
+        ไม่ใช่คำแนะนำการลงทุน ผู้ใช้งานควรบริหารความเสี่ยงและตัดสินใจด้วยตนเอง
+      </p>
+    </section>
 
-        setInterval(syncPriceText, 1000);
-      }
+    <section class="ad-box">
+      พื้นที่โฆษณา
+    </section>
 
-      if (document.readyState === "loading") {
-        document.addEventListener("DOMContentLoaded", run);
-      } else {
-        run();
-      }
-    })();
-  </script>
+    <nav class="bottom-nav">
+      <a class="nav-item active" href="#top">🏠<span>Home</span></a>
+      <a class="nav-item" href="#section-chart">📈<span>Chart</span></a>
+      <a class="nav-item" href="#section-builder">🧩<span>Build</span></a>
+      <a class="nav-item" href="#section-my-atp">📋<span>My ATP</span></a>
+    </nav>
+  </div>
 
-  <!-- Step 29D Home Clean -->
-  <script src="assets/js/step29d-home-clean.js?v=29d"></script>
+  <div id="toastContainer" class="toast-container"></div>
 
-  <!-- Step 29E Chart Clean: ต้องอยู่ก่อน app.js เพื่อดักการวาดเส้น TP / SL / BUY บนกราฟ -->
-  <script src="assets/js/step29e-chart-clean.js?v=29e"></script>
-
-  <!-- Main App -->
-  <script src="assets/js/app.js?v=29e"></script>
-
+  <script src="./assets/js/app.js?v=28"></script>
+<script src="./assets/js/step29d-home-clean.js?v=29d"></script>
 </body>
 </html>
