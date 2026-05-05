@@ -1,4 +1,4 @@
-console.log("APP JS VERSION 24 LOADED");
+console.log("APP JS VERSION 25 LOADED");
 
 const API_URL = "https://white-fog-ba70.porapat-su1975.workers.dev";
 
@@ -7,7 +7,7 @@ let autoRefreshTimer = null;
 let countdownTimer = null;
 let nextApiUpdateAt = null;
 
-const API_REFRESH_SECONDS = 300;
+const API_REFRESH_SECONDS = 30;
 
 let previousPrice = null;
 let previousSignal = null;
@@ -84,14 +84,21 @@ function formatCountdown(ms) {
   const totalSec = Math.max(0, Math.ceil(ms / 1000));
   const m = Math.floor(totalSec / 60);
   const s = totalSec % 60;
+
+  if (m <= 0) return `${s}s`;
   return `${m}m ${String(s).padStart(2, "0")}s`;
 }
 
 function formatSource(source) {
   if (!source) return "-";
+
+  if (source.includes("binance_futures")) return "Binance Futures PAXGUSDT";
+  if (source.includes("binance_proxy")) return "Binance Proxy Cache";
+  if (source.includes("binance_paxgusdt")) return "Binance PAXGUSDT";
+  if (source.includes("demo")) return "Demo/Fallback";
   if (source.includes("twelve_data_real")) return "Twelve Data Real";
   if (source.includes("twelve_data_cache")) return "Twelve Data Cache";
-  if (source.includes("demo")) return "Demo/Fallback";
+
   return source;
 }
 
@@ -143,6 +150,16 @@ function formatYesNo(value) {
   return value === true ? "YES" : "NO";
 }
 
+function formatFvg(fvg) {
+  if (!fvg) return "-";
+
+  const type = fvg.type === "bullish" ? "Bullish" : fvg.type === "bearish" ? "Bearish" : fvg.type;
+  const status = fvg.status ? ` | ${fvg.status}` : "";
+  const distance = fvg.distanceFromPrice !== undefined ? ` | Δ ${fvg.distanceFromPrice}` : "";
+
+  return `${type} ${fvg.bottom}-${fvg.top}${status}${distance}`;
+}
+
 function updateApiCountdown() {
   const el = document.getElementById("autoRefreshStatus");
   const miniEl = document.getElementById("refreshCountdown");
@@ -153,11 +170,15 @@ function updateApiCountdown() {
   const text = formatCountdown(remainMs);
 
   if (el) {
-    el.innerText = `Next API update in ${text} | API cache: 5 min`;
+    el.innerText = `Next API update in ${text} | Source: Binance Futures PAXGUSDT`;
   }
 
   if (miniEl) {
     miniEl.innerText = text;
+  }
+
+  if (remainMs <= 0) {
+    loadSignal();
   }
 }
 
@@ -298,7 +319,15 @@ function toggleSection(bodyId, btn) {
 
 async function loadSignal() {
   try {
-    const res = await fetch(`${API_URL}?mode=${currentMode}&t=${Date.now()}`);
+    const res = await fetch(`${API_URL}?mode=${currentMode}&t=${Date.now()}`, {
+      method: "GET",
+      cache: "no-store",
+      headers: {
+        "Cache-Control": "no-cache",
+        "Pragma": "no-cache"
+      }
+    });
+
     const data = await res.json();
 
     console.log("SIGNAL DATA:", data);
@@ -334,7 +363,15 @@ async function sendVipSignal() {
       `&admin_key=${encodeURIComponent(adminKey)}` +
       `&t=${Date.now()}`;
 
-    const res = await fetch(url);
+    const res = await fetch(url, {
+      method: "GET",
+      cache: "no-store",
+      headers: {
+        "Cache-Control": "no-cache",
+        "Pragma": "no-cache"
+      }
+    });
+
     const data = await res.json();
 
     console.log("VIP ALERT DATA:", data);
@@ -389,7 +426,15 @@ async function testTelegram() {
     }
 
     const res = await fetch(
-      `${API_URL}?mode=test-telegram&admin_key=${encodeURIComponent(adminKey)}&t=${Date.now()}`
+      `${API_URL}?mode=test-telegram&admin_key=${encodeURIComponent(adminKey)}&t=${Date.now()}`,
+      {
+        method: "GET",
+        cache: "no-store",
+        headers: {
+          "Cache-Control": "no-cache",
+          "Pragma": "no-cache"
+        }
+      }
     );
 
     const data = await res.json();
@@ -442,7 +487,15 @@ async function resetActivePlan() {
     }
 
     const res = await fetch(
-      `${API_URL}/reset-active-plan?admin_key=${encodeURIComponent(adminKey)}&t=${Date.now()}`
+      `${API_URL}/reset-active-plan?admin_key=${encodeURIComponent(adminKey)}&t=${Date.now()}`,
+      {
+        method: "GET",
+        cache: "no-store",
+        headers: {
+          "Cache-Control": "no-cache",
+          "Pragma": "no-cache"
+        }
+      }
     );
 
     const data = await res.json();
@@ -574,6 +627,8 @@ function render(data) {
   setText("sellScore", s.sellScore);
   setText("fibZone", s.fibZone);
   setText("trap", s.trap);
+  setText("customMomentumIndex", s.customMomentumIndex ?? "-");
+  setText("nearestFvg", formatFvg(s.nearestFvg));
 
   setText("entry", s.entry);
   setText("sl", s.sl || "-");
@@ -597,6 +652,7 @@ function render(data) {
   setText("candleInterval", s.candleInterval || "15min");
   setText("signalSource", formatSource(s.source || data.source));
   setText("priceSource", formatSource(data.priceSource || data.source));
+  setText("chartSource", formatSource(data.chartSource || data.source));
   setText("lastCandleTime", s.candleTime || "-");
   setText("nextApiUpdate", formatThaiDateTime(data.nextApiUpdate || s.nextCheck));
 
@@ -604,14 +660,21 @@ function render(data) {
   if (validNote) {
     validNote.innerText =
       s.validNote ||
-      "ราคาและกราฟใช้ข้อมูลชุดเดียวกันจาก Worker/Twelve Data";
+      "ระบบอัปเดตข้อมูลตามรอบ API และใช้ข้อมูลจริงจาก Binance Futures PAXGUSDT";
   }
 
   const chartSourceText = document.getElementById("chartSourceText");
   if (chartSourceText) {
     chartSourceText.innerText =
       data.dataNotice ||
-      "กราฟนี้วาดจาก Candle ชุดเดียวกับที่ใช้คำนวณ Signal";
+      "กราฟนี้วาดจาก Binance Futures PAXGUSDT 15m candles";
+  }
+
+  const sourceNotice = document.getElementById("sourceNotice");
+  if (sourceNotice) {
+    sourceNotice.innerText =
+      data.proxyNotice ||
+      "Gold Proxy Source: Binance Futures PAXGUSDT — อาจต่างจาก XAU/USD Spot/OANDA เล็กน้อย";
   }
 
   latestChartData = Array.isArray(data.chartData) ? data.chartData : [];
@@ -775,7 +838,7 @@ function drawApiChart(candles) {
   }
 
   const padLeft = 46;
-  const padRight = 72;
+  const padRight = 78;
   const padTop = 26;
   const padBottom = 36;
 
@@ -860,11 +923,11 @@ function drawApiChart(candles) {
   ctx.setLineDash([]);
 
   ctx.fillStyle = "#f5c542";
-  ctx.fillRect(w - padRight + 8, yLast - 13, 58, 26);
+  ctx.fillRect(w - padRight + 8, yLast - 13, 64, 26);
 
   ctx.fillStyle = "#111";
-  ctx.font = "bold 14px sans-serif";
-  ctx.fillText(String(lastPrice.toFixed(2)), w - padRight + 13, yLast + 5);
+  ctx.font = "bold 13px sans-serif";
+  ctx.fillText(String(lastPrice.toFixed(2)), w - padRight + 12, yLast + 5);
 
   ctx.fillStyle = "#cbd2df";
   ctx.font = "13px sans-serif";
@@ -877,7 +940,7 @@ function drawApiChart(candles) {
 
   ctx.fillStyle = "#9aa3b2";
   ctx.font = "13px sans-serif";
-  ctx.fillText("Worker / Twelve Data candles", padLeft, h - 12);
+  ctx.fillText("Binance Futures PAXGUSDT 15m candles", padLeft, h - 12);
 }
 
 function setMode(mode) {
@@ -903,7 +966,15 @@ function setMode(mode) {
 
 async function loadThaiGold() {
   try {
-    const res = await fetch("https://api.chnwt.dev/thai-gold-api/latest");
+    const res = await fetch("https://api.chnwt.dev/thai-gold-api/latest", {
+      method: "GET",
+      cache: "no-store",
+      headers: {
+        "Cache-Control": "no-cache",
+        "Pragma": "no-cache"
+      }
+    });
+
     const data = await res.json();
 
     console.log("Thai Gold RAW:", data);
