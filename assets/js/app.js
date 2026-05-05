@@ -1290,8 +1290,434 @@ async function loadThaiGold() {
 }
 
 /* =========================
-   PLAN BUILDER + MY ATP
+   PLAN BUILDER + MY ATP v2
 ========================= */
+
+function injectAtpV2Styles() {
+  if (document.getElementById("atpV2Styles")) return;
+
+  const style = document.createElement("style");
+  style.id = "atpV2Styles";
+  style.innerHTML = `
+    .atp-v2-list {
+      display: grid;
+      gap: 16px;
+    }
+
+    .atp-v2-card {
+      position: relative;
+      border: 1px solid rgba(245, 197, 66, 0.42);
+      background:
+        radial-gradient(circle at top left, rgba(245, 197, 66, 0.10), transparent 32%),
+        linear-gradient(180deg, rgba(20, 24, 31, 0.98), rgba(8, 10, 13, 0.98));
+      border-radius: 22px;
+      padding: 14px;
+      box-shadow: 0 18px 45px rgba(0,0,0,.35);
+      overflow: hidden;
+    }
+
+    .atp-v2-card.is-active {
+      box-shadow: 0 0 0 1px rgba(245,197,66,.18), 0 18px 55px rgba(245,197,66,.08);
+    }
+
+    .atp-v2-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+
+    .atp-v2-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .atp-v2-title h3 {
+      margin: 0;
+      color: #fff;
+      font-size: 20px;
+      line-height: 1.1;
+    }
+
+    .atp-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 24px;
+      padding: 3px 9px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: .02em;
+      border: 1px solid rgba(255,255,255,.1);
+    }
+
+    .atp-badge.buy {
+      color: #0eff7a;
+      background: rgba(0,200,83,.16);
+      border-color: rgba(0,200,83,.45);
+    }
+
+    .atp-badge.sell {
+      color: #ff6b7d;
+      background: rgba(255,69,94,.16);
+      border-color: rgba(255,69,94,.45);
+    }
+
+    .atp-badge.active {
+      color: #83ff9d;
+      background: rgba(0,200,83,.14);
+      border-color: rgba(0,200,83,.42);
+    }
+
+    .atp-badge.waiting {
+      color: #ffd76d;
+      background: rgba(245,197,66,.14);
+      border-color: rgba(245,197,66,.42);
+    }
+
+    .atp-badge.closed {
+      color: #b8c0cc;
+      background: rgba(255,255,255,.06);
+      border-color: rgba(255,255,255,.12);
+    }
+
+    .atp-v2-meta {
+      color: #9aa3b2;
+      font-size: 12px;
+      margin-top: 6px;
+    }
+
+    .atp-v2-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .atp-icon-btn {
+      width: 34px;
+      height: 34px;
+      border-radius: 11px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.045);
+      color: #e7edf7;
+      cursor: pointer;
+      font-weight: 800;
+    }
+
+    .atp-icon-btn:hover {
+      border-color: rgba(245,197,66,.45);
+      color: #ffd76d;
+    }
+
+    .atp-icon-btn.delete:hover {
+      border-color: rgba(255,69,94,.55);
+      color: #ff6b7d;
+    }
+
+    .atp-mini-chart-box {
+      position: relative;
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 16px;
+      overflow: hidden;
+      background: #06080c;
+      margin-bottom: 12px;
+    }
+
+    .atp-mini-chart {
+      width: 100%;
+      height: 185px;
+      display: block;
+    }
+
+    .atp-indicator-row {
+      display: grid;
+      grid-template-columns: 1fr 1.45fr;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .atp-indicator-mini {
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 14px;
+      background: rgba(255,255,255,.035);
+      padding: 9px 10px;
+      min-height: 58px;
+    }
+
+    .atp-indicator-mini span {
+      display: block;
+      color: #9fb2cc;
+      font-size: 12px;
+      margin-bottom: 4px;
+    }
+
+    .atp-indicator-mini b {
+      color: #fff;
+      font-size: 15px;
+    }
+
+    .atp-macd-mini {
+      width: 100%;
+      height: 36px;
+      display: block;
+      margin-top: 2px;
+    }
+
+    .atp-level-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 15px;
+      overflow: hidden;
+      margin-bottom: 10px;
+    }
+
+    .atp-level-grid div {
+      padding: 10px 8px;
+      background: rgba(255,255,255,.035);
+      border-right: 1px solid rgba(255,255,255,.06);
+    }
+
+    .atp-level-grid div:last-child {
+      border-right: none;
+    }
+
+    .atp-level-grid span {
+      display: block;
+      color: #9fb2cc;
+      font-size: 11px;
+      margin-bottom: 4px;
+    }
+
+    .atp-level-grid b {
+      color: #fff;
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
+    .atp-progress-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 10px;
+    }
+
+    .atp-progress-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      border: 1px solid rgba(255,255,255,.08);
+      background: rgba(255,255,255,.045);
+      border-radius: 999px;
+      padding: 6px 9px;
+      font-size: 12px;
+      color: #cfd7e6;
+    }
+
+    .atp-progress-chip.hit {
+      color: #8effb0;
+      border-color: rgba(0,200,83,.35);
+      background: rgba(0,200,83,.10);
+    }
+
+    .atp-progress-chip.danger {
+      color: #ff9baa;
+      border-color: rgba(255,69,94,.35);
+      background: rgba(255,69,94,.10);
+    }
+
+    .atp-chip-row {
+      display: flex;
+      gap: 7px;
+      flex-wrap: wrap;
+      margin-top: 10px;
+    }
+
+    .atp-ind-chip {
+      border: 1px solid rgba(245,197,66,.28);
+      background: rgba(245,197,66,.08);
+      color: #ffd76d;
+      padding: 5px 8px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .atp-detail-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 99999;
+      background: rgba(0,0,0,.78);
+      backdrop-filter: blur(8px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+    }
+
+    .atp-detail-modal {
+      width: min(980px, 100%);
+      max-height: 92vh;
+      overflow: auto;
+      border: 1px solid rgba(245,197,66,.46);
+      border-radius: 26px;
+      background:
+        radial-gradient(circle at top left, rgba(245,197,66,.12), transparent 28%),
+        linear-gradient(180deg, #111720, #06080c);
+      box-shadow: 0 22px 90px rgba(0,0,0,.75);
+      padding: 18px;
+    }
+
+    .atp-detail-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+
+    .atp-detail-title {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      flex-wrap: wrap;
+    }
+
+    .atp-detail-title h2 {
+      margin: 0;
+      color: #fff;
+      font-size: 26px;
+    }
+
+    .atp-detail-chart {
+      width: 100%;
+      height: 360px;
+      display: block;
+      background: #06080c;
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 18px;
+    }
+
+    .atp-detail-panels {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .atp-detail-indicator {
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 16px;
+      background: rgba(255,255,255,.035);
+      padding: 10px;
+    }
+
+    .atp-detail-indicator canvas {
+      width: 100%;
+      height: 82px;
+      display: block;
+    }
+
+    .atp-detail-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-top: 14px;
+    }
+
+    .atp-detail-box {
+      border: 1px solid rgba(255,255,255,.08);
+      background: rgba(255,255,255,.035);
+      border-radius: 18px;
+      padding: 14px;
+    }
+
+    .atp-detail-box h3 {
+      margin: 0 0 10px;
+      color: #ffd76d;
+      font-size: 16px;
+    }
+
+    .atp-detail-table {
+      display: grid;
+      gap: 8px;
+    }
+
+    .atp-detail-table div {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      border-bottom: 1px solid rgba(255,255,255,.06);
+      padding-bottom: 7px;
+      color: #cfd7e6;
+      font-size: 14px;
+    }
+
+    .atp-detail-table div:last-child {
+      border-bottom: none;
+    }
+
+    .atp-detail-table b {
+      color: #fff;
+    }
+
+    .atp-detail-actions {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .atp-detail-btn {
+      border-radius: 15px;
+      padding: 13px 10px;
+      border: 1px solid rgba(245,197,66,.42);
+      background: rgba(245,197,66,.08);
+      color: #ffd76d;
+      font-weight: 900;
+      cursor: pointer;
+    }
+
+    .atp-detail-btn.gray {
+      color: #d7deea;
+      background: rgba(255,255,255,.045);
+      border-color: rgba(255,255,255,.12);
+    }
+
+    .atp-detail-btn.red {
+      color: #ff6b7d;
+      background: rgba(255,69,94,.10);
+      border-color: rgba(255,69,94,.42);
+    }
+
+    @media (max-width: 720px) {
+      .atp-level-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .atp-indicator-row {
+        grid-template-columns: 1fr;
+      }
+
+      .atp-detail-grid,
+      .atp-detail-actions {
+        grid-template-columns: 1fr;
+      }
+
+      .atp-detail-chart {
+        height: 300px;
+      }
+    }
+  `;
+
+  document.head.appendChild(style);
+}
 
 function loadManualAtp() {
   try {
@@ -1325,6 +1751,20 @@ function getBuilderRisk(mode) {
   return 8;
 }
 
+function getBuilderEntryStyle() {
+  const node = document.getElementById("builderEntryStyle");
+  if (!node) return "current";
+
+  // แก้ UX: ถ้าหน้าเดิมตั้ง default เป็น Support/Resistance
+  // ให้เริ่มจาก Current Price ก่อน เพื่อให้เลขตรงกับราคาด้านบน
+  if (!node.dataset.initialized) {
+    node.dataset.initialized = "true";
+    node.value = "current";
+  }
+
+  return node.value || "current";
+}
+
 function generateSuggestedPlan(updateStatus = true) {
   if (!latestAnalysis || !latestData) return;
 
@@ -1332,7 +1772,7 @@ function generateSuggestedPlan(updateStatus = true) {
   if (!Number.isFinite(price)) return;
 
   const mode = getSettingValue("builderMode", "balanced");
-  const entryStyle = getSettingValue("builderEntryStyle", "hybrid");
+  const entryStyle = getBuilderEntryStyle();
   const riskBase = getBuilderRisk(mode);
 
   const support = Number(latestAnalysis.support || price - riskBase * 2);
@@ -1340,26 +1780,35 @@ function generateSuggestedPlan(updateStatus = true) {
   const fvg = latestAnalysis.nearestFvg;
 
   let entry = price;
+  let entrySource = "Current Price";
 
   if (entryStyle === "support_resistance") {
     entry = builderSide === "BUY" ? support : resistance;
+    entrySource = builderSide === "BUY" ? "Support" : "Resistance";
   }
 
   if (entryStyle === "fvg" && fvg) {
     entry = Number(fvg.midpoint || ((Number(fvg.top) + Number(fvg.bottom)) / 2));
+    entrySource = "Nearest FVG";
   }
 
   if (entryStyle === "hybrid") {
     if (isChecked("indFvg") && fvg && Number.isFinite(Number(fvg.midpoint))) {
       entry = Number(fvg.midpoint);
+      entrySource = "Hybrid: FVG";
     } else if (isChecked("indSr")) {
       entry = builderSide === "BUY" ? support : resistance;
+      entrySource = builderSide === "BUY" ? "Hybrid: Support" : "Hybrid: Resistance";
     } else {
       entry = price;
+      entrySource = "Hybrid: Current Price";
     }
   }
 
-  if (!Number.isFinite(entry)) entry = price;
+  if (!Number.isFinite(entry)) {
+    entry = price;
+    entrySource = "Current Price";
+  }
 
   let risk = riskBase;
 
@@ -1391,7 +1840,7 @@ function generateSuggestedPlan(updateStatus = true) {
   analyzeBuilderPlan();
 
   if (updateStatus) {
-    setText("builderStatus", "ระบบคำนวณแผนใหม่แล้ว");
+    setText("builderStatus", `ระบบคำนวณแผนใหม่แล้ว | Entry Source: ${entrySource}`);
   }
 }
 
@@ -1435,22 +1884,19 @@ function analyzeBuilderPlan() {
   }
 
   if (isChecked("indRsi")) {
-    const rsi = Number(latestAnalysis.rsi || 50);
+    const rsiValue = Number(latestAnalysis.rsi || 50);
 
-    if (side === "BUY" && rsi > 35 && rsi < 65) {
+    if (rsiValue > 35 && rsiValue < 65) {
       score += 6;
-      reasons.push("RSI อยู่ในโซนที่ยังพอสนับสนุน BUY ได้");
-    } else if (side === "SELL" && rsi > 35 && rsi < 65) {
-      score += 6;
-      reasons.push("RSI อยู่ในโซนที่ยังพอสนับสนุน SELL ได้");
+      reasons.push("RSI อยู่ในโซนกลาง ช่วยลดความเสี่ยงจากภาวะร้อนแรงเกินไป");
     }
 
-    if (side === "BUY" && rsi >= 70) {
+    if (side === "BUY" && rsiValue >= 70) {
       score -= 12;
       cautions.push("BUY ขณะ RSI สูงมาก ระวังไล่ราคา");
     }
 
-    if (side === "SELL" && rsi <= 30) {
+    if (side === "SELL" && rsiValue <= 30) {
       score -= 12;
       cautions.push("SELL ขณะ RSI ต่ำมาก ระวังเด้งกลับ");
     }
@@ -1523,6 +1969,29 @@ function analyzeBuilderPlan() {
     }
   }
 
+  const macdPack = calcMacdFromCandles(latestChartData);
+  if (macdPack.latest) {
+    if (side === "BUY" && macdPack.latest.histogram > 0) {
+      score += 6;
+      reasons.push("MACD Histogram เป็นบวก สนับสนุนแรงซื้อ");
+    }
+
+    if (side === "SELL" && macdPack.latest.histogram < 0) {
+      score += 6;
+      reasons.push("MACD Histogram เป็นลบ สนับสนุนแรงขาย");
+    }
+
+    if (side === "BUY" && macdPack.latest.histogram < 0) {
+      score -= 5;
+      cautions.push("MACD Histogram ยังไม่สนับสนุน BUY");
+    }
+
+    if (side === "SELL" && macdPack.latest.histogram > 0) {
+      score -= 5;
+      cautions.push("MACD Histogram ยังไม่สนับสนุน SELL");
+    }
+  }
+
   if (rr1 >= 1) {
     score += 8;
     reasons.push("Risk/Reward TP1 คุ้มกว่า 1:1");
@@ -1574,7 +2043,7 @@ function addManualAtp() {
   }
 
   const activeCount = manualAtpPlans.filter(p =>
-    !["TP3_HIT", "SL_HIT", "CANCELLED", "EXPIRED"].includes(p.status)
+    !["TP3_HIT", "SL_HIT", "CANCELLED", "EXPIRED", "DELETED"].includes(p.status)
   ).length;
 
   if (activeCount >= MAX_MANUAL_ATP) {
@@ -1640,7 +2109,8 @@ function addManualAtp() {
     source: latestData.priceSource || latestData.source || "tv_calibrated_proxy",
     priceOffset: latestData.priceOffset ?? 0,
     rawPrice: latestData.rawPrice ?? null,
-    createdPrice: Number(latestData.price)
+    createdPrice: Number(latestData.price),
+    chartSnapshot: Array.isArray(latestChartData) ? latestChartData.slice(-80) : []
   };
 
   manualAtpPlans.unshift(plan);
@@ -1659,7 +2129,7 @@ function updateManualAtpByPrice(price) {
   const now = new Date();
 
   manualAtpPlans = manualAtpPlans.map(plan => {
-    if (["TP3_HIT", "SL_HIT", "CANCELLED", "EXPIRED"].includes(plan.status)) {
+    if (["TP3_HIT", "SL_HIT", "CANCELLED", "EXPIRED", "DELETED"].includes(plan.status)) {
       return plan;
     }
 
@@ -1789,11 +2259,13 @@ function updateManualAtpByPrice(price) {
 }
 
 function renderManualAtp() {
+  injectAtpV2Styles();
+
   const list = document.getElementById("manualAtpList");
   if (!list) return;
 
   const activeCount = manualAtpPlans.filter(p =>
-    !["TP3_HIT", "SL_HIT", "CANCELLED", "EXPIRED"].includes(p.status)
+    !["TP3_HIT", "SL_HIT", "CANCELLED", "EXPIRED", "DELETED"].includes(p.status)
   ).length;
 
   setText("myAtpCountBadge", `${activeCount}/${MAX_MANUAL_ATP}`);
@@ -1801,45 +2273,52 @@ function renderManualAtp() {
 
   renderManualStats();
 
-  if (!manualAtpPlans.length) {
+  const visiblePlans = manualAtpPlans.filter(p => p.status !== "DELETED");
+
+  if (!visiblePlans.length) {
     list.innerHTML = `<div class="note">ยังไม่มี My ATP กด Add to My ATP จาก Plan Builder เพื่อเริ่มเก็บแผน</div>`;
     return;
   }
 
-  list.innerHTML = "";
+  list.innerHTML = `<div class="atp-v2-list"></div>`;
+  const wrap = list.querySelector(".atp-v2-list");
 
-  manualAtpPlans.forEach(plan => {
+  visiblePlans.forEach((plan, index) => {
     const card = document.createElement("div");
-    card.className = "card";
-    card.style.marginBottom = "12px";
-    card.style.padding = "16px";
+    const activeClass = ["ACTIVE", "TP1_HIT", "TP2_HIT"].includes(plan.status) ? "is-active" : "";
+    card.className = `atp-v2-card ${activeClass}`;
+    card.id = `atpCard_${plan.id}`;
 
-    const statusColor =
-      plan.status === "TP3_HIT" ? "#00c853" :
-      plan.status === "SL_HIT" ? "#ff455e" :
-      plan.status === "EXPIRED" ? "#9aa3b2" :
-      plan.status === "CANCELLED" ? "#9aa3b2" :
-      plan.status.includes("TP") ? "#8effb0" :
-      plan.status === "ACTIVE" ? "#f5c542" :
-      "#cbd2df";
+    const sideClass = plan.side === "BUY" ? "buy" : "sell";
+    const statusClass =
+      plan.status === "ACTIVE" || plan.status.includes("TP") ? "active" :
+      plan.status === "WAITING_ENTRY" ? "waiting" :
+      "closed";
 
     card.innerHTML = `
-      <div class="section-head compact" style="margin-bottom:12px;">
+      <div class="atp-v2-head">
         <div>
-          <h2 style="font-size:20px;">
-            ${escapeHtml(plan.side)} ${money(plan.entry)}
-          </h2>
-          <p>
-            ${escapeHtml(plan.mode)} • Score ${plan.score}/100 • ${escapeHtml(plan.quality)}
-          </p>
+          <div class="atp-v2-title">
+            <h3>ATP #${index + 1}</h3>
+            <span class="atp-badge ${sideClass}">${escapeHtml(plan.side)}</span>
+            <span class="atp-badge ${statusClass}">${statusIcon(plan.status)} ${formatAtpStatus(plan.status)}</span>
+          </div>
+          <div class="atp-v2-meta">
+            ${escapeHtml(plan.mode)} • ${formatThaiDateTime(plan.createdAt)}
+          </div>
         </div>
-        <div class="section-head-right">
-          <div class="lock-badge" style="color:${statusColor};">${escapeHtml(plan.status)}</div>
-          <button class="collapse-btn" type="button" onclick="cancelManualAtp('${plan.id}')">ปิด</button>
+
+        <div class="atp-v2-actions">
+          <button class="atp-icon-btn delete" type="button" onclick="deleteManualAtp('${plan.id}')">🗑</button>
+          <button class="atp-icon-btn" type="button" onclick="openManualAtpDetail('${plan.id}')">↗</button>
         </div>
       </div>
 
-      <div class="plan-strip">
+      <div class="atp-mini-chart-box">
+        <canvas class="atp-mini-chart" id="miniChart_${plan.id}" width="760" height="220"></canvas>
+      </div>
+
+      <div class="atp-level-grid">
         <div><span>Entry</span><b>${hitIcon(plan.hits.entry)} ${money(plan.entry)}</b></div>
         <div><span>SL</span><b>${hitIcon(plan.hits.sl)} ${money(plan.sl)}</b></div>
         <div><span>TP1</span><b>${hitIcon(plan.hits.tp1)} ${money(plan.tp1)}</b></div>
@@ -1847,40 +2326,330 @@ function renderManualAtp() {
         <div><span>TP3</span><b>${hitIcon(plan.hits.tp3)} ${money(plan.tp3)}</b></div>
       </div>
 
-      <div class="mini-grid" style="margin-top:12px;">
-        <div class="mini-card"><span>Result</span><b>${escapeHtml(plan.result || "-")}</b></div>
-        <div class="mini-card"><span>RR TP1</span><b>${plan.rr1 ?? "-"}</b></div>
-        <div class="mini-card"><span>RR TP3</span><b>${plan.rr3 ?? "-"}</b></div>
-        <div class="mini-card"><span>Last Price</span><b>${plan.lastPrice ? money(plan.lastPrice) : "-"}</b></div>
-        <div class="mini-card"><span>Offset</span><b>${signed(plan.priceOffset || 0)}</b></div>
-        <div class="mini-card"><span>Created</span><b>${formatThaiDateTime(plan.createdAt)}</b></div>
-        <div class="mini-card"><span>Expires</span><b>${formatThaiDateTime(plan.expiresAt)}</b></div>
+      <div class="atp-indicator-row">
+        <div class="atp-indicator-mini">
+          <span>RSI</span>
+          <b>${getRsiDisplay(plan)}</b>
+        </div>
+        <div class="atp-indicator-mini">
+          <span>MACD</span>
+          <b>${getMacdDisplay(plan)}</b>
+          <canvas class="atp-macd-mini" id="miniMacd_${plan.id}" width="360" height="46"></canvas>
+        </div>
       </div>
 
-      ${plan.note ? `<div class="note" style="margin-top:12px;">Note: ${escapeHtml(plan.note)}</div>` : ""}
+      <div class="atp-progress-row">
+        <span class="atp-progress-chip ${plan.hits.entry ? "hit" : ""}">${plan.hits.entry ? "✅" : "⏳"} Entry</span>
+        <span class="atp-progress-chip ${plan.hits.tp1 ? "hit" : ""}">${plan.hits.tp1 ? "✅" : "⏳"} TP1</span>
+        <span class="atp-progress-chip ${plan.hits.tp2 ? "hit" : ""}">${plan.hits.tp2 ? "✅" : "⏳"} TP2</span>
+        <span class="atp-progress-chip ${plan.hits.tp3 ? "hit" : ""}">${plan.hits.tp3 ? "✅" : "⏳"} TP3</span>
+        <span class="atp-progress-chip ${plan.hits.sl ? "danger" : ""}">${plan.hits.sl ? "❌" : "🛡"} SL</span>
+      </div>
 
-      <div class="two-col" style="margin-top:12px;">
-        <div class="reason-list">
-          <b>เหตุผลสนับสนุน</b>
-          ${(plan.reasons || []).slice(0, 4).map(r => `<div>• ${escapeHtml(r)}</div>`).join("") || "<div>-</div>"}
-        </div>
-        <div class="reason-list">
-          <b>จุดที่ต้องระวัง</b>
-          ${(plan.cautions || []).slice(0, 4).map(r => `<div>• ${escapeHtml(r)}</div>`).join("") || "<div>-</div>"}
-        </div>
+      <div class="atp-chip-row">
+        <span class="atp-ind-chip">RSI</span>
+        <span class="atp-ind-chip">MACD</span>
+        <span class="atp-ind-chip">Bollinger Bands</span>
+        <span class="atp-ind-chip">Score ${plan.score}/100</span>
       </div>
     `;
 
-    list.appendChild(card);
+    wrap.appendChild(card);
+
+    requestAnimationFrame(() => {
+      drawAtpMiniChart(plan);
+      drawAtpMiniMacd(plan);
+    });
   });
+}
+
+function statusIcon(status) {
+  if (status === "ACTIVE") return "⚡";
+  if (status === "WAITING_ENTRY") return "⏳";
+  if (status === "TP1_HIT" || status === "TP2_HIT" || status === "TP3_HIT") return "✅";
+  if (status === "SL_HIT") return "❌";
+  if (status === "EXPIRED") return "⌛";
+  if (status === "CANCELLED") return "⛔";
+  return "•";
+}
+
+function formatAtpStatus(status) {
+  if (status === "WAITING_ENTRY") return "WAITING";
+  if (status === "TP1_HIT") return "TP1 HIT";
+  if (status === "TP2_HIT") return "TP2 HIT";
+  if (status === "TP3_HIT") return "TP3 HIT";
+  if (status === "SL_HIT") return "SL HIT";
+  return status || "-";
 }
 
 function hitIcon(value) {
   return value ? "✅" : "○";
 }
 
+function getPlanCandles(plan) {
+  const live = Array.isArray(latestChartData) && latestChartData.length ? latestChartData : [];
+  const snap = Array.isArray(plan.chartSnapshot) && plan.chartSnapshot.length ? plan.chartSnapshot : [];
+  return live.length ? live.slice(-80) : snap.slice(-80);
+}
+
+function getRsiDisplay(plan) {
+  const candles = getPlanCandles(plan);
+  const closes = candles.map(c => Number(c.close)).filter(Number.isFinite);
+  const value = calcRsiSimple(closes, 14);
+  if (!Number.isFinite(value)) return "-";
+  return value.toFixed(1);
+}
+
+function getMacdDisplay(plan) {
+  const pack = calcMacdFromCandles(getPlanCandles(plan));
+  if (!pack.latest) return "-";
+  return `${pack.latest.macd.toFixed(2)} / ${pack.latest.signal.toFixed(2)} / ${pack.latest.histogram.toFixed(2)}`;
+}
+
+function drawAtpMiniChart(plan) {
+  const canvas = document.getElementById(`miniChart_${plan.id}`);
+  if (!canvas) return;
+
+  const candles = getPlanCandles(plan);
+  const ctx = canvas.getContext("2d");
+  const w = canvas.width;
+  const h = canvas.height;
+
+  ctx.clearRect(0, 0, w, h);
+  ctx.fillStyle = "#05070a";
+  ctx.fillRect(0, 0, w, h);
+
+  if (!candles || candles.length < 10) {
+    ctx.fillStyle = "#9aa3b2";
+    ctx.font = "20px sans-serif";
+    ctx.fillText("No chart data", 24, 50);
+    return;
+  }
+
+  const levelPrices = [plan.entry, plan.sl, plan.tp1, plan.tp2, plan.tp3].map(Number);
+  const highs = candles.map(c => Number(c.high));
+  const lows = candles.map(c => Number(c.low));
+  const closes = candles.map(c => Number(c.close));
+
+  const max = Math.max(...highs, ...levelPrices);
+  const min = Math.min(...lows, ...levelPrices);
+  const range = Math.max(0.01, max - min);
+
+  const padLeft = 78;
+  const padRight = 72;
+  const padTop = 18;
+  const padBottom = 24;
+  const plotW = w - padLeft - padRight;
+  const plotH = h - padTop - padBottom;
+
+  const xAt = i => padLeft + (i / Math.max(1, candles.length - 1)) * plotW;
+  const yAt = p => padTop + ((max - p) / range) * plotH;
+
+  drawGrid(ctx, padLeft, padTop, plotW, plotH);
+
+  const bb = calcBollinger(closes, 20, 2);
+  drawBollinger(ctx, bb, xAt, yAt, "rgba(65, 145, 255, .75)", "rgba(65, 145, 255, .08)");
+
+  const candleW = Math.max(3, Math.floor(plotW / candles.length * 0.55));
+
+  candles.forEach((c, i) => {
+    const x = xAt(i);
+    const open = Number(c.open);
+    const close = Number(c.close);
+    const high = Number(c.high);
+    const low = Number(c.low);
+    const up = close >= open;
+    const color = up ? "#00c853" : "#ff455e";
+
+    ctx.strokeStyle = color;
+    ctx.fillStyle = color;
+
+    ctx.beginPath();
+    ctx.moveTo(x, yAt(high));
+    ctx.lineTo(x, yAt(low));
+    ctx.stroke();
+
+    const yOpen = yAt(open);
+    const yClose = yAt(close);
+    const bodyTop = Math.min(yOpen, yClose);
+    const bodyH = Math.max(2, Math.abs(yOpen - yClose));
+
+    ctx.fillRect(x - candleW / 2, bodyTop, candleW, bodyH);
+  });
+
+  drawPlanLevels(ctx, plan, yAt, padLeft, w, padRight, true);
+
+  const last = candles.at(-1);
+  const lastPrice = Number(last.close);
+  const yLast = yAt(lastPrice);
+
+  ctx.fillStyle = plan.side === "BUY" ? "#00c853" : "#ff455e";
+  ctx.fillRect(w - padRight + 8, yLast - 12, 58, 24);
+
+  ctx.fillStyle = "#fff";
+  ctx.font = "bold 12px sans-serif";
+  ctx.fillText(lastPrice.toFixed(2), w - padRight + 12, yLast + 4);
+}
+
+function drawGrid(ctx, x, y, w, h) {
+  ctx.strokeStyle = "rgba(255,255,255,.075)";
+  ctx.lineWidth = 1;
+
+  for (let i = 0; i <= 4; i++) {
+    const yy = y + (i / 4) * h;
+    ctx.beginPath();
+    ctx.moveTo(x, yy);
+    ctx.lineTo(x + w, yy);
+    ctx.stroke();
+  }
+
+  for (let i = 0; i <= 5; i++) {
+    const xx = x + (i / 5) * w;
+    ctx.beginPath();
+    ctx.moveTo(xx, y);
+    ctx.lineTo(xx, y + h);
+    ctx.stroke();
+  }
+}
+
+function drawPlanLevels(ctx, plan, yAt, padLeft, w, padRight, showLeftLabels = true) {
+  const levels = [
+    { key: "tp3", label: `TP3 ${money(plan.tp3)}`, price: plan.tp3, color: "#31e86f" },
+    { key: "tp2", label: `TP2 ${money(plan.tp2)}`, price: plan.tp2, color: "#31e86f" },
+    { key: "tp1", label: `TP1 ${money(plan.tp1)}`, price: plan.tp1, color: "#31e86f" },
+    { key: "entry", label: `ENTRY ${money(plan.entry)}`, price: plan.entry, color: "#f5c542" },
+    { key: "sl", label: `SL ${money(plan.sl)}`, price: plan.sl, color: "#ff455e" }
+  ];
+
+  levels.forEach(level => {
+    const y = yAt(Number(level.price));
+
+    ctx.setLineDash([4, 4]);
+    ctx.strokeStyle = level.color;
+    ctx.globalAlpha = 0.75;
+    ctx.beginPath();
+    ctx.moveTo(padLeft, y);
+    ctx.lineTo(w - padRight, y);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+    ctx.setLineDash([]);
+
+    if (showLeftLabels) {
+      ctx.fillStyle = level.color;
+      ctx.font = "bold 11px sans-serif";
+      ctx.fillText(level.label, 10, y + 4);
+    }
+  });
+}
+
+function drawBollinger(ctx, bb, xAt, yAt, lineColor, fillColor) {
+  const valid = bb.filter(x => x && Number.isFinite(x.upper) && Number.isFinite(x.lower));
+  if (!valid.length) return;
+
+  ctx.beginPath();
+  bb.forEach((p, i) => {
+    if (!p) return;
+    const x = xAt(i);
+    const y = yAt(p.upper);
+    if (i === 0 || !bb[i - 1]) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  });
+
+  for (let i = bb.length - 1; i >= 0; i--) {
+    const p = bb[i];
+    if (!p) continue;
+    ctx.lineTo(xAt(i), yAt(p.lower));
+  }
+
+  ctx.closePath();
+  ctx.fillStyle = fillColor;
+  ctx.fill();
+
+  drawLineSeries(ctx, bb.map(p => p?.upper), xAt, yAt, lineColor, 1.4);
+  drawLineSeries(ctx, bb.map(p => p?.middle), xAt, yAt, "rgba(245,197,66,.70)", 1.2);
+  drawLineSeries(ctx, bb.map(p => p?.lower), xAt, yAt, lineColor, 1.4);
+}
+
+function drawLineSeries(ctx, values, xAt, yAt, color, width = 1) {
+  ctx.strokeStyle = color;
+  ctx.lineWidth = width;
+  ctx.beginPath();
+
+  let started = false;
+
+  values.forEach((v, i) => {
+    if (!Number.isFinite(Number(v))) return;
+
+    const x = xAt(i);
+    const y = yAt(Number(v));
+
+    if (!started) {
+      ctx.moveTo(x, y);
+      started = true;
+    } else {
+      ctx.lineTo(x, y);
+    }
+  });
+
+  if (started) ctx.stroke();
+}
+
+function drawAtpMiniMacd(plan) {
+  const canvas = document.getElementById(`miniMacd_${plan.id}`);
+  if (!canvas) return;
+
+  const ctx = canvas.getContext("2d");
+  const w = canvas.width;
+  const h = canvas.height;
+
+  ctx.clearRect(0, 0, w, h);
+  ctx.fillStyle = "rgba(0,0,0,.1)";
+  ctx.fillRect(0, 0, w, h);
+
+  const pack = calcMacdFromCandles(getPlanCandles(plan));
+  drawMacdCanvas(ctx, pack, w, h);
+}
+
+function drawMacdCanvas(ctx, pack, w, h) {
+  const hist = pack.histogram || [];
+  const macd = pack.macd || [];
+  const signal = pack.signal || [];
+
+  if (!hist.length) return;
+
+  const all = [...hist, ...macd, ...signal].filter(Number.isFinite);
+  const maxAbs = Math.max(0.01, ...all.map(v => Math.abs(v)));
+
+  const pad = 5;
+  const mid = h / 2;
+  const plotW = w - pad * 2;
+  const step = plotW / Math.max(1, hist.length - 1);
+
+  ctx.strokeStyle = "rgba(255,255,255,.16)";
+  ctx.beginPath();
+  ctx.moveTo(pad, mid);
+  ctx.lineTo(w - pad, mid);
+  ctx.stroke();
+
+  hist.forEach((v, i) => {
+    if (!Number.isFinite(v)) return;
+
+    const x = pad + i * step;
+    const barH = (Math.abs(v) / maxAbs) * (h * 0.38);
+
+    ctx.fillStyle = v >= 0 ? "#00c853" : "#ff455e";
+    ctx.fillRect(x - 1.5, v >= 0 ? mid - barH : mid, 3, barH);
+  });
+
+  const yAt = v => mid - (v / maxAbs) * (h * 0.38);
+  const xAt = i => pad + i * step;
+
+  drawLineSeries(ctx, macd, xAt, yAt, "#2f8cff", 1.5);
+  drawLineSeries(ctx, signal, xAt, yAt, "#f5a742", 1.5);
+}
+
 function renderManualStats() {
-  const total = manualAtpPlans.length;
+  const total = manualAtpPlans.filter(p => p.status !== "DELETED").length;
   const active = manualAtpPlans.filter(p =>
     ["WAITING_ENTRY", "ACTIVE", "TP1_HIT", "TP2_HIT"].includes(p.status)
   ).length;
@@ -1904,7 +2673,7 @@ function cancelManualAtp(id) {
   manualAtpPlans = manualAtpPlans.map(plan => {
     if (plan.id !== id) return plan;
 
-    if (["TP3_HIT", "SL_HIT", "EXPIRED", "CANCELLED"].includes(plan.status)) {
+    if (["TP3_HIT", "SL_HIT", "EXPIRED", "CANCELLED", "DELETED"].includes(plan.status)) {
       return plan;
     }
 
@@ -1920,12 +2689,76 @@ function cancelManualAtp(id) {
   saveManualAtp();
   renderManualAtp();
   drawApiChart(latestChartData);
+  closeAtpDetail();
   showToast("ปิด My ATP แล้ว", "แผนนี้ถูกบันทึกเป็น CANCELLED", "warning");
+}
+
+function deleteManualAtp(id) {
+  const ok = confirm("ต้องการลบ ATP แผนนี้ใช่ไหม?");
+  if (!ok) return;
+
+  manualAtpPlans = manualAtpPlans.map(plan => {
+    if (plan.id !== id) return plan;
+
+    return {
+      ...plan,
+      status: "DELETED",
+      result: "deleted",
+      deletedAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+  });
+
+  saveManualAtp();
+  renderManualAtp();
+  drawApiChart(latestChartData);
+  closeAtpDetail();
+  showToast("ลบ My ATP แล้ว", "แผนนี้ถูกซ่อนออกจากรายการ", "warning");
+}
+
+function duplicateManualAtp(id) {
+  const source = manualAtpPlans.find(p => p.id === id);
+  if (!source) return;
+
+  const activeCount = manualAtpPlans.filter(p =>
+    !["TP3_HIT", "SL_HIT", "CANCELLED", "EXPIRED", "DELETED"].includes(p.status)
+  ).length;
+
+  if (activeCount >= MAX_MANUAL_ATP) {
+    showToast("My ATP เต็มแล้ว", "จำกัดแผนที่ยังใช้งานอยู่ 10 แผน", "danger");
+    return;
+  }
+
+  const now = new Date();
+
+  const copy = {
+    ...source,
+    id: `manual_${Date.now()}_${Math.random().toString(16).slice(2)}`,
+    status: "WAITING_ENTRY",
+    result: "pending",
+    hits: {
+      entry: false,
+      tp1: false,
+      tp2: false,
+      tp3: false,
+      sl: false
+    },
+    createdAt: now.toISOString(),
+    updatedAt: now.toISOString(),
+    closedAt: null,
+    deletedAt: null,
+    note: source.note ? `${source.note} | Duplicate` : "Duplicate plan"
+  };
+
+  manualAtpPlans.unshift(copy);
+  saveManualAtp();
+  renderManualAtp();
+  showToast("Duplicate สำเร็จ", "คัดลอก ATP เป็นแผนใหม่แล้ว", "success");
 }
 
 function clearClosedManualPlans() {
   manualAtpPlans = manualAtpPlans.filter(p =>
-    !["TP3_HIT", "SL_HIT", "EXPIRED", "CANCELLED"].includes(p.status)
+    !["TP3_HIT", "SL_HIT", "EXPIRED", "CANCELLED", "DELETED"].includes(p.status)
   );
 
   saveManualAtp();
@@ -1945,9 +2778,427 @@ function clearAllManualPlans() {
   showToast("ล้าง My ATP ทั้งหมดแล้ว", "เริ่มสร้างแผนใหม่ได้เลย", "success");
 }
 
+function openManualAtpDetail(id) {
+  injectAtpV2Styles();
+
+  const plan = manualAtpPlans.find(p => p.id === id);
+  if (!plan) return;
+
+  closeAtpDetail();
+
+  const backdrop = document.createElement("div");
+  backdrop.className = "atp-detail-backdrop";
+  backdrop.id = "atpDetailBackdrop";
+  backdrop.onclick = e => {
+    if (e.target === backdrop) closeAtpDetail();
+  };
+
+  const sideClass = plan.side === "BUY" ? "buy" : "sell";
+  const statusClass =
+    plan.status === "ACTIVE" || plan.status.includes("TP") ? "active" :
+    plan.status === "WAITING_ENTRY" ? "waiting" :
+    "closed";
+
+  backdrop.innerHTML = `
+    <div class="atp-detail-modal">
+      <div class="atp-detail-head">
+        <div>
+          <div class="atp-detail-title">
+            <h2>ATP Detail</h2>
+            <span class="atp-badge ${sideClass}">${escapeHtml(plan.side)}</span>
+            <span class="atp-badge ${statusClass}">${statusIcon(plan.status)} ${formatAtpStatus(plan.status)}</span>
+          </div>
+          <div class="atp-v2-meta">
+            XAU/USD • ${escapeHtml(plan.mode)} • ${formatThaiDateTime(plan.createdAt)}
+          </div>
+        </div>
+
+        <div class="atp-v2-actions">
+          <button class="atp-icon-btn" type="button" onclick="closeAtpDetail()">✕</button>
+        </div>
+      </div>
+
+      <div class="atp-chip-row">
+        <span class="atp-ind-chip">RSI</span>
+        <span class="atp-ind-chip">MACD</span>
+        <span class="atp-ind-chip">Bollinger Bands</span>
+        <span class="atp-ind-chip">Score ${plan.score}/100</span>
+      </div>
+
+      <div style="margin-top:14px;">
+        <canvas id="atpDetailChart_${plan.id}" class="atp-detail-chart" width="1100" height="430"></canvas>
+      </div>
+
+      <div class="atp-detail-panels">
+        <div class="atp-detail-indicator">
+          <div class="atp-v2-meta">RSI (14) • ${getRsiDisplay(plan)}</div>
+          <canvas id="atpDetailRsi_${plan.id}" width="1000" height="92"></canvas>
+        </div>
+
+        <div class="atp-detail-indicator">
+          <div class="atp-v2-meta">MACD (12, 26, 9) • ${getMacdDisplay(plan)}</div>
+          <canvas id="atpDetailMacd_${plan.id}" width="1000" height="92"></canvas>
+        </div>
+      </div>
+
+      <div class="atp-detail-grid">
+        <div class="atp-detail-box">
+          <h3>🎯 Plan Levels</h3>
+          <div class="atp-detail-table">
+            <div><span>Entry</span><b>${money(plan.entry)}</b></div>
+            <div><span>SL</span><b style="color:#ff6b7d">${money(plan.sl)}</b></div>
+            <div><span>TP1</span><b style="color:#8effb0">${money(plan.tp1)}</b></div>
+            <div><span>TP2</span><b style="color:#8effb0">${money(plan.tp2)}</b></div>
+            <div><span>TP3</span><b style="color:#8effb0">${money(plan.tp3)}</b></div>
+          </div>
+        </div>
+
+        <div class="atp-detail-box">
+          <h3>📊 Result / Quality</h3>
+          <div class="atp-detail-table">
+            <div><span>Risk/Reward TP1</span><b>${plan.rr1 ?? "-"}</b></div>
+            <div><span>Risk/Reward TP3</span><b>${plan.rr3 ?? "-"}</b></div>
+            <div><span>Quality</span><b>${escapeHtml(plan.quality || "-")}</b></div>
+            <div><span>AI Score</span><b>${plan.score}/100</b></div>
+            <div><span>Result</span><b>${escapeHtml(plan.result || "-")}</b></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="atp-detail-grid">
+        <div class="atp-detail-box">
+          <h3>✅ เหตุผลสนับสนุน</h3>
+          <div class="reason-list">
+            ${(plan.reasons || []).map(r => `<div>• ${escapeHtml(r)}</div>`).join("") || "<div>-</div>"}
+          </div>
+        </div>
+
+        <div class="atp-detail-box">
+          <h3>⚠️ จุดที่ต้องระวัง</h3>
+          <div class="reason-list">
+            ${(plan.cautions || []).map(r => `<div>• ${escapeHtml(r)}</div>`).join("") || "<div>-</div>"}
+          </div>
+        </div>
+      </div>
+
+      <div class="atp-detail-actions">
+        <button class="atp-detail-btn" type="button" onclick="duplicateManualAtp('${plan.id}')">📋 Duplicate</button>
+        <button class="atp-detail-btn gray" type="button" onclick="cancelManualAtp('${plan.id}')">🔒 Close Plan</button>
+        <button class="atp-detail-btn red" type="button" onclick="deleteManualAtp('${plan.id}')">🗑 Delete Plan</button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(backdrop);
+
+  requestAnimationFrame(() => {
+    drawAtpDetailChart(plan);
+    drawAtpDetailRsi(plan);
+    drawAtpDetailMacd(plan);
+  });
+}
+
+function closeAtpDetail() {
+  const old = document.getElementById("atpDetailBackdrop");
+  if (old) old.remove();
+}
+
+function drawAtpDetailChart(plan) {
+  const canvas = document.getElementById(`atpDetailChart_${plan.id}`);
+  if (!canvas) return;
+
+  const candles = getPlanCandles(plan);
+  const ctx = canvas.getContext("2d");
+  const w = canvas.width;
+  const h = canvas.height;
+
+  ctx.clearRect(0, 0, w, h);
+  ctx.fillStyle = "#05070a";
+  ctx.fillRect(0, 0, w, h);
+
+  if (!candles || candles.length < 10) return;
+
+  const levelPrices = [plan.entry, plan.sl, plan.tp1, plan.tp2, plan.tp3].map(Number);
+  const highs = candles.map(c => Number(c.high));
+  const lows = candles.map(c => Number(c.low));
+  const closes = candles.map(c => Number(c.close));
+
+  const max = Math.max(...highs, ...levelPrices);
+  const min = Math.min(...lows, ...levelPrices);
+  const range = Math.max(0.01, max - min);
+
+  const padLeft = 120;
+  const padRight = 86;
+  const padTop = 22;
+  const padBottom = 36;
+  const plotW = w - padLeft - padRight;
+  const plotH = h - padTop - padBottom;
+
+  const xAt = i => padLeft + (i / Math.max(1, candles.length - 1)) * plotW;
+  const yAt = p => padTop + ((max - p) / range) * plotH;
+
+  drawGrid(ctx, padLeft, padTop, plotW, plotH);
+
+  const bb = calcBollinger(closes, 20, 2);
+  drawBollinger(ctx, bb, xAt, yAt, "rgba(65, 145, 255, .82)", "rgba(65, 145, 255, .09)");
+
+  const candleW = Math.max(4, Math.floor(plotW / candles.length * 0.55));
+
+  candles.forEach((c, i) => {
+    const x = xAt(i);
+    const open = Number(c.open);
+    const close = Number(c.close);
+    const high = Number(c.high);
+    const low = Number(c.low);
+    const up = close >= open;
+    const color = up ? "#00c853" : "#ff455e";
+
+    ctx.strokeStyle = color;
+    ctx.fillStyle = color;
+
+    ctx.beginPath();
+    ctx.moveTo(x, yAt(high));
+    ctx.lineTo(x, yAt(low));
+    ctx.stroke();
+
+    const yOpen = yAt(open);
+    const yClose = yAt(close);
+    const bodyTop = Math.min(yOpen, yClose);
+    const bodyH = Math.max(2, Math.abs(yOpen - yClose));
+
+    ctx.fillRect(x - candleW / 2, bodyTop, candleW, bodyH);
+  });
+
+  drawPlanLevels(ctx, plan, yAt, padLeft, w, padRight, true);
+
+  const last = candles.at(-1);
+  const lastPrice = Number(last.close);
+  const yLast = yAt(lastPrice);
+
+  ctx.fillStyle = plan.side === "BUY" ? "#00c853" : "#ff455e";
+  ctx.fillRect(w - padRight + 8, yLast - 13, 70, 26);
+
+  ctx.fillStyle = "#fff";
+  ctx.font = "bold 13px sans-serif";
+  ctx.fillText(lastPrice.toFixed(2), w - padRight + 12, yLast + 5);
+
+  ctx.fillStyle = "#9aa3b2";
+  ctx.font = "13px sans-serif";
+  ctx.fillText("XAU/USD • 15m • ATP Detail Chart", padLeft, h - 12);
+}
+
+function drawAtpDetailRsi(plan) {
+  const canvas = document.getElementById(`atpDetailRsi_${plan.id}`);
+  if (!canvas) return;
+
+  const candles = getPlanCandles(plan);
+  const closes = candles.map(c => Number(c.close)).filter(Number.isFinite);
+  const values = calcRsiSeries(closes, 14);
+
+  const ctx = canvas.getContext("2d");
+  const w = canvas.width;
+  const h = canvas.height;
+
+  ctx.clearRect(0, 0, w, h);
+  ctx.fillStyle = "#05070a";
+  ctx.fillRect(0, 0, w, h);
+
+  ctx.strokeStyle = "rgba(255,255,255,.10)";
+  [30, 50, 70].forEach(level => {
+    const y = h - ((level / 100) * h);
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(w, y);
+    ctx.stroke();
+  });
+
+  const xAt = i => (i / Math.max(1, values.length - 1)) * w;
+  const yAt = v => h - (v / 100) * h;
+
+  drawLineSeries(ctx, values, xAt, yAt, "#00c853", 2);
+}
+
+function drawAtpDetailMacd(plan) {
+  const canvas = document.getElementById(`atpDetailMacd_${plan.id}`);
+  if (!canvas) return;
+
+  const pack = calcMacdFromCandles(getPlanCandles(plan));
+  const ctx = canvas.getContext("2d");
+  drawMacdCanvas(ctx, pack, canvas.width, canvas.height);
+}
+
+function drawManualAtpLevelsOnChart(ctx, candles, helper) {
+  if (!manualAtpPlans || !manualAtpPlans.length) return;
+
+  const activePlans = manualAtpPlans.filter(p =>
+    ["WAITING_ENTRY", "ACTIVE", "TP1_HIT", "TP2_HIT"].includes(p.status)
+  ).slice(0, 5);
+
+  activePlans.forEach(plan => {
+    const levels = [
+      { label: `${plan.side} E`, price: plan.entry, color: "#f5c542" },
+      { label: "SL", price: plan.sl, color: "#ff455e" },
+      { label: "TP1", price: plan.tp1, color: "#00c853" }
+    ];
+
+    levels.forEach(level => {
+      const y = helper.yAt(level.price);
+
+      ctx.setLineDash([3, 6]);
+      ctx.strokeStyle = level.color;
+      ctx.beginPath();
+      ctx.moveTo(helper.padLeft, y);
+      ctx.lineTo(helper.w - helper.padRight, y);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      ctx.fillStyle = level.color;
+      ctx.font = "bold 11px sans-serif";
+      ctx.fillText(level.label, helper.padLeft + 4, y - 4);
+    });
+  });
+}
+
 /* =========================
-   AUTO REFRESH
+   INDICATOR CALCULATION
 ========================= */
+
+function calcSma(values, period, index) {
+  if (index < period - 1) return null;
+
+  let sum = 0;
+  for (let i = index - period + 1; i <= index; i++) {
+    sum += Number(values[i]);
+  }
+
+  return sum / period;
+}
+
+function calcStd(values, period, index, mean) {
+  if (index < period - 1) return null;
+
+  let sum = 0;
+  for (let i = index - period + 1; i <= index; i++) {
+    const diff = Number(values[i]) - mean;
+    sum += diff * diff;
+  }
+
+  return Math.sqrt(sum / period);
+}
+
+function calcBollinger(values, period = 20, mult = 2) {
+  return values.map((_, i) => {
+    const mid = calcSma(values, period, i);
+    if (!Number.isFinite(mid)) return null;
+
+    const std = calcStd(values, period, i, mid);
+
+    return {
+      middle: mid,
+      upper: mid + std * mult,
+      lower: mid - std * mult
+    };
+  });
+}
+
+function emaSeries(values, period) {
+  const k = 2 / (period + 1);
+  const out = [];
+  let prev = null;
+
+  values.forEach((raw, i) => {
+    const v = Number(raw);
+
+    if (!Number.isFinite(v)) {
+      out.push(null);
+      return;
+    }
+
+    if (prev === null) {
+      prev = v;
+    } else {
+      prev = v * k + prev * (1 - k);
+    }
+
+    out.push(prev);
+  });
+
+  return out;
+}
+
+function calcMacdFromCandles(candles) {
+  const closes = (candles || []).map(c => Number(c.close)).filter(Number.isFinite);
+
+  if (closes.length < 35) {
+    return {
+      macd: [],
+      signal: [],
+      histogram: [],
+      latest: null
+    };
+  }
+
+  const ema12 = emaSeries(closes, 12);
+  const ema26 = emaSeries(closes, 26);
+
+  const macd = closes.map((_, i) => {
+    if (!Number.isFinite(ema12[i]) || !Number.isFinite(ema26[i])) return null;
+    return ema12[i] - ema26[i];
+  });
+
+  const signal = emaSeries(macd.map(v => Number.isFinite(v) ? v : 0), 9);
+
+  const histogram = macd.map((v, i) => {
+    if (!Number.isFinite(v) || !Number.isFinite(signal[i])) return null;
+    return v - signal[i];
+  });
+
+  const cleanMacd = macd.map(v => Number.isFinite(v) ? v : 0);
+  const cleanSignal = signal.map(v => Number.isFinite(v) ? v : 0);
+  const cleanHistogram = histogram.map(v => Number.isFinite(v) ? v : 0);
+
+  const latestIndex = cleanHistogram.length - 1;
+
+  return {
+    macd: cleanMacd.slice(-45),
+    signal: cleanSignal.slice(-45),
+    histogram: cleanHistogram.slice(-45),
+    latest: {
+      macd: cleanMacd[latestIndex],
+      signal: cleanSignal[latestIndex],
+      histogram: cleanHistogram[latestIndex]
+    }
+  };
+}
+
+function calcRsiSimple(values, period = 14) {
+  if (!values || values.length <= period) return null;
+
+  let gains = 0;
+  let losses = 0;
+
+  for (let i = values.length - period; i < values.length; i++) {
+    const diff = values[i] - values[i - 1];
+
+    if (diff > 0) gains += diff;
+    else losses += Math.abs(diff);
+  }
+
+  if (gains === 0 && losses === 0) return 50;
+  if (losses === 0) return 70;
+  if (gains === 0) return 30;
+
+  const rs = gains / losses;
+  return 100 - (100 / (1 + rs));
+}
+
+function calcRsiSeries(values, period = 14) {
+  return values.map((_, i) => {
+    if (i < period) return 50;
+    const slice = values.slice(0, i + 1);
+    return calcRsiSimple(slice, period) ?? 50;
+  }).slice(-60);
+}
 
 function startAutoRefresh() {
   if (autoRefreshTimer) clearInterval(autoRefreshTimer);
