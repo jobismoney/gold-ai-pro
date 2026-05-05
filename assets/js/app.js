@@ -1,4 +1,4 @@
-console.log("APP JS VERSION 31 STEP 1 FIX LOADED");
+console.log("APP JS VERSION 32 STEP 29D MAIN MERGED LOADED");
 
 const API_URL = "https://white-fog-ba70.porapat-su1975.workers.dev";
 
@@ -26,6 +26,8 @@ let manualAtpPlans = [];
 let chartIndicators = {
   ema: true,
   bollinger: true,
+  fvg: false,
+  sr: false,
   rsi: false,
   macd: false
 };
@@ -245,6 +247,136 @@ function toggleSection(bodyId, btn) {
   if (btn) {
     btn.innerText = body.classList.contains("closed") ? "รายละเอียด" : "ย่อ";
   }
+}
+
+/* =========================
+   STEP 29D HOME CLEAN FLOW
+========================= */
+
+function applyHomeCleanFlow() {
+  const aiSection = document.getElementById("section-plan");
+  const builderSection = document.getElementById("section-builder");
+
+  if (aiSection) aiSection.style.display = "none";
+  if (builderSection) builderSection.style.display = "none";
+
+  injectHomeCleanCurrentAnalysis();
+  injectAdvancedBuilderButton();
+  upgradeIndicatorButtons();
+}
+
+function injectHomeCleanCurrentAnalysis() {
+  const analysisBody = document.getElementById("analysisBody");
+  if (!analysisBody) return;
+  if (document.getElementById("homeCleanSummary")) return;
+
+  const summary = document.createElement("div");
+  summary.id = "homeCleanSummary";
+  summary.className = "home-clean-summary";
+  summary.style.marginBottom = "16px";
+
+  summary.innerHTML = `
+    <div class="mini-grid">
+      <div class="mini-card">
+        <span>Signal</span>
+        <b id="analysisSignal">-</b>
+      </div>
+      <div class="mini-card">
+        <span>Confidence</span>
+        <b id="analysisConfidence">-</b>
+      </div>
+      <div class="mini-card">
+        <span>AI Score</span>
+        <b id="analysisAiScore">-</b>
+      </div>
+      <div class="mini-card">
+        <span>Quality</span>
+        <b id="analysisQuality">-</b>
+      </div>
+      <div class="mini-card">
+        <span>VIP</span>
+        <b id="analysisVip">-</b>
+      </div>
+      <div class="mini-card">
+        <span>ATP Lock</span>
+        <b id="analysisAtpLock">-</b>
+      </div>
+    </div>
+  `;
+
+  analysisBody.prepend(summary);
+}
+
+function injectAdvancedBuilderButton() {
+  const quickTrade = document.querySelector(".quick-trade-flow");
+  if (!quickTrade) return;
+  if (document.getElementById("advancedBuilderToggle")) return;
+
+  const box = document.createElement("div");
+  box.style.marginTop = "14px";
+  box.innerHTML = `
+    <button id="advancedBuilderToggle" class="btn-main ghost" type="button" onclick="openAdvancedBuilder()">
+      🧩 Advanced Plan Builder
+    </button>
+  `;
+
+  quickTrade.appendChild(box);
+}
+
+function openAdvancedBuilder() {
+  const builderSection = document.getElementById("section-builder");
+  if (!builderSection) return;
+
+  builderSection.style.display = "block";
+  builderSection.scrollIntoView({ behavior: "smooth", block: "start" });
+
+  showToast("เปิด Advanced Plan Builder", "ใช้สำหรับแก้ Entry / SL / TP เองแบบละเอียด", "warning");
+}
+
+function upgradeIndicatorButtons() {
+  const row = document.querySelector(".indicator-toggle-row");
+  if (!row) return;
+
+  const existingFvg = document.getElementById("toggleFvg");
+  const existingSr = document.getElementById("toggleSr");
+
+  if (!existingFvg) {
+    const btn = document.createElement("button");
+    btn.id = "toggleFvg";
+    btn.className = "indicator-toggle";
+    btn.type = "button";
+    btn.onclick = () => toggleChartIndicator("fvg");
+    btn.innerText = "FVG";
+    row.insertBefore(btn, document.getElementById("toggleRsi") || null);
+  }
+
+  if (!existingSr) {
+    const btn = document.createElement("button");
+    btn.id = "toggleSr";
+    btn.className = "indicator-toggle";
+    btn.type = "button";
+    btn.onclick = () => toggleChartIndicator("sr");
+    btn.innerText = "Support / Resistance";
+    row.insertBefore(btn, document.getElementById("toggleRsi") || null);
+  }
+
+  syncIndicatorButtons();
+}
+
+function updateHomeCleanSummary(s) {
+  setText("analysisSignal", s.signal || "-");
+
+  const conf = Number(s.confidence || 0);
+  const confText =
+    conf >= 80 ? `${conf}% | Strong` :
+    conf >= 70 ? `${conf}% | Medium` :
+    conf > 0 ? `${conf}% | Weak` : "-";
+
+  setText("analysisConfidence", confText);
+  setText("analysisAiScore", s.aiScore !== undefined ? `${s.aiScore}/100` : "-");
+  setText("analysisQuality", formatQuality(s.signalQuality));
+  setText("analysisVip", formatYesNo(s.vipAllowed));
+  setText("analysisAtpLock", formatPlanReason(s.activePlanReason));
 }
 
 /* =========================
@@ -942,6 +1074,8 @@ function render(data) {
   setText("riskReward", s.riskReward ?? "-");
   setText("activePlanReason", formatPlanReason(s.activePlanReason));
 
+  updateHomeCleanSummary(s);
+
   setText("trend", s.trend);
   setText("rsi", s.rsi);
   setText("support", s.support);
@@ -1157,18 +1291,7 @@ function toggleChartIndicator(name) {
 
   chartIndicators[name] = !chartIndicators[name];
 
-  const idMap = {
-    ema: "toggleEma",
-    bollinger: "toggleBollinger",
-    rsi: "toggleRsi",
-    macd: "toggleMacd"
-  };
-
-  const btn = document.getElementById(idMap[name]);
-  if (btn) {
-    btn.classList.toggle("active", chartIndicators[name]);
-  }
-
+  syncIndicatorButtons();
   drawApiChart(latestChartData);
 }
 
@@ -1176,6 +1299,8 @@ function syncIndicatorButtons() {
   const map = {
     toggleEma: chartIndicators.ema,
     toggleBollinger: chartIndicators.bollinger,
+    toggleFvg: chartIndicators.fvg,
+    toggleSr: chartIndicators.sr,
     toggleRsi: chartIndicators.rsi,
     toggleMacd: chartIndicators.macd
   };
@@ -1313,8 +1438,8 @@ function drawSeriesLine(ctx, series, helper, strokeStyle, width = 1.5, dash = []
 }
 
 /* =========================
-   MAIN CLEAN CHART
-   สำคัญ: ไม่มีการวาด Entry / SL / TP บนกราฟหลัก
+   CLEAN MAIN CHART
+   ไม่มี Entry / SL / TP บนกราฟหลัก
 ========================= */
 
 function drawApiChart(candles) {
@@ -1363,6 +1488,20 @@ function drawApiChart(candles) {
     });
   }
 
+  const support = Number(latestAnalysis?.support);
+  const resistance = Number(latestAnalysis?.resistance);
+
+  if (chartIndicators.sr) {
+    if (Number.isFinite(support)) min = Math.min(min, support);
+    if (Number.isFinite(resistance)) max = Math.max(max, resistance);
+  }
+
+  const fvg = latestAnalysis?.nearestFvg;
+  if (chartIndicators.fvg && fvg) {
+    if (Number.isFinite(Number(fvg.bottom))) min = Math.min(min, Number(fvg.bottom));
+    if (Number.isFinite(Number(fvg.top))) max = Math.max(max, Number(fvg.top));
+  }
+
   const range = Math.max(0.01, max - min);
 
   const plotW = w - padLeft - padRight;
@@ -1406,6 +1545,14 @@ function drawApiChart(candles) {
     ctx.moveTo(x, padTop);
     ctx.lineTo(x, h - padBottom);
     ctx.stroke();
+  }
+
+  if (chartIndicators.fvg && fvg) {
+    drawFvgZone(ctx, fvg, helper);
+  }
+
+  if (chartIndicators.sr) {
+    drawSupportResistance(ctx, support, resistance, helper);
   }
 
   if (chartIndicators.bollinger) {
@@ -1491,7 +1638,71 @@ function drawApiChart(candles) {
 
   ctx.fillStyle = "#9aa3b2";
   ctx.font = "13px sans-serif";
-  ctx.fillText("Clean Chart | No ATP Entry / SL / TP Lines | Indicators Toggle ON/OFF", padLeft, h - 12);
+  ctx.fillText("Clean Chart | ATP levels hidden | Indicators ON/OFF", padLeft, h - 12);
+}
+
+function drawSupportResistance(ctx, support, resistance, helper) {
+  ctx.save();
+
+  if (Number.isFinite(support)) {
+    const y = helper.yAt(support);
+    ctx.setLineDash([8, 6]);
+    ctx.strokeStyle = "rgba(0,200,83,0.55)";
+    ctx.beginPath();
+    ctx.moveTo(helper.padLeft, y);
+    ctx.lineTo(helper.w - helper.padRight, y);
+    ctx.stroke();
+
+    ctx.fillStyle = "rgba(0,200,83,0.95)";
+    ctx.font = "bold 11px sans-serif";
+    ctx.fillText(`Support ${money(support)}`, helper.padLeft + 6, y - 6);
+  }
+
+  if (Number.isFinite(resistance)) {
+    const y = helper.yAt(resistance);
+    ctx.setLineDash([8, 6]);
+    ctx.strokeStyle = "rgba(255,69,94,0.55)";
+    ctx.beginPath();
+    ctx.moveTo(helper.padLeft, y);
+    ctx.lineTo(helper.w - helper.padRight, y);
+    ctx.stroke();
+
+    ctx.fillStyle = "rgba(255,69,94,0.95)";
+    ctx.font = "bold 11px sans-serif";
+    ctx.fillText(`Resistance ${money(resistance)}`, helper.padLeft + 6, y - 6);
+  }
+
+  ctx.restore();
+}
+
+function drawFvgZone(ctx, fvg, helper) {
+  const top = Number(fvg.top);
+  const bottom = Number(fvg.bottom);
+
+  if (!Number.isFinite(top) || !Number.isFinite(bottom)) return;
+
+  const yTop = helper.yAt(top);
+  const yBottom = helper.yAt(bottom);
+  const h = Math.max(4, Math.abs(yBottom - yTop));
+  const y = Math.min(yTop, yBottom);
+
+  const bullish = fvg.type === "bullish";
+
+  ctx.save();
+
+  ctx.fillStyle = bullish ? "rgba(0,200,83,0.12)" : "rgba(255,69,94,0.12)";
+  ctx.strokeStyle = bullish ? "rgba(0,200,83,0.38)" : "rgba(255,69,94,0.38)";
+  ctx.setLineDash([5, 5]);
+
+  ctx.fillRect(helper.padLeft, y, helper.plotW, h);
+  ctx.strokeRect(helper.padLeft, y, helper.plotW, h);
+
+  ctx.setLineDash([]);
+  ctx.fillStyle = bullish ? "rgba(0,200,83,0.95)" : "rgba(255,69,94,0.95)";
+  ctx.font = "bold 11px sans-serif";
+  ctx.fillText(`${bullish ? "Bullish" : "Bearish"} FVG ${bottom}-${top}`, helper.padLeft + 6, y - 6);
+
+  ctx.restore();
 }
 
 function drawRsiPanel(ctx, candles, helper) {
@@ -2149,7 +2360,7 @@ function showAtpBasicDetail(id) {
     `TP1: ${money(plan.tp1)}\n` +
     `TP2: ${money(plan.tp2)}\n` +
     `TP3: ${money(plan.tp3)}\n\n` +
-    `Step 3 จะเปลี่ยนปุ่มนี้เป็นหน้า ATP Detail แบบเต็ม`;
+    `Step ถัดไปจะเปลี่ยนปุ่มนี้เป็นหน้า ATP Detail แบบเต็ม`;
 
   alert(msg);
 }
@@ -2202,6 +2413,8 @@ document.addEventListener("DOMContentLoaded", () => {
   loadSoundSetting();
   loadManualAtp();
   updateModeLabel();
+
+  applyHomeCleanFlow();
   syncIndicatorButtons();
 
   loadSignal();
