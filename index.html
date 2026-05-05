@@ -7,7 +7,7 @@
   <title>Gold AI Pro | XAU/USD Smart Signal</title>
   <meta
     name="description"
-    content="Gold AI Pro วิเคราะห์ทองคำ XAU/USD พร้อม Smart Signal, FVG, Active Trade Plan และราคาทองไทย"
+    content="Gold AI Pro วิเคราะห์ทองคำ XAU/USD พร้อม Smart Signal, FVG, Active Trade Plan, Plan Builder และราคาทองไทย"
   />
 
   <link rel="stylesheet" href="./assets/css/style.css?v=23" />
@@ -21,7 +21,7 @@
         <div class="brand-logo">G</div>
         <div>
           <div class="brand-title">Gold AI Pro</div>
-          <div class="brand-subtitle">XAU/USD Smart Signal</div>
+          <div class="brand-subtitle">AI Trade Coach • Gold Proxy System</div>
         </div>
       </div>
 
@@ -117,11 +117,11 @@
     <section class="card active-card" id="section-plan">
       <div class="section-head">
         <div>
-          <h2>🔒 Active Trade Plan</h2>
-          <p>แผนที่ล็อกไว้ ไม่เปลี่ยนจนกว่า TP1 / SL / Expired</p>
+          <h2>🔒 AI Active Trade Plan</h2>
+          <p>แผนจากระบบ AI ที่ล็อกไว้ ไม่เปลี่ยนจนกว่า TP1 / SL / Expired</p>
         </div>
         <div class="section-head-right">
-          <div class="lock-badge">LOCK</div>
+          <div class="lock-badge">AI ATP</div>
           <button class="collapse-btn" type="button" onclick="toggleSection('activePlanBody', this)">ย่อ</button>
         </div>
       </div>
@@ -133,7 +133,7 @@
         </div>
 
         <div id="activePlanNote" class="active-note">
-          ยังไม่มี Active Trade Plan เพราะระบบยังไม่พบสัญญาณ BUY/SELL ที่คุณภาพผ่าน
+          ยังไม่มี AI Active Trade Plan เพราะระบบยังไม่พบสัญญาณ BUY/SELL ที่คุณภาพผ่าน
         </div>
 
         <div class="plan-strip">
@@ -162,6 +162,225 @@
           <div><span>Hit Type</span><b id="activeHitType">-</b></div>
           <div><span>Hit Price</span><b id="activeHitPrice">-</b></div>
         </div>
+      </div>
+    </section>
+
+    <!-- PLAN BUILDER -->
+    <section class="card active-card" id="section-builder">
+      <div class="section-head">
+        <div>
+          <h2>🧩 Plan Builder</h2>
+          <p>สร้าง My ATP จากราคาที่ระบบคำนวณให้ หรือแก้เลขเองก่อนบันทึก</p>
+        </div>
+        <div class="section-head-right">
+          <div class="lock-badge">MY ATP</div>
+          <button class="collapse-btn" type="button" onclick="toggleSection('builderBody', this)">ย่อ</button>
+        </div>
+      </div>
+
+      <div id="builderBody" class="section-body open">
+
+        <div class="mode-row premium-tabs">
+          <button id="builderSideBuy" class="mode-btn active" type="button" onclick="setBuilderSide('BUY')">BUY</button>
+          <button id="builderSideSell" class="mode-btn" type="button" onclick="setBuilderSide('SELL')">SELL</button>
+        </div>
+
+        <div class="mini-grid">
+          <div class="mini-card input-card">
+            <span>Trade Mode</span>
+            <select id="builderMode" class="setting-input" onchange="generateSuggestedPlan()">
+              <option value="fast">Scalping</option>
+              <option value="balanced" selected>Day Trade</option>
+              <option value="safe">Swing</option>
+            </select>
+          </div>
+
+          <div class="mini-card input-card">
+            <span>Entry Style</span>
+            <select id="builderEntryStyle" class="setting-input" onchange="generateSuggestedPlan()">
+              <option value="current">Current Price</option>
+              <option value="support_resistance" selected>Support / Resistance</option>
+              <option value="fvg">Nearest FVG</option>
+              <option value="hybrid">Hybrid</option>
+            </select>
+          </div>
+
+          <div class="mini-card input-card">
+            <span>Expire</span>
+            <select id="builderExpireHours" class="setting-input">
+              <option value="4">4 Hours</option>
+              <option value="8">8 Hours</option>
+              <option value="24" selected>24 Hours</option>
+              <option value="48">48 Hours</option>
+            </select>
+          </div>
+
+          <div class="mini-card input-card">
+            <span>Plan Limit</span>
+            <b id="myAtpLimitText">0/10</b>
+          </div>
+        </div>
+
+        <div class="section-head compact" style="margin-top:18px;">
+          <div>
+            <h2>Indicators</h2>
+            <p>เลือกตัวช่วยวิเคราะห์ที่ต้องการให้ระบบนำไปคิดคะแนนแผน</p>
+          </div>
+        </div>
+
+        <div class="mini-grid">
+          <label class="mini-card input-card">
+            <span>EMA / Trend</span>
+            <input id="indEma" type="checkbox" checked onchange="generateSuggestedPlan()" />
+          </label>
+
+          <label class="mini-card input-card">
+            <span>RSI</span>
+            <input id="indRsi" type="checkbox" checked onchange="generateSuggestedPlan()" />
+          </label>
+
+          <label class="mini-card input-card">
+            <span>Support / Resistance</span>
+            <input id="indSr" type="checkbox" checked onchange="generateSuggestedPlan()" />
+          </label>
+
+          <label class="mini-card input-card">
+            <span>Fibonacci</span>
+            <input id="indFib" type="checkbox" checked onchange="generateSuggestedPlan()" />
+          </label>
+
+          <label class="mini-card input-card">
+            <span>FVG</span>
+            <input id="indFvg" type="checkbox" checked onchange="generateSuggestedPlan()" />
+          </label>
+
+          <label class="mini-card input-card">
+            <span>ATR / Range TP-SL</span>
+            <input id="indAtr" type="checkbox" checked onchange="generateSuggestedPlan()" />
+          </label>
+        </div>
+
+        <div class="section-head compact" style="margin-top:18px;">
+          <div>
+            <h2>Suggested Levels</h2>
+            <p>ระบบคำนวณเลขให้ก่อน ลูกค้าสามารถแก้เองได้</p>
+          </div>
+          <button class="collapse-btn" type="button" onclick="generateSuggestedPlan()">คำนวณ</button>
+        </div>
+
+        <div class="mini-grid">
+          <div class="mini-card input-card">
+            <span>Entry</span>
+            <input id="builderEntry" class="setting-input" type="number" step="0.01" />
+          </div>
+
+          <div class="mini-card input-card">
+            <span>SL</span>
+            <input id="builderSl" class="setting-input" type="number" step="0.01" />
+          </div>
+
+          <div class="mini-card input-card">
+            <span>TP1</span>
+            <input id="builderTp1" class="setting-input" type="number" step="0.01" />
+          </div>
+
+          <div class="mini-card input-card">
+            <span>TP2</span>
+            <input id="builderTp2" class="setting-input" type="number" step="0.01" />
+          </div>
+
+          <div class="mini-card input-card">
+            <span>TP3</span>
+            <input id="builderTp3" class="setting-input" type="number" step="0.01" />
+          </div>
+
+          <div class="mini-card input-card">
+            <span>Note</span>
+            <input id="builderNote" class="setting-input" type="text" placeholder="เช่น รอราคาแตะแนวต้าน / ตาม FVG" />
+          </div>
+        </div>
+
+        <div class="section-head compact" style="margin-top:18px;">
+          <div>
+            <h2>Plan Analysis</h2>
+            <p>ระบบวิเคราะห์แผนก่อนเพิ่มเข้า My ATP</p>
+          </div>
+        </div>
+
+        <div class="mini-grid">
+          <div class="mini-card"><span>Plan Score</span><b id="planScore">-</b></div>
+          <div class="mini-card"><span>Quality</span><b id="planQuality">-</b></div>
+          <div class="mini-card"><span>RR TP1</span><b id="planRr1">-</b></div>
+          <div class="mini-card"><span>RR TP3</span><b id="planRr3">-</b></div>
+        </div>
+
+        <div class="two-col" style="margin-top:18px;">
+          <div class="card info-card" style="margin-bottom:0;">
+            <div class="section-head compact">
+              <div>
+                <h2>✅ Supporting Reasons</h2>
+                <p>จุดที่สนับสนุนแผนนี้</p>
+              </div>
+            </div>
+            <div id="builderReasons" class="reason-list">-</div>
+          </div>
+
+          <div class="card info-card" style="margin-bottom:0;">
+            <div class="section-head compact">
+              <div>
+                <h2>⚠️ Caution Notes</h2>
+                <p>จุดที่ต้องระวังก่อนใช้แผน</p>
+              </div>
+            </div>
+            <div id="builderCautions" class="reason-list">-</div>
+          </div>
+        </div>
+
+        <div class="actions" style="margin-top:18px;">
+          <button class="btn-main" type="button" onclick="addManualAtp()">➕ Add to My ATP</button>
+          <button class="btn-main ghost" type="button" onclick="generateSuggestedPlan()">🧠 Recalculate</button>
+        </div>
+
+        <div class="note" id="builderStatus" style="margin-top:12px;">
+          Plan Builder พร้อมใช้งาน
+        </div>
+
+      </div>
+    </section>
+
+    <!-- MY ATP -->
+    <section class="card active-card" id="section-my-atp">
+      <div class="section-head">
+        <div>
+          <h2>📋 My ATP Journal</h2>
+          <p>แผนที่ลูกค้าสร้างเอง ระบบจะติดตาม Entry / TP / SL และเก็บประวัติให้เรียนรู้</p>
+        </div>
+        <div class="section-head-right">
+          <div class="lock-badge" id="myAtpCountBadge">0/10</div>
+          <button class="collapse-btn" type="button" onclick="toggleSection('myAtpBody', this)">ย่อ</button>
+        </div>
+      </div>
+
+      <div id="myAtpBody" class="section-body open">
+
+        <div class="mini-grid">
+          <div class="mini-card"><span>Total Plans</span><b id="manualTotalPlans">0</b></div>
+          <div class="mini-card"><span>Active</span><b id="manualActivePlans">0</b></div>
+          <div class="mini-card"><span>Wins</span><b id="manualWins">0</b></div>
+          <div class="mini-card"><span>Losses</span><b id="manualLosses">0</b></div>
+          <div class="mini-card"><span>Partial</span><b id="manualPartial">0</b></div>
+          <div class="mini-card"><span>Win Rate</span><b id="manualWinRate">-</b></div>
+        </div>
+
+        <div id="manualAtpList" style="margin-top:18px;">
+          <div class="note">ยังไม่มี My ATP</div>
+        </div>
+
+        <div class="actions" style="margin-top:18px;">
+          <button class="btn-main ghost" type="button" onclick="clearClosedManualPlans()">🧹 Clear Closed</button>
+          <button class="btn-main danger" type="button" onclick="clearAllManualPlans()">🗑 Clear All My ATP</button>
+        </div>
+
       </div>
     </section>
 
@@ -271,7 +490,7 @@
     <section class="card slim-card">
       <div class="section-head compact">
         <div>
-          <h2>📊 Learning Stats</h2>
+          <h2>📊 AI Learning Stats</h2>
           <p id="learningNote">Learning จะเริ่มมีผลเมื่อมีข้อมูลย้อนหลังมากพอ</p>
         </div>
         <button class="collapse-btn" type="button" onclick="toggleSection('learningBody', this)">ย่อ</button>
@@ -354,7 +573,7 @@
         <div class="actions admin-actions">
           <button class="btn-main" onclick="sendVipSignal()">📩 Send VIP Alert</button>
           <button class="btn-main ghost" onclick="testTelegram()">🧪 Test Telegram</button>
-          <button class="btn-main danger" onclick="resetActivePlan()">♻️ Reset Active Plan</button>
+          <button class="btn-main danger" onclick="resetActivePlan()">♻️ Reset AI Active Plan</button>
         </div>
 
         <div class="note" id="vipAlertStatus">VIP Alert: ready</div>
@@ -378,13 +597,13 @@
     <nav class="bottom-nav">
       <a class="nav-item active" href="#top">🏠<span>Home</span></a>
       <a class="nav-item" href="#section-chart">📈<span>Chart</span></a>
-      <a class="nav-item" href="#section-plan">📋<span>Plan</span></a>
-      <div class="nav-item" onclick="toggleAdminPanel()">⚙️<span>Admin</span></div>
+      <a class="nav-item" href="#section-builder">🧩<span>Build</span></a>
+      <a class="nav-item" href="#section-my-atp">📋<span>My ATP</span></a>
     </nav>
   </div>
 
   <div id="toastContainer" class="toast-container"></div>
 
-  <script src="./assets/js/app.js?v=25"></script>
+  <script src="./assets/js/app.js?v=26"></script>
 </body>
 </html>
