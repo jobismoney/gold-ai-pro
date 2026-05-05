@@ -3251,3 +3251,1360 @@ window.addEventListener("DOMContentLoaded", () => {
   loadThaiGold();
   startAutoRefresh();
 });
+
+/* =========================
+   STEP 29C QUICK TRADE FLOW
+   BUY / SELL -> ATP EDITOR -> LOCK PLAN
+========================= */
+
+console.log("STEP 29C QUICK TRADE FLOW LOADED");
+
+(function setupQuickTradeFlow29C() {
+  let quickEditorState = null;
+
+  function injectQuickTradeStyles29C() {
+    if (document.getElementById("quickTrade29CStyles")) return;
+
+    const style = document.createElement("style");
+    style.id = "quickTrade29CStyles";
+    style.innerHTML = `
+      .quick-trade-panel-29c {
+        margin: 18px auto 0;
+        max-width: 1080px;
+        border: 1px solid rgba(245,197,66,.35);
+        background:
+          radial-gradient(circle at top left, rgba(245,197,66,.10), transparent 32%),
+          linear-gradient(180deg, rgba(17,21,29,.98), rgba(7,9,13,.98));
+        border-radius: 22px;
+        padding: 14px;
+        box-shadow: 0 14px 40px rgba(0,0,0,.35);
+      }
+
+      .quick-trade-head-29c {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 12px;
+      }
+
+      .quick-trade-head-29c h3 {
+        margin: 0;
+        color: #fff;
+        font-size: 20px;
+      }
+
+      .quick-trade-head-29c p {
+        margin: 4px 0 0;
+        color: #aeb8c9;
+        font-size: 13px;
+      }
+
+      .quick-trade-price-29c {
+        color: #ffd76d;
+        font-size: 18px;
+        font-weight: 900;
+        white-space: nowrap;
+      }
+
+      .quick-trade-buttons-29c {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+      }
+
+      .quick-trade-btn-29c {
+        min-height: 74px;
+        border-radius: 20px;
+        border: 1px solid rgba(255,255,255,.12);
+        cursor: pointer;
+        font-size: 28px;
+        font-weight: 1000;
+        letter-spacing: .04em;
+        color: #fff;
+        transition: .18s ease;
+      }
+
+      .quick-trade-btn-29c.buy {
+        background: linear-gradient(180deg, rgba(0,200,83,.30), rgba(0,100,50,.18));
+        border-color: rgba(0,200,83,.58);
+        box-shadow: inset 0 0 0 1px rgba(255,255,255,.05), 0 0 22px rgba(0,200,83,.10);
+      }
+
+      .quick-trade-btn-29c.sell {
+        background: linear-gradient(180deg, rgba(255,69,94,.30), rgba(120,20,35,.18));
+        border-color: rgba(255,69,94,.58);
+        box-shadow: inset 0 0 0 1px rgba(255,255,255,.05), 0 0 22px rgba(255,69,94,.10);
+      }
+
+      .quick-trade-btn-29c:hover {
+        transform: translateY(-1px);
+        filter: brightness(1.1);
+      }
+
+      .atp-editor-backdrop-29c {
+        position: fixed;
+        inset: 0;
+        z-index: 999999;
+        background: rgba(0,0,0,.80);
+        backdrop-filter: blur(8px);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 18px;
+      }
+
+      .atp-editor-modal-29c {
+        width: min(1120px, 100%);
+        max-height: 94vh;
+        overflow: auto;
+        border: 1px solid rgba(245,197,66,.50);
+        border-radius: 28px;
+        background:
+          radial-gradient(circle at top left, rgba(245,197,66,.14), transparent 28%),
+          linear-gradient(180deg, #111720, #06080c);
+        box-shadow: 0 24px 90px rgba(0,0,0,.78);
+        padding: 18px;
+      }
+
+      .atp-editor-head-29c {
+        display: flex;
+        justify-content: space-between;
+        gap: 14px;
+        align-items: flex-start;
+        margin-bottom: 14px;
+      }
+
+      .atp-editor-title-29c {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+
+      .atp-editor-title-29c h2 {
+        margin: 0;
+        color: #fff;
+        font-size: 26px;
+      }
+
+      .atp-editor-sub-29c {
+        color: #aeb8c9;
+        margin-top: 5px;
+        font-size: 13px;
+      }
+
+      .atp-editor-badge-29c {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 6px 11px;
+        border-radius: 10px;
+        font-size: 13px;
+        font-weight: 1000;
+        border: 1px solid rgba(255,255,255,.12);
+      }
+
+      .atp-editor-badge-29c.buy {
+        color: #0eff7a;
+        background: rgba(0,200,83,.16);
+        border-color: rgba(0,200,83,.48);
+      }
+
+      .atp-editor-badge-29c.sell {
+        color: #ff6b7d;
+        background: rgba(255,69,94,.16);
+        border-color: rgba(255,69,94,.48);
+      }
+
+      .atp-editor-close-29c {
+        width: 38px;
+        height: 38px;
+        border-radius: 12px;
+        border: 1px solid rgba(255,255,255,.14);
+        background: rgba(255,255,255,.05);
+        color: #fff;
+        cursor: pointer;
+        font-weight: 900;
+      }
+
+      .atp-editor-grid-29c {
+        display: grid;
+        grid-template-columns: 1.4fr .9fr;
+        gap: 14px;
+      }
+
+      .atp-editor-card-29c {
+        border: 1px solid rgba(255,255,255,.09);
+        background: rgba(255,255,255,.035);
+        border-radius: 20px;
+        padding: 14px;
+      }
+
+      .atp-editor-chart-29c {
+        width: 100%;
+        height: 430px;
+        display: block;
+        border: 1px solid rgba(255,255,255,.08);
+        border-radius: 18px;
+        background: #05070a;
+      }
+
+      .atp-editor-ind-panels-29c {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        margin-top: 10px;
+      }
+
+      .atp-editor-ind-card-29c {
+        border: 1px solid rgba(255,255,255,.08);
+        background: rgba(255,255,255,.035);
+        border-radius: 16px;
+        padding: 10px;
+      }
+
+      .atp-editor-ind-card-29c span {
+        color: #aeb8c9;
+        font-size: 12px;
+      }
+
+      .atp-editor-ind-card-29c b {
+        color: #fff;
+        font-size: 15px;
+      }
+
+      .atp-editor-ind-card-29c canvas {
+        width: 100%;
+        height: 76px;
+        display: block;
+        margin-top: 6px;
+      }
+
+      .atp-editor-field-grid-29c {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+
+      .atp-editor-field-29c {
+        border: 1px solid rgba(255,255,255,.09);
+        background: rgba(255,255,255,.035);
+        border-radius: 16px;
+        padding: 11px;
+      }
+
+      .atp-editor-field-29c span {
+        display: block;
+        color: #aeb8c9;
+        font-size: 12px;
+        margin-bottom: 7px;
+      }
+
+      .atp-editor-field-29c input,
+      .atp-editor-field-29c select {
+        width: 100%;
+        box-sizing: border-box;
+        border-radius: 12px;
+        border: 1px solid rgba(255,255,255,.10);
+        background: #070a0f;
+        color: #fff;
+        font-size: 16px;
+        font-weight: 800;
+        padding: 11px 12px;
+      }
+
+      .atp-editor-full-29c {
+        grid-column: 1 / -1;
+      }
+
+      .atp-editor-tool-row-29c {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 9px;
+        margin: 10px 0 12px;
+      }
+
+      .atp-editor-tool-29c {
+        border-radius: 13px;
+        border: 1px solid rgba(245,197,66,.28);
+        background: rgba(245,197,66,.08);
+        color: #ffd76d;
+        font-weight: 900;
+        padding: 10px 8px;
+        cursor: pointer;
+      }
+
+      .atp-editor-ind-toggle-wrap-29c {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        margin-top: 12px;
+      }
+
+      .atp-editor-toggle-29c {
+        border: 1px solid rgba(255,255,255,.09);
+        background: rgba(255,255,255,.04);
+        color: #dfe6f2;
+        border-radius: 13px;
+        padding: 10px 9px;
+        cursor: pointer;
+        text-align: left;
+        font-weight: 800;
+        font-size: 13px;
+      }
+
+      .atp-editor-toggle-29c.on {
+        border-color: rgba(245,197,66,.42);
+        background: rgba(245,197,66,.10);
+        color: #ffd76d;
+      }
+
+      .atp-editor-analysis-29c {
+        margin-top: 12px;
+        border: 1px solid rgba(255,255,255,.08);
+        border-radius: 16px;
+        padding: 12px;
+        background: rgba(255,255,255,.035);
+      }
+
+      .atp-editor-analysis-grid-29c {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+      }
+
+      .atp-editor-analysis-box-29c {
+        border: 1px solid rgba(255,255,255,.08);
+        border-radius: 13px;
+        padding: 10px;
+        background: rgba(0,0,0,.15);
+      }
+
+      .atp-editor-analysis-box-29c span {
+        color: #aeb8c9;
+        display: block;
+        font-size: 12px;
+        margin-bottom: 4px;
+      }
+
+      .atp-editor-analysis-box-29c b {
+        color: #fff;
+        font-size: 16px;
+      }
+
+      .atp-editor-reason-29c {
+        margin-top: 10px;
+        color: #dfe6f2;
+        font-size: 13px;
+        line-height: 1.65;
+      }
+
+      .atp-editor-lock-29c {
+        margin-top: 12px;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+
+      .atp-editor-lock-btn-29c {
+        border: 1px solid rgba(245,197,66,.55);
+        background: linear-gradient(180deg, rgba(245,197,66,.24), rgba(245,197,66,.10));
+        color: #ffd76d;
+        border-radius: 16px;
+        padding: 15px 12px;
+        font-size: 16px;
+        font-weight: 1000;
+        cursor: pointer;
+      }
+
+      .atp-editor-lock-btn-29c.ghost {
+        border-color: rgba(255,255,255,.14);
+        background: rgba(255,255,255,.05);
+        color: #e6edf8;
+      }
+
+      @media (max-width: 900px) {
+        .atp-editor-grid-29c {
+          grid-template-columns: 1fr;
+        }
+
+        .atp-editor-ind-panels-29c,
+        .atp-editor-field-grid-29c,
+        .atp-editor-analysis-grid-29c,
+        .atp-editor-tool-row-29c,
+        .atp-editor-ind-toggle-wrap-29c,
+        .atp-editor-lock-29c {
+          grid-template-columns: 1fr;
+        }
+
+        .atp-editor-chart-29c {
+          height: 330px;
+        }
+
+        .quick-trade-buttons-29c {
+          grid-template-columns: 1fr;
+        }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  function attachQuickTradePanel29C() {
+    injectQuickTradeStyles29C();
+
+    if (document.getElementById("quickTradePanel29C")) {
+      updateQuickTradePanel29C();
+      return;
+    }
+
+    const hero = document.querySelector(".hero-card");
+    if (!hero) return;
+
+    const panel = document.createElement("section");
+    panel.id = "quickTradePanel29C";
+    panel.className = "quick-trade-panel-29c";
+    panel.innerHTML = `
+      <div class="quick-trade-head-29c">
+        <div>
+          <h3>⚡ Quick Trade Flow</h3>
+          <p>เห็นราคาที่ชอบแล้วกด BUY / SELL เพื่อสร้าง ATP ทันที</p>
+        </div>
+        <div class="quick-trade-price-29c" id="quickTradePrice29C">-</div>
+      </div>
+
+      <div class="quick-trade-buttons-29c">
+        <button class="quick-trade-btn-29c buy" type="button" onclick="openQuickAtpEditor29C('BUY')">
+          BUY
+        </button>
+        <button class="quick-trade-btn-29c sell" type="button" onclick="openQuickAtpEditor29C('SELL')">
+          SELL
+        </button>
+      </div>
+    `;
+
+    hero.insertAdjacentElement("afterend", panel);
+    updateQuickTradePanel29C();
+  }
+
+  function updateQuickTradePanel29C() {
+    const price = Number(latestData?.price);
+    setText("quickTradePrice29C", Number.isFinite(price) ? `Live ${money(price)}` : "-");
+  }
+
+  function getEditorRisk29C(mode) {
+    if (mode === "fast") return 6;
+    if (mode === "safe") return 12;
+    return 8;
+  }
+
+  function buildDefaultEditorState29C(side) {
+    const price = Number(latestData?.price || latestAnalysis?.price || 0);
+    const mode = currentMode || "balanced";
+    const risk = getEditorRisk29C(mode);
+
+    let entry = price;
+    let sl, tp1, tp2, tp3;
+
+    if (side === "BUY") {
+      sl = entry - risk;
+      tp1 = entry + risk;
+      tp2 = entry + risk * 2;
+      tp3 = entry + risk * 3;
+    } else {
+      sl = entry + risk;
+      tp1 = entry - risk;
+      tp2 = entry - risk * 2;
+      tp3 = entry - risk * 3;
+    }
+
+    return {
+      side,
+      mode,
+      entrySource: "Live Current Price",
+      entry: round2(entry),
+      sl: round2(sl),
+      tp1: round2(tp1),
+      tp2: round2(tp2),
+      tp3: round2(tp3),
+      note: "",
+      indicators: {
+        ema: true,
+        rsi: true,
+        macd: true,
+        bb: true,
+        fvg: true,
+        sr: true
+      }
+    };
+  }
+
+  window.openQuickAtpEditor29C = function openQuickAtpEditor29C(side) {
+    injectQuickTradeStyles29C();
+
+    if (!latestData || !latestAnalysis) {
+      showToast("ยังไม่มีข้อมูลราคา", "รอให้ระบบโหลดราคาก่อน", "warning");
+      return;
+    }
+
+    quickEditorState = buildDefaultEditorState29C(side);
+
+    const old = document.getElementById("atpEditorBackdrop29C");
+    if (old) old.remove();
+
+    const badgeClass = side === "BUY" ? "buy" : "sell";
+
+    const backdrop = document.createElement("div");
+    backdrop.className = "atp-editor-backdrop-29c";
+    backdrop.id = "atpEditorBackdrop29C";
+    backdrop.onclick = e => {
+      if (e.target === backdrop) closeQuickAtpEditor29C();
+    };
+
+    backdrop.innerHTML = `
+      <div class="atp-editor-modal-29c">
+        <div class="atp-editor-head-29c">
+          <div>
+            <div class="atp-editor-title-29c">
+              <h2>ATP Editor</h2>
+              <span class="atp-editor-badge-29c ${badgeClass}" id="editorSideBadge29C">${side}</span>
+              <span class="atp-editor-badge-29c">LIVE ${money(latestData.price)}</span>
+            </div>
+            <div class="atp-editor-sub-29c" id="editorSubText29C">
+              Entry Source: Live Current Price • ปรับแผนก่อนกด Lock Plan
+            </div>
+          </div>
+
+          <button class="atp-editor-close-29c" type="button" onclick="closeQuickAtpEditor29C()">✕</button>
+        </div>
+
+        <div class="atp-editor-grid-29c">
+          <div class="atp-editor-card-29c">
+            <canvas id="atpEditorChart29C" class="atp-editor-chart-29c" width="1100" height="430"></canvas>
+
+            <div class="atp-editor-ind-panels-29c">
+              <div class="atp-editor-ind-card-29c" id="editorRsiPanel29C">
+                <span>RSI (14)</span>
+                <b id="editorRsiValue29C">-</b>
+                <canvas id="atpEditorRsi29C" width="480" height="82"></canvas>
+              </div>
+
+              <div class="atp-editor-ind-card-29c" id="editorMacdPanel29C">
+                <span>MACD (12, 26, 9)</span>
+                <b id="editorMacdValue29C">-</b>
+                <canvas id="atpEditorMacd29C" width="480" height="82"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <div class="atp-editor-card-29c">
+            <div class="atp-editor-field-grid-29c">
+              <div class="atp-editor-field-29c">
+                <span>Side</span>
+                <select id="editorSide29C" onchange="editorChangeSide29C()">
+                  <option value="BUY">BUY</option>
+                  <option value="SELL">SELL</option>
+                </select>
+              </div>
+
+              <div class="atp-editor-field-29c">
+                <span>Mode</span>
+                <select id="editorMode29C" onchange="editorRecalculateTpSl29C()">
+                  <option value="fast">Scalping</option>
+                  <option value="balanced">Day Trade</option>
+                  <option value="safe">Swing</option>
+                </select>
+              </div>
+
+              <div class="atp-editor-field-29c">
+                <span>Entry</span>
+                <input id="editorEntry29C" type="number" step="0.01" oninput="editorInputChanged29C()" />
+              </div>
+
+              <div class="atp-editor-field-29c">
+                <span>SL</span>
+                <input id="editorSl29C" type="number" step="0.01" oninput="editorInputChanged29C()" />
+              </div>
+
+              <div class="atp-editor-field-29C_PLACEHOLDER"></div>
+            </div>
+
+            <div class="atp-editor-field-grid-29c" style="margin-top:10px;">
+              <div class="atp-editor-field-29c">
+                <span>TP1</span>
+                <input id="editorTp1_29C" type="number" step="0.01" oninput="editorInputChanged29C()" />
+              </div>
+
+              <div class="atp-editor-field-29c">
+                <span>TP2</span>
+                <input id="editorTp2_29C" type="number" step="0.01" oninput="editorInputChanged29C()" />
+              </div>
+
+              <div class="atp-editor-field-29c">
+                <span>TP3</span>
+                <input id="editorTp3_29C" type="number" step="0.01" oninput="editorInputChanged29C()" />
+              </div>
+
+              <div class="atp-editor-field-29c">
+                <span>Expire</span>
+                <select id="editorExpire29C">
+                  <option value="4">4 Hours</option>
+                  <option value="8">8 Hours</option>
+                  <option value="24" selected>24 Hours</option>
+                  <option value="48">48 Hours</option>
+                </select>
+              </div>
+
+              <div class="atp-editor-field-29c atp-editor-full-29c">
+                <span>Note</span>
+                <input id="editorNote29C" type="text" placeholder="เช่น เข้าเพราะราคาชนโซน / รอข่าว / ตาม FVG" oninput="editorInputChanged29C()" />
+              </div>
+            </div>
+
+            <div class="atp-editor-tool-row-29c">
+              <button class="atp-editor-tool-29c" type="button" onclick="editorUseCurrentPrice29C()">Use Current</button>
+              <button class="atp-editor-tool-29c" type="button" onclick="editorUseSr29C()">Use S/R</button>
+              <button class="atp-editor-tool-29c" type="button" onclick="editorUseFvg29C()">Use FVG</button>
+            </div>
+
+            <div class="atp-editor-tool-row-29c">
+              <button class="atp-editor-tool-29c" type="button" onclick="editorRecalculateTpSl29C()">Auto TP/SL</button>
+              <button class="atp-editor-tool-29c" type="button" onclick="editorWidenSl29C()">Widen SL</button>
+              <button class="atp-editor-tool-29c" type="button" onclick="editorTightenSl29C()">Tighten SL</button>
+            </div>
+
+            <div class="atp-editor-ind-toggle-wrap-29c">
+              <button id="toggleEma29C" class="atp-editor-toggle-29c on" type="button" onclick="editorToggleIndicator29C('ema')">✅ EMA / Trend</button>
+              <button id="toggleRsi29C" class="atp-editor-toggle-29c on" type="button" onclick="editorToggleIndicator29C('rsi')">✅ RSI</button>
+              <button id="toggleMacd29C" class="atp-editor-toggle-29c on" type="button" onclick="editorToggleIndicator29C('macd')">✅ MACD</button>
+              <button id="toggleBb29C" class="atp-editor-toggle-29c on" type="button" onclick="editorToggleIndicator29C('bb')">✅ Bollinger Bands</button>
+              <button id="toggleFvg29C" class="atp-editor-toggle-29c on" type="button" onclick="editorToggleIndicator29C('fvg')">✅ FVG</button>
+              <button id="toggleSr29C" class="atp-editor-toggle-29c on" type="button" onclick="editorToggleIndicator29C('sr')">✅ Support / Resistance</button>
+            </div>
+
+            <div class="atp-editor-analysis-29c">
+              <div class="atp-editor-analysis-grid-29c">
+                <div class="atp-editor-analysis-box-29c">
+                  <span>Plan Score</span>
+                  <b id="editorPlanScore29C">-</b>
+                </div>
+                <div class="atp-editor-analysis-box-29c">
+                  <span>Quality</span>
+                  <b id="editorPlanQuality29C">-</b>
+                </div>
+                <div class="atp-editor-analysis-box-29c">
+                  <span>RR TP1</span>
+                  <b id="editorPlanRr29C">-</b>
+                </div>
+              </div>
+
+              <div id="editorReason29C" class="atp-editor-reason-29c">-</div>
+            </div>
+
+            <div class="atp-editor-lock-29c">
+              <button class="atp-editor-lock-btn-29c" type="button" onclick="lockQuickAtpPlan29C()">🔒 LOCK PLAN</button>
+              <button class="atp-editor-lock-btn-29c ghost" type="button" onclick="closeQuickAtpEditor29C()">Cancel</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(backdrop);
+
+    const badPlaceholder = backdrop.querySelector(".atp-editor-field-29C_PLACEHOLDER");
+    if (badPlaceholder) badPlaceholder.remove();
+
+    setInputValue("editorSide29C", quickEditorState.side);
+    setInputValue("editorMode29C", quickEditorState.mode);
+    syncEditorInputs29C();
+    refreshEditor29C();
+  };
+
+  window.closeQuickAtpEditor29C = function closeQuickAtpEditor29C() {
+    const el = document.getElementById("atpEditorBackdrop29C");
+    if (el) el.remove();
+  };
+
+  function syncEditorInputs29C() {
+    if (!quickEditorState) return;
+
+    setInputValue("editorEntry29C", money(quickEditorState.entry));
+    setInputValue("editorSl29C", money(quickEditorState.sl));
+    setInputValue("editorTp1_29C", money(quickEditorState.tp1));
+    setInputValue("editorTp2_29C", money(quickEditorState.tp2));
+    setInputValue("editorTp3_29C", money(quickEditorState.tp3));
+    setInputValue("editorNote29C", quickEditorState.note || "");
+    setInputValue("editorSide29C", quickEditorState.side);
+    setInputValue("editorMode29C", quickEditorState.mode);
+  }
+
+  function readEditorInputs29C() {
+    if (!quickEditorState) return;
+
+    quickEditorState.side = getSettingValue("editorSide29C", quickEditorState.side);
+    quickEditorState.mode = getSettingValue("editorMode29C", quickEditorState.mode);
+    quickEditorState.entry = getNumberValue("editorEntry29C", quickEditorState.entry);
+    quickEditorState.sl = getNumberValue("editorSl29C", quickEditorState.sl);
+    quickEditorState.tp1 = getNumberValue("editorTp1_29C", quickEditorState.tp1);
+    quickEditorState.tp2 = getNumberValue("editorTp2_29C", quickEditorState.tp2);
+    quickEditorState.tp3 = getNumberValue("editorTp3_29C", quickEditorState.tp3);
+    quickEditorState.note = getSettingValue("editorNote29C", "");
+  }
+
+  window.editorInputChanged29C = function editorInputChanged29C() {
+    readEditorInputs29C();
+    refreshEditor29C();
+  };
+
+  window.editorChangeSide29C = function editorChangeSide29C() {
+    readEditorInputs29C();
+
+    const side = quickEditorState.side;
+    const price = Number(latestData?.price || quickEditorState.entry);
+    const risk = getEditorRisk29C(quickEditorState.mode);
+
+    quickEditorState.entry = round2(price);
+
+    if (side === "BUY") {
+      quickEditorState.sl = round2(price - risk);
+      quickEditorState.tp1 = round2(price + risk);
+      quickEditorState.tp2 = round2(price + risk * 2);
+      quickEditorState.tp3 = round2(price + risk * 3);
+    } else {
+      quickEditorState.sl = round2(price + risk);
+      quickEditorState.tp1 = round2(price - risk);
+      quickEditorState.tp2 = round2(price - risk * 2);
+      quickEditorState.tp3 = round2(price - risk * 3);
+    }
+
+    quickEditorState.entrySource = "Live Current Price";
+
+    const badge = document.getElementById("editorSideBadge29C");
+    if (badge) {
+      badge.innerText = side;
+      badge.className = `atp-editor-badge-29c ${side === "BUY" ? "buy" : "sell"}`;
+    }
+
+    syncEditorInputs29C();
+    refreshEditor29C();
+  };
+
+  window.editorRecalculateTpSl29C = function editorRecalculateTpSl29C() {
+    readEditorInputs29C();
+
+    const risk = getEditorRisk29C(quickEditorState.mode);
+    const entry = quickEditorState.entry;
+    const side = quickEditorState.side;
+
+    if (side === "BUY") {
+      quickEditorState.sl = round2(entry - risk);
+      quickEditorState.tp1 = round2(entry + risk);
+      quickEditorState.tp2 = round2(entry + risk * 2);
+      quickEditorState.tp3 = round2(entry + risk * 3);
+    } else {
+      quickEditorState.sl = round2(entry + risk);
+      quickEditorState.tp1 = round2(entry - risk);
+      quickEditorState.tp2 = round2(entry - risk * 2);
+      quickEditorState.tp3 = round2(entry - risk * 3);
+    }
+
+    quickEditorState.entrySource = `${getModeLabel29C(quickEditorState.mode)} Auto TP/SL`;
+
+    syncEditorInputs29C();
+    refreshEditor29C();
+  };
+
+  window.editorUseCurrentPrice29C = function editorUseCurrentPrice29C() {
+    readEditorInputs29C();
+
+    const price = Number(latestData?.price);
+    if (!Number.isFinite(price)) return;
+
+    quickEditorState.entry = round2(price);
+    quickEditorState.entrySource = "Live Current Price";
+    syncEditorInputs29C();
+    editorRecalculateTpSl29C();
+  };
+
+  window.editorUseSr29C = function editorUseSr29C() {
+    readEditorInputs29C();
+
+    const support = Number(latestAnalysis?.support);
+    const resistance = Number(latestAnalysis?.resistance);
+
+    if (quickEditorState.side === "BUY" && Number.isFinite(support)) {
+      quickEditorState.entry = round2(support);
+      quickEditorState.entrySource = "Support Zone";
+    }
+
+    if (quickEditorState.side === "SELL" && Number.isFinite(resistance)) {
+      quickEditorState.entry = round2(resistance);
+      quickEditorState.entrySource = "Resistance Zone";
+    }
+
+    syncEditorInputs29C();
+    editorRecalculateTpSl29C();
+  };
+
+  window.editorUseFvg29C = function editorUseFvg29C() {
+    readEditorInputs29C();
+
+    const fvg = latestAnalysis?.nearestFvg;
+
+    if (!fvg || !Number.isFinite(Number(fvg.midpoint))) {
+      showToast("ยังไม่มี FVG ใกล้ราคา", "ระบบยังไม่พบ FVG ที่ใช้เป็น Entry ได้", "warning");
+      return;
+    }
+
+    quickEditorState.entry = round2(Number(fvg.midpoint));
+    quickEditorState.entrySource = "Nearest FVG";
+    syncEditorInputs29C();
+    editorRecalculateTpSl29C();
+  };
+
+  window.editorWidenSl29C = function editorWidenSl29C() {
+    readEditorInputs29C();
+
+    const side = quickEditorState.side;
+    const diff = Math.abs(quickEditorState.entry - quickEditorState.sl);
+    const add = Math.max(2, diff * 0.25);
+
+    if (side === "BUY") quickEditorState.sl = round2(quickEditorState.sl - add);
+    else quickEditorState.sl = round2(quickEditorState.sl + add);
+
+    syncEditorInputs29C();
+    refreshEditor29C();
+  };
+
+  window.editorTightenSl29C = function editorTightenSl29C() {
+    readEditorInputs29C();
+
+    const side = quickEditorState.side;
+    const diff = Math.abs(quickEditorState.entry - quickEditorState.sl);
+    const reduce = Math.max(1, diff * 0.20);
+
+    if (side === "BUY") quickEditorState.sl = round2(Math.min(quickEditorState.entry - 0.5, quickEditorState.sl + reduce));
+    else quickEditorState.sl = round2(Math.max(quickEditorState.entry + 0.5, quickEditorState.sl - reduce));
+
+    syncEditorInputs29C();
+    refreshEditor29C();
+  };
+
+  window.editorToggleIndicator29C = function editorToggleIndicator29C(key) {
+    if (!quickEditorState) return;
+
+    quickEditorState.indicators[key] = !quickEditorState.indicators[key];
+
+    const map = {
+      ema: "toggleEma29C",
+      rsi: "toggleRsi29C",
+      macd: "toggleMacd29C",
+      bb: "toggleBb29C",
+      fvg: "toggleFvg29C",
+      sr: "toggleSr29C"
+    };
+
+    const label = {
+      ema: "EMA / Trend",
+      rsi: "RSI",
+      macd: "MACD",
+      bb: "Bollinger Bands",
+      fvg: "FVG",
+      sr: "Support / Resistance"
+    };
+
+    const btn = document.getElementById(map[key]);
+    if (btn) {
+      btn.classList.toggle("on", quickEditorState.indicators[key]);
+      btn.innerText = `${quickEditorState.indicators[key] ? "✅" : "○"} ${label[key]}`;
+    }
+
+    refreshEditor29C();
+  };
+
+  function getModeLabel29C(mode) {
+    if (mode === "fast") return "Scalping";
+    if (mode === "safe") return "Swing";
+    return "Day Trade";
+  }
+
+  function getEditorCandles29C() {
+    return Array.isArray(latestChartData) ? latestChartData.slice(-90) : [];
+  }
+
+  function analyzeEditorPlan29C() {
+    if (!quickEditorState) return null;
+
+    const s = quickEditorState;
+    const risk = Math.abs(s.entry - s.sl);
+    const rr1 = risk > 0 ? Math.abs(s.tp1 - s.entry) / risk : 0;
+    const rr3 = risk > 0 ? Math.abs(s.tp3 - s.entry) / risk : 0;
+
+    let score = 50;
+    const reasons = [];
+    const cautions = [];
+
+    if (s.side === "BUY" && latestAnalysis?.trend === "UPTREND") {
+      score += 12;
+      reasons.push("BUY ไปตามเทรนด์หลัก");
+    }
+
+    if (s.side === "SELL" && latestAnalysis?.trend === "DOWNTREND") {
+      score += 12;
+      reasons.push("SELL ไปตามเทรนด์หลัก");
+    }
+
+    if (s.side === "BUY" && latestAnalysis?.trend === "DOWNTREND") {
+      score -= 12;
+      cautions.push("BUY สวนเทรนด์หลัก");
+    }
+
+    if (s.side === "SELL" && latestAnalysis?.trend === "UPTREND") {
+      score -= 12;
+      cautions.push("SELL สวนเทรนด์หลัก");
+    }
+
+    const rsiValue = Number(latestAnalysis?.rsi);
+    if (s.indicators.rsi && Number.isFinite(rsiValue)) {
+      if (rsiValue > 35 && rsiValue < 65) {
+        score += 6;
+        reasons.push("RSI อยู่ในโซนกลาง ไม่ร้อนแรงเกินไป");
+      }
+
+      if (s.side === "BUY" && rsiValue >= 70) {
+        score -= 10;
+        cautions.push("RSI สูงมาก ระวังไล่ BUY");
+      }
+
+      if (s.side === "SELL" && rsiValue <= 30) {
+        score -= 10;
+        cautions.push("RSI ต่ำมาก ระวังไล่ SELL");
+      }
+    }
+
+    if (s.indicators.macd) {
+      const macdPack = calcMacdFromCandles(getEditorCandles29C());
+      const hist = macdPack.latest?.histogram;
+
+      if (Number.isFinite(hist)) {
+        if (s.side === "BUY" && hist > 0) {
+          score += 7;
+          reasons.push("MACD Histogram เป็นบวก สนับสนุน BUY");
+        } else if (s.side === "SELL" && hist < 0) {
+          score += 7;
+          reasons.push("MACD Histogram เป็นลบ สนับสนุน SELL");
+        } else {
+          score -= 5;
+          cautions.push(`MACD ยังไม่สนับสนุน ${s.side}`);
+        }
+      }
+    }
+
+    if (s.indicators.fvg && latestAnalysis?.nearestFvg) {
+      const fvg = latestAnalysis.nearestFvg;
+      if (s.side === "BUY" && fvg.type === "bullish") {
+        score += 8;
+        reasons.push("Bullish FVG สนับสนุนฝั่ง BUY");
+      } else if (s.side === "SELL" && fvg.type === "bearish") {
+        score += 8;
+        reasons.push("Bearish FVG สนับสนุนฝั่ง SELL");
+      } else {
+        cautions.push("FVG ใกล้ราคายังไม่ตรงกับฝั่งของแผน");
+      }
+    }
+
+    if (rr1 >= 1) {
+      score += 8;
+      reasons.push("Risk/Reward TP1 คุ้มกว่า 1:1");
+    } else {
+      score -= 8;
+      cautions.push("Risk/Reward TP1 ต่ำกว่า 1:1");
+    }
+
+    if (rr3 >= 2) {
+      score += 6;
+      reasons.push("TP3 ให้ Risk/Reward ระยะไกลที่ดี");
+    }
+
+    score = Math.max(0, Math.min(100, Math.round(score)));
+
+    const quality =
+      score >= 80 ? "Strong" :
+      score >= 65 ? "Good" :
+      score >= 50 ? "Caution" :
+      "Risky";
+
+    return {
+      score,
+      quality,
+      rr1: round2(rr1),
+      rr3: round2(rr3),
+      reasons,
+      cautions
+    };
+  }
+
+  function refreshEditor29C() {
+    if (!quickEditorState) return;
+
+    readEditorInputs29C();
+
+    const sub = document.getElementById("editorSubText29C");
+    if (sub) {
+      sub.innerText = `Entry Source: ${quickEditorState.entrySource} • ${getModeLabel29C(quickEditorState.mode)} • ปรับแผนก่อนกด Lock Plan`;
+    }
+
+    const analysis = analyzeEditorPlan29C();
+
+    setText("editorPlanScore29C", analysis ? `${analysis.score}/100` : "-");
+    setText("editorPlanQuality29C", analysis?.quality || "-");
+    setText("editorPlanRr29C", analysis ? analysis.rr1 : "-");
+
+    const reasonBox = document.getElementById("editorReason29C");
+    if (reasonBox && analysis) {
+      const reasons = analysis.reasons.length
+        ? analysis.reasons.map(x => `✅ ${escapeHtml(x)}`).join("<br>")
+        : "✅ ยังไม่มีเหตุผลสนับสนุนเด่น";
+
+      const cautions = analysis.cautions.length
+        ? analysis.cautions.map(x => `⚠️ ${escapeHtml(x)}`).join("<br>")
+        : "ไม่มีจุดเสี่ยงเด่น";
+
+      reasonBox.innerHTML = `<b>เหตุผล:</b><br>${reasons}<br><br><b>ระวัง:</b><br>${cautions}`;
+    }
+
+    drawEditorChart29C();
+    drawEditorRsi29C();
+    drawEditorMacd29C();
+  }
+
+  function drawEditorChart29C() {
+    const canvas = document.getElementById("atpEditorChart29C");
+    if (!canvas || !quickEditorState) return;
+
+    const candles = getEditorCandles29C();
+    const ctx = canvas.getContext("2d");
+    const w = canvas.width;
+    const h = canvas.height;
+
+    ctx.clearRect(0, 0, w, h);
+    ctx.fillStyle = "#05070a";
+    ctx.fillRect(0, 0, w, h);
+
+    if (!candles.length) return;
+
+    const s = quickEditorState;
+    const levelPrices = [s.entry, s.sl, s.tp1, s.tp2, s.tp3].map(Number);
+    const highs = candles.map(c => Number(c.high));
+    const lows = candles.map(c => Number(c.low));
+    const closes = candles.map(c => Number(c.close));
+
+    if (s.indicators.sr) {
+      if (Number.isFinite(Number(latestAnalysis?.support))) levelPrices.push(Number(latestAnalysis.support));
+      if (Number.isFinite(Number(latestAnalysis?.resistance))) levelPrices.push(Number(latestAnalysis.resistance));
+    }
+
+    if (s.indicators.fvg && latestAnalysis?.nearestFvg) {
+      const fvg = latestAnalysis.nearestFvg;
+      levelPrices.push(Number(fvg.top), Number(fvg.bottom));
+    }
+
+    const max = Math.max(...highs, ...levelPrices);
+    const min = Math.min(...lows, ...levelPrices);
+    const range = Math.max(0.01, max - min);
+
+    const padLeft = 112;
+    const padRight = 88;
+    const padTop = 22;
+    const padBottom = 34;
+    const plotW = w - padLeft - padRight;
+    const plotH = h - padTop - padBottom;
+
+    const xAt = i => padLeft + (i / Math.max(1, candles.length - 1)) * plotW;
+    const yAt = p => padTop + ((max - p) / range) * plotH;
+
+    drawGrid(ctx, padLeft, padTop, plotW, plotH);
+
+    if (s.indicators.fvg && latestAnalysis?.nearestFvg) {
+      const fvg = latestAnalysis.nearestFvg;
+      const yTop = yAt(Number(fvg.top));
+      const yBottom = yAt(Number(fvg.bottom));
+
+      ctx.fillStyle = fvg.type === "bullish"
+        ? "rgba(0,200,83,.10)"
+        : "rgba(255,69,94,.10)";
+
+      ctx.fillRect(padLeft, Math.min(yTop, yBottom), plotW, Math.abs(yBottom - yTop));
+
+      ctx.fillStyle = fvg.type === "bullish" ? "#8effb0" : "#ff9baa";
+      ctx.font = "bold 12px sans-serif";
+      ctx.fillText(`FVG ${fvg.bottom}-${fvg.top}`, padLeft + 8, Math.min(yTop, yBottom) + 16);
+    }
+
+    if (s.indicators.bb) {
+      const bb = calcBollinger(closes, 20, 2);
+      drawBollinger(ctx, bb, xAt, yAt, "rgba(65,145,255,.82)", "rgba(65,145,255,.08)");
+    }
+
+    if (s.indicators.ema) {
+      const ema21 = emaSeries(closes, 21);
+      drawLineSeries(ctx, ema21, xAt, yAt, "rgba(245,197,66,.75)", 1.6);
+    }
+
+    const candleW = Math.max(4, Math.floor(plotW / candles.length * 0.55));
+
+    candles.forEach((c, i) => {
+      const x = xAt(i);
+      const open = Number(c.open);
+      const close = Number(c.close);
+      const high = Number(c.high);
+      const low = Number(c.low);
+      const up = close >= open;
+      const color = up ? "#00c853" : "#ff455e";
+
+      ctx.strokeStyle = color;
+      ctx.fillStyle = color;
+
+      ctx.beginPath();
+      ctx.moveTo(x, yAt(high));
+      ctx.lineTo(x, yAt(low));
+      ctx.stroke();
+
+      const yOpen = yAt(open);
+      const yClose = yAt(close);
+      const bodyTop = Math.min(yOpen, yClose);
+      const bodyH = Math.max(2, Math.abs(yOpen - yClose));
+
+      ctx.fillRect(x - candleW / 2, bodyTop, candleW, bodyH);
+    });
+
+    const fakePlan = {
+      entry: s.entry,
+      sl: s.sl,
+      tp1: s.tp1,
+      tp2: s.tp2,
+      tp3: s.tp3
+    };
+
+    drawPlanLevels(ctx, fakePlan, yAt, padLeft, w, padRight, true);
+
+    if (s.indicators.sr) {
+      drawSrLine29C(ctx, yAt, padLeft, w, padRight, latestAnalysis?.support, "SUPPORT", "#5bc0ff");
+      drawSrLine29C(ctx, yAt, padLeft, w, padRight, latestAnalysis?.resistance, "RESIST", "#ffbf5b");
+    }
+
+    const last = candles.at(-1);
+    const lastPrice = Number(last.close);
+    const yLast = yAt(lastPrice);
+
+    ctx.fillStyle = s.side === "BUY" ? "#00c853" : "#ff455e";
+    ctx.fillRect(w - padRight + 8, yLast - 13, 72, 26);
+
+    ctx.fillStyle = "#fff";
+    ctx.font = "bold 13px sans-serif";
+    ctx.fillText(lastPrice.toFixed(2), w - padRight + 12, yLast + 5);
+
+    ctx.fillStyle = "#9aa3b2";
+    ctx.font = "13px sans-serif";
+    ctx.fillText("ATP Editor • เปิด/ปิด Indicator แล้วแสดงบนกราฟทันที", padLeft, h - 11);
+  }
+
+  function drawSrLine29C(ctx, yAt, padLeft, w, padRight, price, label, color) {
+    const p = Number(price);
+    if (!Number.isFinite(p)) return;
+
+    const y = yAt(p);
+    ctx.setLineDash([8, 6]);
+    ctx.strokeStyle = color;
+    ctx.globalAlpha = .70;
+    ctx.beginPath();
+    ctx.moveTo(padLeft, y);
+    ctx.lineTo(w - padRight, y);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+    ctx.setLineDash([]);
+
+    ctx.fillStyle = color;
+    ctx.font = "bold 11px sans-serif";
+    ctx.fillText(`${label} ${p.toFixed(2)}`, padLeft + 8, y - 5);
+  }
+
+  function drawEditorRsi29C() {
+    const panel = document.getElementById("editorRsiPanel29C");
+    const canvas = document.getElementById("atpEditorRsi29C");
+
+    if (!panel || !canvas || !quickEditorState) return;
+
+    panel.style.display = quickEditorState.indicators.rsi ? "block" : "none";
+    if (!quickEditorState.indicators.rsi) return;
+
+    const candles = getEditorCandles29C();
+    const closes = candles.map(c => Number(c.close)).filter(Number.isFinite);
+    const values = calcRsiSeries(closes, 14);
+    const latest = values.at(-1);
+
+    setText("editorRsiValue29C", Number.isFinite(latest) ? latest.toFixed(1) : "-");
+
+    const ctx = canvas.getContext("2d");
+    const w = canvas.width;
+    const h = canvas.height;
+
+    ctx.clearRect(0, 0, w, h);
+    ctx.fillStyle = "#05070a";
+    ctx.fillRect(0, 0, w, h);
+
+    ctx.strokeStyle = "rgba(255,255,255,.12)";
+    [30, 50, 70].forEach(level => {
+      const y = h - (level / 100) * h;
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(w, y);
+      ctx.stroke();
+    });
+
+    const xAt = i => (i / Math.max(1, values.length - 1)) * w;
+    const yAt = v => h - (v / 100) * h;
+
+    drawLineSeries(ctx, values, xAt, yAt, "#00c853", 2);
+  }
+
+  function drawEditorMacd29C() {
+    const panel = document.getElementById("editorMacdPanel29C");
+    const canvas = document.getElementById("atpEditorMacd29C");
+
+    if (!panel || !canvas || !quickEditorState) return;
+
+    panel.style.display = quickEditorState.indicators.macd ? "block" : "none";
+    if (!quickEditorState.indicators.macd) return;
+
+    const pack = calcMacdFromCandles(getEditorCandles29C());
+    const latest = pack.latest;
+
+    setText(
+      "editorMacdValue29C",
+      latest
+        ? `${latest.macd.toFixed(2)} / ${latest.signal.toFixed(2)} / ${latest.histogram.toFixed(2)}`
+        : "-"
+    );
+
+    const ctx = canvas.getContext("2d");
+    drawMacdCanvas(ctx, pack, canvas.width, canvas.height);
+  }
+
+  window.lockQuickAtpPlan29C = function lockQuickAtpPlan29C() {
+    if (!quickEditorState || !latestData) return;
+
+    readEditorInputs29C();
+
+    const s = quickEditorState;
+    const activeCount = manualAtpPlans.filter(p =>
+      !["TP3_HIT", "SL_HIT", "CANCELLED", "EXPIRED", "DELETED"].includes(p.status)
+    ).length;
+
+    if (activeCount >= MAX_MANUAL_ATP) {
+      showToast("My ATP เต็มแล้ว", "ตอนนี้ใช้ได้สูงสุด 10 แผน", "danger");
+      return;
+    }
+
+    if (s.side === "BUY" && !(s.sl < s.entry && s.tp1 > s.entry && s.tp2 > s.tp1 && s.tp3 > s.tp2)) {
+      showToast("โครง BUY ไม่ถูกต้อง", "BUY ต้องมี SL ต่ำกว่า Entry และ TP สูงกว่า Entry", "danger");
+      return;
+    }
+
+    if (s.side === "SELL" && !(s.sl > s.entry && s.tp1 < s.entry && s.tp2 < s.tp1 && s.tp3 < s.tp2)) {
+      showToast("โครง SELL ไม่ถูกต้อง", "SELL ต้องมี SL สูงกว่า Entry และ TP ต่ำกว่า Entry", "danger");
+      return;
+    }
+
+    const analysis = analyzeEditorPlan29C();
+    const now = new Date();
+    const expireHours = Number(getSettingValue("editorExpire29C", "24"));
+    const expiresAt = new Date(now.getTime() + expireHours * 60 * 60 * 1000);
+    const currentPrice = Number(latestData.price);
+
+    const entryHit =
+      Math.abs(currentPrice - s.entry) <= 0.4 ||
+      (s.side === "BUY" && currentPrice <= s.entry) ||
+      (s.side === "SELL" && currentPrice >= s.entry);
+
+    const plan = {
+      id: `manual_${Date.now()}_${Math.random().toString(16).slice(2)}`,
+      type: "MANUAL_ATP",
+      side: s.side,
+      mode: s.mode,
+      entry: round2(s.entry),
+      sl: round2(s.sl),
+      tp1: round2(s.tp1),
+      tp2: round2(s.tp2),
+      tp3: round2(s.tp3),
+      note: s.note || `Quick ${s.side} from ${s.entrySource}`,
+      status: entryHit ? "ACTIVE" : "WAITING_ENTRY",
+      result: "pending",
+      hits: {
+        entry: entryHit,
+        tp1: false,
+        tp2: false,
+        tp3: false,
+        sl: false
+      },
+      score: analysis?.score ?? 0,
+      quality: analysis?.quality ?? "Caution",
+      rr1: analysis?.rr1 ?? 0,
+      rr3: analysis?.rr3 ?? 0,
+      reasons: analysis?.reasons ?? [],
+      cautions: analysis?.cautions ?? [],
+      indicators: { ...s.indicators },
+      entrySource: s.entrySource,
+      createdAt: now.toISOString(),
+      activatedAt: entryHit ? now.toISOString() : null,
+      expiresAt: expiresAt.toISOString(),
+      updatedAt: now.toISOString(),
+      source: latestData.priceSource || latestData.source || "tv_calibrated_proxy",
+      priceOffset: latestData.priceOffset ?? 0,
+      rawPrice: latestData.rawPrice ?? null,
+      createdPrice: currentPrice,
+      lastPrice: currentPrice,
+      chartSnapshot: Array.isArray(latestChartData) ? latestChartData.slice(-90) : []
+    };
+
+    manualAtpPlans.unshift(plan);
+    saveManualAtp();
+    updateManualAtpByPrice(currentPrice);
+    renderManualAtp();
+    drawApiChart(latestChartData);
+    closeQuickAtpEditor29C();
+
+    showToast("Lock Plan สำเร็จ", `${plan.side} ${money(plan.entry)} เข้า My ATP แล้ว`, "success");
+    playTone("success");
+
+    const target = document.getElementById("section-my-atp");
+    if (target) {
+      target.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
+
+  const originalRender29C = typeof render === "function" ? render : null;
+
+  if (originalRender29C && !window.__quickRenderWrapped29C) {
+    window.__quickRenderWrapped29C = true;
+
+    render = function renderWithQuickTrade29C(data) {
+      originalRender29C(data);
+      attachQuickTradePanel29C();
+      updateQuickTradePanel29C();
+    };
+  }
+
+  window.addEventListener("DOMContentLoaded", () => {
+    injectQuickTradeStyles29C();
+    attachQuickTradePanel29C();
+  });
+
+  window.addEventListener("resize", () => {
+    if (document.getElementById("atpEditorBackdrop29C")) {
+      refreshEditor29C();
+    }
+  });
+
+})();
