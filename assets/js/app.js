@@ -1,4 +1,4 @@
-console.log("APP JS VERSION 30 STEP 1 LOADED");
+console.log("APP JS VERSION 31 STEP 1 FIX LOADED");
 
 const API_URL = "https://white-fog-ba70.porapat-su1975.workers.dev";
 
@@ -1172,8 +1172,23 @@ function toggleChartIndicator(name) {
   drawApiChart(latestChartData);
 }
 
+function syncIndicatorButtons() {
+  const map = {
+    toggleEma: chartIndicators.ema,
+    toggleBollinger: chartIndicators.bollinger,
+    toggleRsi: chartIndicators.rsi,
+    toggleMacd: chartIndicators.macd
+  };
+
+  Object.entries(map).forEach(([id, active]) => {
+    const btn = document.getElementById(id);
+    if (btn) btn.classList.toggle("active", active);
+  });
+}
+
 function sma(values, period) {
   const out = [];
+
   for (let i = 0; i < values.length; i++) {
     if (i < period - 1) {
       out.push(null);
@@ -1298,7 +1313,8 @@ function drawSeriesLine(ctx, series, helper, strokeStyle, width = 1.5, dash = []
 }
 
 /* =========================
-   MAIN CHART
+   MAIN CLEAN CHART
+   สำคัญ: ไม่มีการวาด Entry / SL / TP บนกราฟหลัก
 ========================= */
 
 function drawApiChart(candles) {
@@ -1326,7 +1342,10 @@ function drawApiChart(candles) {
   const padLeft = 46;
   const padRight = 78;
   const padTop = 26;
-  const padBottom = chartIndicators.rsi || chartIndicators.macd ? 96 : 36;
+
+  let padBottom = 36;
+  if (chartIndicators.rsi && chartIndicators.macd) padBottom = 156;
+  else if (chartIndicators.rsi || chartIndicators.macd) padBottom = 96;
 
   const highs = candles.map(c => Number(c.high));
   const lows = candles.map(c => Number(c.low));
@@ -1357,7 +1376,18 @@ function drawApiChart(candles) {
     return padTop + ((max - price) / range) * plotH;
   }
 
-  const helper = { xAt, yAt, padLeft, padRight, padTop, padBottom, plotW, plotH, w, h };
+  const helper = {
+    xAt,
+    yAt,
+    padLeft,
+    padRight,
+    padTop,
+    padBottom,
+    plotW,
+    plotH,
+    w,
+    h
+  };
 
   ctx.strokeStyle = "rgba(255,255,255,0.08)";
   ctx.lineWidth = 1;
@@ -1461,7 +1491,7 @@ function drawApiChart(candles) {
 
   ctx.fillStyle = "#9aa3b2";
   ctx.font = "13px sans-serif";
-  ctx.fillText("Clean Chart | No Entry / TP / SL lines | Toggle Indicators Enabled", padLeft, h - 12);
+  ctx.fillText("Clean Chart | No ATP Entry / SL / TP Lines | Indicators Toggle ON/OFF", padLeft, h - 12);
 }
 
 function drawRsiPanel(ctx, candles, helper) {
@@ -1469,9 +1499,7 @@ function drawRsiPanel(ctx, candles, helper) {
   const values = rsiSeries(closes, 14);
 
   const panelH = 52;
-  const yBase = helper.h - helper.padBottom + 12;
-  const top = yBase;
-  const bottom = yBase + panelH;
+  const top = helper.h - helper.padBottom + 12;
 
   ctx.save();
 
@@ -1533,11 +1561,9 @@ function drawMacdPanel(ctx, candles, helper) {
   const m = macdSeries(closes);
 
   const panelH = 52;
-  const yBase = helper.h - helper.padBottom + 12;
-  const top = chartIndicators.rsi ? yBase + 58 : yBase;
-  const bottom = top + panelH;
-
-  if (bottom > helper.h - 18) return;
+  const top = chartIndicators.rsi
+    ? helper.h - helper.padBottom + 72
+    : helper.h - helper.padBottom + 12;
 
   const all = [...m.macd, ...m.signal, ...m.hist].filter(v => Number.isFinite(Number(v)));
   const maxAbs = Math.max(0.01, ...all.map(v => Math.abs(v)));
@@ -2176,6 +2202,7 @@ document.addEventListener("DOMContentLoaded", () => {
   loadSoundSetting();
   loadManualAtp();
   updateModeLabel();
+  syncIndicatorButtons();
 
   loadSignal();
   loadThaiGold();
