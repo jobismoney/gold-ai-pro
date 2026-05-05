@@ -57,7 +57,7 @@
 
         <div class="hero-price-wrap">
           <div id="price" class="hero-price">-</div>
-          <div class="hero-symbol">XAU/USD <span>• Binance Futures PAXGUSDT</span></div>
+          <div class="hero-symbol">XAU/USD <span>• TV-Calibrated Proxy</span></div>
         </div>
 
         <div class="hero-signal-wrap">
@@ -89,14 +89,14 @@
     </section>
 
     <div class="helper-text" id="sourceNotice">
-      Gold Proxy Source: Binance Futures PAXGUSDT — อาจต่างจาก XAU/USD Spot/OANDA เล็กน้อย
+      TV-Calibrated Proxy — Binance Futures PAXGUSDT + Admin Offset
     </div>
 
     <section class="card chart-card" id="section-chart">
       <div class="section-head compact">
         <div>
           <h2>📈 XAU/USD Proxy Chart</h2>
-          <p id="chartSourceText">กราฟนี้วาดจาก Binance Futures PAXGUSDT 15m candles</p>
+          <p id="chartSourceText">กราฟนี้วาดจาก Binance Futures PAXGUSDT 15m candles + Offset</p>
         </div>
         <button class="collapse-btn" type="button" onclick="toggleSection('chartBody', this)">ย่อ</button>
       </div>
@@ -106,6 +106,9 @@
           <canvas id="apiChartCanvas" width="1000" height="360"></canvas>
         </div>
         <div class="chart-meta">
+          <span>Raw: <b id="calibrationRawPrice">-</b></span>
+          <span>Offset: <b id="calibrationOffsetText">-</b></span>
+          <span>Adjusted: <b id="calibrationAdjustedPrice">-</b></span>
           <span>Price Source: <b id="priceSource">-</b></span>
           <span>Chart Source: <b id="chartSource">-</b></span>
           <span>Last Candle: <b id="lastCandleTime">-</b></span>
@@ -165,7 +168,6 @@
       </div>
     </section>
 
-    <!-- PLAN BUILDER -->
     <section class="card active-card" id="section-builder">
       <div class="section-head">
         <div>
@@ -348,7 +350,6 @@
       </div>
     </section>
 
-    <!-- MY ATP -->
     <section class="card active-card" id="section-my-atp">
       <div class="section-head">
         <div>
@@ -453,7 +454,7 @@
       <div class="section-head compact">
         <div>
           <h2>⏱ Signal Timing</h2>
-          <p id="validNote">ระบบอัปเดตข้อมูลตามรอบ API และใช้ข้อมูลจริงจาก Binance Futures PAXGUSDT</p>
+          <p id="validNote">ระบบอัปเดตข้อมูลตามรอบ API และใช้ข้อมูลจริงจาก Binance Futures PAXGUSDT + Offset</p>
         </div>
         <button class="collapse-btn" type="button" onclick="toggleSection('timingBody', this)">ย่อ</button>
       </div>
@@ -516,14 +517,14 @@
       </div>
 
       <div class="note" id="autoRefreshStatus">
-        API refresh in 30s | Binance Futures PAXGUSDT
+        API refresh in 30s | TV-Calibrated Proxy
       </div>
 
       <div id="adminPanel" class="admin-panel" style="display:none;">
         <div class="section-head compact">
           <div>
             <h2>⚙️ Admin Panel</h2>
-            <p>สำหรับทดสอบ Telegram / ส่ง VIP / Reset Plan / เสียงแจ้งเตือน</p>
+            <p>ตั้งค่า Price Calibration / Telegram / VIP / Sound</p>
           </div>
         </div>
 
@@ -540,6 +541,38 @@
               spellcheck="false"
             />
             <button class="small-btn" type="button" onclick="toggleAdminKey()">👁 แสดง / ซ่อนรหัส</button>
+          </div>
+
+          <div class="mini-card input-card">
+            <span>Raw Binance Price</span>
+            <b id="adminRawPrice">-</b>
+          </div>
+
+          <div class="mini-card input-card">
+            <span>TV / MT5 Offset</span>
+            <input
+              id="calibrationOffsetInput"
+              class="setting-input"
+              type="number"
+              step="0.01"
+              value="6.50"
+              placeholder="+6.50"
+            />
+          </div>
+
+          <div class="mini-card input-card">
+            <span>Adjusted Price</span>
+            <b id="adminAdjustedPrice">-</b>
+          </div>
+
+          <div class="mini-card input-card">
+            <span>Calibration Mode</span>
+            <b id="calibrationMode">manual_admin_offset</b>
+          </div>
+
+          <div class="mini-card input-card">
+            <span>Calibration Source</span>
+            <b id="calibrationSource">default</b>
           </div>
 
           <div class="mini-card input-card">
@@ -568,6 +601,15 @@
               <option value="off">OFF</option>
             </select>
           </div>
+        </div>
+
+        <div class="actions admin-actions">
+          <button class="btn-main" onclick="saveCalibrationOffset()">💾 Save Offset</button>
+          <button class="btn-main ghost" onclick="resetCalibrationOffset()">♻️ Reset Offset +6.50</button>
+        </div>
+
+        <div class="note" id="calibrationStatus">
+          Price Calibration: ready
         </div>
 
         <div class="actions admin-actions">
@@ -604,6 +646,6 @@
 
   <div id="toastContainer" class="toast-container"></div>
 
-  <script src="./assets/js/app.js?v=26"></script>
+  <script src="./assets/js/app.js?v=27"></script>
 </body>
 </html>
