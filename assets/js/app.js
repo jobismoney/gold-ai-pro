@@ -2428,3 +2428,638 @@ document.addEventListener("DOMContentLoaded", () => {
     loadThaiGold();
   }, 5 * 60 * 1000);
 });
+
+/* =====================================================
+   GOLD AI PRO v33 FIX
+   1) Fix main chart scale bug
+   2) Replace ATP alert with ATP detail modal
+   ===================================================== */
+
+console.log("APP JS VERSION 33 FIX PATCH LOADED");
+
+/* =========================
+   v33: SAFE MAIN CHART SCALE
+========================= */
+
+function normalizeMainChartCandles(candles) {
+  if (!Array.isArray(candles)) return [];
+
+  const cleaned = candles
+    .map(c => ({
+      ...c,
+      open: Number(c.open),
+      high: Number(c.high),
+      low: Number(c.low),
+      close: Number(c.close)
+    }))
+    .filter(c =>
+      Number.isFinite(c.open) &&
+      Number.isFinite(c.high) &&
+      Number.isFinite(c.low) &&
+      Number.isFinite(c.close) &&
+      c.open > 1000 &&
+      c.high > 1000 &&
+      c.low > 1000 &&
+      c.close > 1000 &&
+      c.high >= c.low
+    );
+
+  return cleaned;
+}
+
+function getSafeChartRange(candles) {
+  const cleaned = normalizeMainChartCandles(candles);
+
+  if (!cleaned.length) {
+    return {
+      candles: [],
+      min: 0,
+      max: 1
+    };
+  }
+
+  const closes = cleaned.map(c => c.close);
+  const lastClose = closes.at(-1);
+
+  let lows = cleaned.map(c => c.low);
+  let highs = cleaned.map(c => c.high);
+
+  let min = Math.min(...lows);
+  let max = Math.max(...highs);
+
+  const safeCenter = Number.isFinite(lastClose) ? lastClose : (min + max) / 2;
+  const maxDistance = Math.max(60, safeCenter * 0.025);
+
+  min = Math.max(min, safeCenter - maxDistance);
+  max = Math.min(max, safeCenter + maxDistance);
+
+  const range = Math.max(8, max - min);
+  const pad = range * 0.12;
+
+  return {
+    candles: cleaned,
+    min: min - pad,
+    max: max + pad
+  };
+}
+
+function safeNumberNearPrice(value, basePrice, maxDistance = 120) {
+  const n = Number(value);
+  const b = Number(basePrice);
+
+  if (!Number.isFinite(n) || !Number.isFinite(b)) return null;
+  if (n <= 1000) return null;
+  if (Math.abs(n - b) > maxDistance) return null;
+
+  return n;
+}
+
+/* =========================
+   v33: OVERRIDE CLEAN MAIN CHART
+========================= */
+
+function drawApiChart(candles) {
+  const canvas = document.getElementById("apiChartCanvas");
+  if (!canvas) return;
+
+  const ctx = canvas.getContext("2d");
+  const w = canvas.width;
+  const h = canvas.height;
+
+  ctx.clearRect(0, 0, w, h);
+  ctx.fillStyle = "#080a0d";
+  ctx.fillRect(0, 0, w, h);
+
+  const normalized = getSafeChartRange(candles);
+  candles = normalized.candles;
+
+  if (!candles || candles.length < 5) {
+    ctx.fillStyle = "#9aa3b2";
+    ctx.font = "20px sans-serif";
+    ctx.fillText("No valid chart data", 30, 60);
+    return;
+  }
+
+  const closes = candles.map(c => Number(c.close));
+  const lastPrice = Number(closes.at(-1));
+
+  const padLeft = 46;
+  const padRight = 78;
+  const padTop = 26;
+
+  let padBottom = 36;
+  if (chartIndicators?.rsi && chartIndicators?.macd) padBottom = 156;
+  else if (chartIndicators?.rsi || chartIndicators?.macd) padBottom = 96;
+
+  let min = normalized.min;
+  let max = normalized.max;
+
+  if (chartIndicators?.bollinger) {
+    const bb = bollingerSeries(closes, 20, 2);
+    bb.upper.forEach(v => {
+      const n = safeNumberNearPrice(v, lastPrice, 120);
+      if (n !== null) max = Math.max(max, n);
+    });
+    bb.lower.forEach(v => {
+      const n = safeNumberNearPrice(v, lastPrice, 120);
+      if (n !== null) min = Math.min(min, n);
+    });
+  }
+
+  const support = safeNumberNearPrice(latestAnalysis?.support, lastPrice, 120);
+  const resistance = safeNumberNearPrice(latestAnalysis?.resistance, lastPrice, 120);
+
+  if (chartIndicators?.sr) {
+    if (support !== null) min = Math.min(min, support);
+    if (resistance !== null) max = Math.max(max, resistance);
+  }
+
+  const fvg = latestAnalysis?.nearestFvg;
+
+  if (chartIndicators?.fvg && fvg) {
+    const fvgBottom = safeNumberNearPrice(fvg.bottom, lastPrice, 120);
+    const fvgTop = safeNumberNearPrice(fvg.top, lastPrice, 120);
+
+    if (fvgBottom !== null) min = Math.min(min, fvgBottom);
+    if (fvgTop !== null) max = Math.max(max, fvgTop);
+  }
+
+  const range = Math.max(8, max - min);
+  const plotW = w - padLeft - padRight;
+  const plotH = h - padTop - padBottom;
+
+  function xAt(i) {
+    return padLeft + (i / Math.max(1, candles.length - 1)) * plotW;
+  }
+
+  function yAt(price) {
+    return padTop + ((max - price) / range) * plotH;
+  }
+
+  const helper = {
+    xAt,
+    yAt,
+    padLeft,
+    padRight,
+    padTop,
+    padBottom,
+    plotW,
+    plotH,
+    w,
+    h
+  };
+
+  ctx.strokeStyle = "rgba(255,255,255,0.08)";
+  ctx.lineWidth = 1;
+
+  for (let i = 0; i <= 4; i++) {
+    const y = padTop + (i / 4) * plotH;
+    ctx.beginPath();
+    ctx.moveTo(padLeft, y);
+    ctx.lineTo(w - padRight, y);
+    ctx.stroke();
+  }
+
+  for (let i = 0; i <= 6; i++) {
+    const x = padLeft + (i / 6) * plotW;
+    ctx.beginPath();
+    ctx.moveTo(x, padTop);
+    ctx.lineTo(x, h - padBottom);
+    ctx.stroke();
+  }
+
+  if (chartIndicators?.fvg && fvg) {
+    drawFvgZoneSafe(ctx, fvg, helper, lastPrice);
+  }
+
+  if (chartIndicators?.sr) {
+    drawSupportResistanceSafe(ctx, support, resistance, helper);
+  }
+
+  if (chartIndicators?.bollinger) {
+    const bb = bollingerSeries(closes, 20, 2);
+
+    drawSeriesLineSafe(ctx, bb.upper, helper, "rgba(74, 163, 255, 0.50)", lastPrice, 1.2, [4, 5]);
+    drawSeriesLineSafe(ctx, bb.mid, helper, "rgba(245, 197, 66, 0.45)", lastPrice, 1.1, [3, 5]);
+    drawSeriesLineSafe(ctx, bb.lower, helper, "rgba(74, 163, 255, 0.50)", lastPrice, 1.2, [4, 5]);
+  }
+
+  if (chartIndicators?.ema) {
+    const ema9 = emaSeries(closes, 9);
+    const ema21 = emaSeries(closes, 21);
+
+    drawSeriesLineSafe(ctx, ema9, helper, "rgba(255, 223, 126, 0.95)", lastPrice, 1.8);
+    drawSeriesLineSafe(ctx, ema21, helper, "rgba(255, 255, 255, 0.48)", lastPrice, 1.6);
+  }
+
+  const candleW = Math.max(3, Math.floor(plotW / candles.length * 0.55));
+
+  candles.forEach((c, i) => {
+    const x = xAt(i);
+    const open = Number(c.open);
+    const close = Number(c.close);
+    const high = Number(c.high);
+    const low = Number(c.low);
+
+    const up = close >= open;
+    const color = up ? "#00c853" : "#ff455e";
+
+    const yHigh = yAt(high);
+    const yLow = yAt(low);
+    const yOpen = yAt(open);
+    const yClose = yAt(close);
+
+    ctx.strokeStyle = color;
+    ctx.fillStyle = color;
+
+    ctx.beginPath();
+    ctx.moveTo(x, yHigh);
+    ctx.lineTo(x, yLow);
+    ctx.stroke();
+
+    const bodyTop = Math.min(yOpen, yClose);
+    const bodyH = Math.max(2, Math.abs(yOpen - yClose));
+
+    ctx.fillRect(x - candleW / 2, bodyTop, candleW, bodyH);
+  });
+
+  const yLast = yAt(lastPrice);
+
+  ctx.setLineDash([5, 5]);
+  ctx.strokeStyle = "rgba(245,197,66,0.55)";
+  ctx.beginPath();
+  ctx.moveTo(padLeft, yLast);
+  ctx.lineTo(w - padRight, yLast);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  ctx.fillStyle = "#f5c542";
+  ctx.fillRect(w - padRight + 8, yLast - 13, 64, 26);
+
+  ctx.fillStyle = "#111";
+  ctx.font = "bold 13px sans-serif";
+  ctx.fillText(String(lastPrice.toFixed(2)), w - padRight + 12, yLast + 5);
+
+  ctx.fillStyle = "#cbd2df";
+  ctx.font = "13px sans-serif";
+
+  for (let i = 0; i <= 4; i++) {
+    const price = max - (i / 4) * range;
+    const y = padTop + (i / 4) * plotH;
+    ctx.fillText(price.toFixed(2), w - padRight + 8, y + 4);
+  }
+
+  if (chartIndicators?.rsi) {
+    drawRsiPanel(ctx, candles, helper);
+  }
+
+  if (chartIndicators?.macd) {
+    drawMacdPanel(ctx, candles, helper);
+  }
+
+  ctx.fillStyle = "#9aa3b2";
+  ctx.font = "13px sans-serif";
+  ctx.fillText("Clean Chart v33 | ATP levels hidden | Safe Scale", padLeft, h - 12);
+}
+
+function drawSeriesLineSafe(ctx, series, helper, strokeStyle, basePrice, width = 1.5, dash = []) {
+  ctx.save();
+  ctx.strokeStyle = strokeStyle;
+  ctx.lineWidth = width;
+  ctx.setLineDash(dash);
+
+  let started = false;
+
+  series.forEach((value, i) => {
+    const n = safeNumberNearPrice(value, basePrice, 120);
+    if (n === null) return;
+
+    const x = helper.xAt(i);
+    const y = helper.yAt(n);
+
+    if (!started) {
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      started = true;
+    } else {
+      ctx.lineTo(x, y);
+    }
+  });
+
+  if (started) ctx.stroke();
+  ctx.restore();
+}
+
+function drawSupportResistanceSafe(ctx, support, resistance, helper) {
+  ctx.save();
+
+  if (support !== null) {
+    const y = helper.yAt(support);
+    ctx.setLineDash([8, 6]);
+    ctx.strokeStyle = "rgba(0,200,83,0.55)";
+    ctx.beginPath();
+    ctx.moveTo(helper.padLeft, y);
+    ctx.lineTo(helper.w - helper.padRight, y);
+    ctx.stroke();
+
+    ctx.fillStyle = "rgba(0,200,83,0.95)";
+    ctx.font = "bold 11px sans-serif";
+    ctx.fillText(`Support ${money(support)}`, helper.padLeft + 6, y - 6);
+  }
+
+  if (resistance !== null) {
+    const y = helper.yAt(resistance);
+    ctx.setLineDash([8, 6]);
+    ctx.strokeStyle = "rgba(255,69,94,0.55)";
+    ctx.beginPath();
+    ctx.moveTo(helper.padLeft, y);
+    ctx.lineTo(helper.w - helper.padRight, y);
+    ctx.stroke();
+
+    ctx.fillStyle = "rgba(255,69,94,0.95)";
+    ctx.font = "bold 11px sans-serif";
+    ctx.fillText(`Resistance ${money(resistance)}`, helper.padLeft + 6, y - 6);
+  }
+
+  ctx.restore();
+}
+
+function drawFvgZoneSafe(ctx, fvg, helper, basePrice) {
+  const top = safeNumberNearPrice(fvg.top, basePrice, 120);
+  const bottom = safeNumberNearPrice(fvg.bottom, basePrice, 120);
+
+  if (top === null || bottom === null) return;
+
+  const yTop = helper.yAt(top);
+  const yBottom = helper.yAt(bottom);
+  const h = Math.max(4, Math.abs(yBottom - yTop));
+  const y = Math.min(yTop, yBottom);
+
+  const bullish = fvg.type === "bullish";
+
+  ctx.save();
+
+  ctx.fillStyle = bullish ? "rgba(0,200,83,0.12)" : "rgba(255,69,94,0.12)";
+  ctx.strokeStyle = bullish ? "rgba(0,200,83,0.38)" : "rgba(255,69,94,0.38)";
+  ctx.setLineDash([5, 5]);
+
+  ctx.fillRect(helper.padLeft, y, helper.plotW, h);
+  ctx.strokeRect(helper.padLeft, y, helper.plotW, h);
+
+  ctx.setLineDash([]);
+  ctx.fillStyle = bullish ? "rgba(0,200,83,0.95)" : "rgba(255,69,94,0.95)";
+  ctx.font = "bold 11px sans-serif";
+  ctx.fillText(`${bullish ? "Bullish" : "Bearish"} FVG ${bottom}-${top}`, helper.padLeft + 6, y - 6);
+
+  ctx.restore();
+}
+
+/* =========================
+   v33: ATP DETAIL MODAL
+========================= */
+
+function showAtpBasicDetail(id) {
+  const plan = manualAtpPlans.find(p => p.id === id);
+  if (!plan) return;
+
+  openAtpDetailModal(plan);
+}
+
+function openAtpDetailModal(plan) {
+  closeAtpDetailModal();
+
+  const modal = document.createElement("div");
+  modal.id = "atpDetailModal";
+  modal.className = "atp-detail-backdrop-v33";
+
+  const indicators = Object.entries(plan.indicators || {})
+    .filter(([, enabled]) => enabled)
+    .map(([name]) => name.toUpperCase());
+
+  modal.innerHTML = `
+    <div class="atp-detail-modal-v33">
+      <div class="atp-detail-head-v33">
+        <div>
+          <div class="atp-detail-title-v33">
+            <span class="atp-badge ${plan.side === "BUY" ? "buy" : "sell"}">${escapeHtml(plan.side)}</span>
+            <span class="atp-badge ${getAtpBadgeClass(plan)}">${escapeHtml(plan.status)}</span>
+            <h2>ATP Detail</h2>
+          </div>
+          <p>
+            ${escapeHtml(plan.mode || "-")} • Created ${escapeHtml(formatThaiDateTime(plan.createdAt))}
+          </p>
+        </div>
+        <button class="atp-detail-close-v33" type="button" onclick="closeAtpDetailModal()">ปิด</button>
+      </div>
+
+      <div class="atp-detail-grid-v33">
+        <div><span>Entry</span><b>${money(plan.entry)}</b></div>
+        <div><span>SL</span><b>${money(plan.sl)}</b></div>
+        <div><span>TP1</span><b>${money(plan.tp1)}</b></div>
+        <div><span>TP2</span><b>${money(plan.tp2)}</b></div>
+        <div><span>TP3</span><b>${money(plan.tp3)}</b></div>
+      </div>
+
+      <div class="atp-detail-grid-v33">
+        <div><span>Status</span><b>${escapeHtml(plan.status)}</b></div>
+        <div><span>Result</span><b>${escapeHtml(plan.result || "-")}</b></div>
+        <div><span>Last Price</span><b>${money(plan.lastPrice)}</b></div>
+        <div><span>Expires</span><b>${escapeHtml(formatThaiDateTime(plan.expiresAt))}</b></div>
+        <div><span>Side</span><b>${escapeHtml(plan.side)}</b></div>
+      </div>
+
+      <div class="atp-progress-row" style="margin-top:14px;">
+        <span class="atp-progress-chip ${plan.progress?.entry ? "hit" : ""}">Entry ${plan.progress?.entry ? "✓" : "-"}</span>
+        <span class="atp-progress-chip ${plan.progress?.tp1 ? "hit" : ""}">TP1 ${plan.progress?.tp1 ? "✓" : "-"}</span>
+        <span class="atp-progress-chip ${plan.progress?.tp2 ? "hit" : ""}">TP2 ${plan.progress?.tp2 ? "✓" : "-"}</span>
+        <span class="atp-progress-chip ${plan.progress?.tp3 ? "hit" : ""}">TP3 ${plan.progress?.tp3 ? "✓" : "-"}</span>
+        <span class="atp-progress-chip ${plan.progress?.sl ? "danger" : ""}">SL ${plan.progress?.sl ? "✓" : "-"}</span>
+      </div>
+
+      <div class="atp-chip-row" style="margin-top:14px;">
+        ${
+          indicators.length
+            ? indicators.map(x => `<span class="atp-ind-chip">${escapeHtml(x)}</span>`).join("")
+            : `<span class="atp-ind-chip">NO INDICATOR</span>`
+        }
+      </div>
+
+      <div class="atp-detail-note-v33">
+        <h3>Snapshot</h3>
+        <p>Trend: <b>${escapeHtml(plan.snapshot?.trend || "-")}</b></p>
+        <p>RSI: <b>${escapeHtml(plan.snapshot?.rsi ?? "-")}</b></p>
+        <p>Support: <b>${escapeHtml(plan.snapshot?.support ?? "-")}</b></p>
+        <p>Resistance: <b>${escapeHtml(plan.snapshot?.resistance ?? "-")}</b></p>
+        <p>AI Score: <b>${escapeHtml(plan.snapshot?.aiScore ?? "-")}</b></p>
+        <p>Confidence: <b>${escapeHtml(plan.snapshot?.confidence ?? "-")}</b></p>
+      </div>
+
+      ${
+        plan.note
+          ? `<div class="atp-detail-note-v33"><h3>Note</h3><p>${escapeHtml(plan.note)}</p></div>`
+          : ""
+      }
+
+      <div class="atp-detail-actions-v33">
+        <button class="btn-main ghost" type="button" onclick="closeAtpDetailModal()">ปิด</button>
+        <button class="btn-main danger" type="button" onclick="deleteManualAtpFromDetail('${plan.id}')">ลบแผนนี้</button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+}
+
+function closeAtpDetailModal() {
+  const old = document.getElementById("atpDetailModal");
+  if (old) old.remove();
+}
+
+function deleteManualAtpFromDetail(id) {
+  const ok = confirm("ต้องการลบ ATP นี้ใช่ไหม?");
+  if (!ok) return;
+
+  closeAtpDetailModal();
+  deleteManualAtp(id);
+}
+
+/* =========================
+   v33: INJECT MODAL CSS
+========================= */
+
+(function injectAtpDetailModalCssV33() {
+  if (document.getElementById("atpDetailModalCssV33")) return;
+
+  const style = document.createElement("style");
+  style.id = "atpDetailModalCssV33";
+  style.innerHTML = `
+    .atp-detail-backdrop-v33 {
+      position: fixed;
+      inset: 0;
+      z-index: 999999;
+      background: rgba(0,0,0,.78);
+      backdrop-filter: blur(8px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+    }
+
+    .atp-detail-modal-v33 {
+      width: min(980px, 100%);
+      max-height: 92vh;
+      overflow: auto;
+      border-radius: 26px;
+      border: 1px solid rgba(245,197,66,.42);
+      background:
+        radial-gradient(circle at top left, rgba(245,197,66,.12), transparent 32%),
+        linear-gradient(180deg, rgba(18,22,29,.98), rgba(6,8,11,.98));
+      box-shadow: 0 30px 90px rgba(0,0,0,.65);
+      padding: 18px;
+      color: #fff;
+    }
+
+    .atp-detail-head-v33 {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 14px;
+      margin-bottom: 16px;
+    }
+
+    .atp-detail-title-v33 {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .atp-detail-title-v33 h2 {
+      margin: 0;
+      font-size: 26px;
+    }
+
+    .atp-detail-head-v33 p {
+      margin: 8px 0 0;
+      color: #9aa3b2;
+    }
+
+    .atp-detail-close-v33 {
+      min-width: 70px;
+      min-height: 40px;
+      border-radius: 14px;
+      border: 1px solid rgba(245,197,66,.38);
+      background: rgba(245,197,66,.08);
+      color: #f5c542;
+      font-weight: 900;
+      cursor: pointer;
+    }
+
+    .atp-detail-grid-v33 {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 18px;
+      overflow: hidden;
+      margin-bottom: 12px;
+    }
+
+    .atp-detail-grid-v33 div {
+      padding: 12px;
+      background: rgba(255,255,255,.035);
+      border-right: 1px solid rgba(255,255,255,.06);
+    }
+
+    .atp-detail-grid-v33 div:last-child {
+      border-right: none;
+    }
+
+    .atp-detail-grid-v33 span {
+      display: block;
+      color: #9aa3b2;
+      font-size: 12px;
+      margin-bottom: 6px;
+    }
+
+    .atp-detail-grid-v33 b {
+      color: #fff;
+      font-size: 16px;
+    }
+
+    .atp-detail-note-v33 {
+      margin-top: 14px;
+      padding: 14px;
+      border-radius: 18px;
+      border: 1px solid rgba(255,255,255,.08);
+      background: rgba(255,255,255,.035);
+    }
+
+    .atp-detail-note-v33 h3 {
+      margin: 0 0 10px;
+      color: #f5c542;
+    }
+
+    .atp-detail-note-v33 p {
+      margin: 6px 0;
+      color: #cbd2df;
+    }
+
+    .atp-detail-actions-v33 {
+      display: flex;
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    @media (max-width: 720px) {
+      .atp-detail-grid-v33 {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .atp-detail-actions-v33 {
+        display: grid;
+      }
+    }
+  `;
+
+  document.head.appendChild(style);
+})();
