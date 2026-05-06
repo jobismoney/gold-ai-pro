@@ -1,26 +1,22 @@
-console.log("APP JS VERSION 36 STEP2 CLEAN ATP LAYOUT LOADED");
+console.log("APP JS VERSION 37 CLEAN UI + SHARP CHART LOADED");
 
 const API_URL = "https://white-fog-ba70.porapat-su1975.workers.dev";
+const MANUAL_ATP_KEY = "gold_ai_manual_atp_v1";
+const MAX_MANUAL_ATP = 10;
+const API_REFRESH_SECONDS = 30;
 
 let currentMode = "balanced";
+let latestData = null;
+let latestAnalysis = null;
+let latestChartData = [];
+let manualAtpPlans = [];
+let nextApiUpdateAt = null;
 let autoRefreshTimer = null;
 let countdownTimer = null;
-let nextApiUpdateAt = null;
-
-const API_REFRESH_SECONDS = 30;
-const MAX_MANUAL_ATP = 10;
-const MANUAL_ATP_KEY = "gold_ai_manual_atp_v1";
-
 let previousPrice = null;
 let previousSignal = null;
 let soundEnabled = true;
-
-let latestChartData = [];
-let latestData = null;
-let latestAnalysis = null;
-
 let builderSide = "BUY";
-let manualAtpPlans = [];
 
 let chartIndicators = {
   ema: true,
@@ -32,6 +28,7 @@ let chartIndicators = {
 };
 
 let editorIndicatorState = {
+  levels: true,
   ema: true,
   rsi: false,
   macd: false,
@@ -43,6 +40,7 @@ let editorIndicatorState = {
 };
 
 let detailIndicatorState = {
+  levels: true,
   ema: true,
   rsi: true,
   macd: false,
@@ -50,37 +48,34 @@ let detailIndicatorState = {
   fvg: true,
   sr: true,
   fib: true,
-  atr: true,
-  levels: true
+  atr: true
 };
 
-/* =========================
-   BASIC HELPERS
-========================= */
+function $(id) {
+  return document.getElementById(id);
+}
 
 function setText(id, value) {
-  const node = document.getElementById(id);
+  const node = $(id);
   if (node) node.innerText = value ?? "-";
 }
 
 function setHtml(id, value) {
-  const node = document.getElementById(id);
+  const node = $(id);
   if (node) node.innerHTML = value ?? "";
 }
 
-function getSettingValue(id, fallback) {
-  const node = document.getElementById(id);
-  return node?.value || fallback;
+function getVal(id, fallback = "") {
+  return $(id)?.value ?? fallback;
 }
 
-function getNumberValue(id, fallback = 0) {
-  const node = document.getElementById(id);
-  const value = Number(node?.value);
-  return Number.isFinite(value) ? value : fallback;
+function getNum(id, fallback = 0) {
+  const n = Number($(id)?.value);
+  return Number.isFinite(n) ? n : fallback;
 }
 
-function setInputValue(id, value) {
-  const node = document.getElementById(id);
+function setInput(id, value) {
+  const node = $(id);
   if (node) node.value = value ?? "";
 }
 
@@ -90,8 +85,7 @@ function round2(value) {
 
 function money(value) {
   const n = Number(value);
-  if (!Number.isFinite(n)) return "-";
-  return n.toFixed(2);
+  return Number.isFinite(n) ? n.toFixed(2) : "-";
 }
 
 function signed(value) {
@@ -100,7 +94,7 @@ function signed(value) {
   return n >= 0 ? `+${n.toFixed(2)}` : n.toFixed(2);
 }
 
-function escapeHtml(text) {
+function esc(text) {
   return String(text ?? "")
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
@@ -109,10 +103,10 @@ function escapeHtml(text) {
     .replaceAll("'", "&#039;");
 }
 
-function formatThaiDateTime(value) {
-  if (!value || value === "-") return "-";
-
+function thaiTime(value) {
   try {
+    if (!value || value === "-") return "-";
+
     const d = new Date(value);
     if (isNaN(d.getTime())) return String(value);
 
@@ -127,58 +121,46 @@ function formatThaiDateTime(value) {
       second: "2-digit"
     });
   } catch (e) {
-    return String(value);
+    return String(value || "-");
   }
 }
 
-function formatCountdown(ms) {
-  const totalSec = Math.max(0, Math.ceil(ms / 1000));
-  const m = Math.floor(totalSec / 60);
-  const s = totalSec % 60;
-  if (m <= 0) return `${s}s`;
-  return `${m}m ${String(s).padStart(2, "0")}s`;
+function formatQuality(q) {
+  return {
+    A_STRONG: "A | Strong",
+    B_MEDIUM: "B | Medium",
+    C_WEAK: "C | Weak",
+    C_WAIT: "C | Wait"
+  }[q] || q || "-";
 }
 
-function formatSource(source) {
+function yesNo(value) {
+  return value === true ? "YES" : "NO";
+}
+
+function sourceName(source) {
   if (!source) return "-";
   if (source.includes("binance_vision_spot")) return "Binance Vision Spot PAXGUSDT";
   if (source.includes("binance_main_spot")) return "Binance Main Spot PAXGUSDT";
   if (source.includes("binance_futures")) return "Binance Futures PAXGUSDT";
   if (source.includes("binance_proxy")) return "Binance Proxy Cache";
-  if (source.includes("binance_paxgusdt")) return "Binance PAXGUSDT";
   if (source.includes("demo")) return "Demo/Fallback";
   return source;
 }
 
-function formatQuality(q) {
-  if (!q) return "-";
-  if (q === "A_STRONG") return "A | Strong";
-  if (q === "B_MEDIUM") return "B | Medium";
-  if (q === "C_WEAK") return "C | Weak";
-  if (q === "C_WAIT") return "C | Wait";
-  return q;
+function planReason(reason) {
+  return {
+    active_plan_created: "Created",
+    active_plan_running: "Locked: Active plan running",
+    current_signal_wait: "No plan: Current signal is WAIT",
+    demo_no_active_plan: "No plan: Demo/Fallback",
+    quality_not_allowed: "No plan: Quality not allowed",
+    missing_trade_plan: "No plan: Missing Entry/SL/TP"
+  }[reason] || reason || "-";
 }
 
-function formatYesNo(value) {
-  return value === true ? "YES" : "NO";
-}
-
-function formatFvg(fvg) {
-  if (!fvg) return "-";
-
-  const type =
-    fvg.type === "bullish" ? "Bullish" :
-    fvg.type === "bearish" ? "Bearish" :
-    fvg.type;
-
-  const status = fvg.status ? ` | ${fvg.status}` : "";
-  const distance = fvg.distanceFromPrice !== undefined ? ` | Δ ${fvg.distanceFromPrice}` : "";
-
-  return `${type} ${fvg.bottom}-${fvg.top}${status}${distance}`;
-}
-
-function formatTelegramReason(reason) {
-  const map = {
+function telegramReason(reason) {
+  return {
     sent: "ส่งสัญญาณ VIP เข้า Telegram แล้ว",
     vip_disabled: "ยังไม่ได้เปิด VIP",
     unauthorized_admin_key: "Admin Key ไม่ถูกต้อง หรือไม่ได้กรอก",
@@ -193,22 +175,7 @@ function formatTelegramReason(reason) {
     current_signal_wait: "ไม่ส่ง เพราะตอนนี้เป็น WAIT",
     quality_not_allowed: "ไม่ส่ง เพราะคุณภาพสัญญาณยังไม่ผ่าน",
     active_plan_not_created: "ไม่ส่ง เพราะยังไม่ได้สร้าง Active Plan"
-  };
-
-  return map[reason] || reason || "ไม่ทราบสาเหตุ";
-}
-
-function formatPlanReason(reason) {
-  const map = {
-    active_plan_created: "Created",
-    active_plan_running: "Locked: Active plan running",
-    current_signal_wait: "No plan: Current signal is WAIT",
-    demo_no_active_plan: "No plan: Demo/Fallback",
-    quality_not_allowed: "No plan: Quality not allowed",
-    missing_trade_plan: "No plan: Missing Entry/SL/TP"
-  };
-
-  return map[reason] || reason || "-";
+  }[reason] || reason || "ไม่ทราบสาเหตุ";
 }
 
 function getCurrentPrice() {
@@ -216,32 +183,35 @@ function getCurrentPrice() {
   return Number.isFinite(p) ? p : null;
 }
 
-function renderBulletListHtml(items, emptyText = "-") {
+function bullets(items, emptyText = "-") {
   if (!items || !items.length) {
-    return `<div class="mini-bullet-empty">${escapeHtml(emptyText)}</div>`;
+    return `<div class="mini-bullet-empty">${esc(emptyText)}</div>`;
   }
 
   return items
-    .map(item => `<div class="mini-bullet-item">• ${escapeHtml(item)}</div>`)
+    .map(item => `<div class="mini-bullet-item">• ${esc(item)}</div>`)
     .join("");
 }
 
-/* =========================
-   UI
-========================= */
+function formatCountdown(ms) {
+  const total = Math.max(0, Math.ceil(ms / 1000));
+  const m = Math.floor(total / 60);
+  const s = total % 60;
+  return m ? `${m}m ${String(s).padStart(2, "0")}s` : `${s}s`;
+}
 
 function showToast(title, message = "", type = "warning") {
-  const container = document.getElementById("toastContainer");
-  if (!container) return;
+  const box = $("toastContainer");
+  if (!box) return;
 
   const toast = document.createElement("div");
   toast.className = `toast toast-${type}`;
   toast.innerHTML = `
-    <strong>${escapeHtml(title)}</strong>
-    <div>${escapeHtml(message)}</div>
+    <strong>${esc(title)}</strong>
+    <div>${esc(message)}</div>
   `;
 
-  container.appendChild(toast);
+  box.appendChild(toast);
 
   setTimeout(() => {
     toast.style.opacity = "0";
@@ -252,7 +222,7 @@ function showToast(title, message = "", type = "warning") {
 }
 
 function renderList(id, items) {
-  const box = document.getElementById(id);
+  const box = $(id);
   if (!box) return;
 
   box.innerHTML = "";
@@ -270,41 +240,39 @@ function renderList(id, items) {
 }
 
 function toggleSection(bodyId, btn) {
-  const body = document.getElementById(bodyId);
+  const body = $(bodyId);
   if (!body) return;
 
   body.classList.toggle("closed");
-  if (btn) btn.innerText = body.classList.contains("closed") ? "รายละเอียด" : "ย่อ";
+
+  if (btn) {
+    btn.innerText = body.classList.contains("closed") ? "รายละเอียด" : "ย่อ";
+  }
 }
 
-/* =========================
-   HOME CLEAN FLOW
-========================= */
-
 function applyHomeCleanFlow() {
-  const aiSection = document.getElementById("section-plan");
-  const builderSection = document.getElementById("section-builder");
+  const aiSection = $("section-plan");
+  const builderSection = $("section-builder");
 
   if (aiSection) aiSection.style.display = "none";
   if (builderSection) builderSection.style.display = "none";
 
-  injectHomeCleanCurrentAnalysis();
-  injectAdvancedBuilderButton();
+  injectHomeSummary();
+  injectAdvancedButton();
   upgradeIndicatorButtons();
-  injectModalCssV36();
+  injectCssV37();
 }
 
-function injectHomeCleanCurrentAnalysis() {
-  const analysisBody = document.getElementById("analysisBody");
-  if (!analysisBody) return;
-  if (document.getElementById("homeCleanSummary")) return;
+function injectHomeSummary() {
+  const body = $("analysisBody");
+  if (!body || $("homeCleanSummary")) return;
 
-  const summary = document.createElement("div");
-  summary.id = "homeCleanSummary";
-  summary.className = "home-clean-summary";
-  summary.style.marginBottom = "16px";
+  const div = document.createElement("div");
+  div.id = "homeCleanSummary";
+  div.className = "home-clean-summary";
+  div.style.marginBottom = "16px";
 
-  summary.innerHTML = `
+  div.innerHTML = `
     <div class="mini-grid">
       <div class="mini-card"><span>Signal</span><b id="analysisSignal">-</b></div>
       <div class="mini-card"><span>Confidence</span><b id="analysisConfidence">-</b></div>
@@ -315,31 +283,30 @@ function injectHomeCleanCurrentAnalysis() {
     </div>
   `;
 
-  analysisBody.prepend(summary);
+  body.prepend(div);
 }
 
-function injectAdvancedBuilderButton() {
+function injectAdvancedButton() {
   const quickTrade = document.querySelector(".quick-trade-flow");
-  if (!quickTrade) return;
-  if (document.getElementById("advancedBuilderToggle")) return;
+  if (!quickTrade || $("advancedBuilderToggle")) return;
 
-  const box = document.createElement("div");
-  box.style.marginTop = "14px";
-  box.innerHTML = `
+  const div = document.createElement("div");
+  div.style.marginTop = "14px";
+  div.innerHTML = `
     <button id="advancedBuilderToggle" class="btn-main ghost" type="button" onclick="openAdvancedBuilder()">
       🧩 Advanced Plan Builder
     </button>
   `;
 
-  quickTrade.appendChild(box);
+  quickTrade.appendChild(div);
 }
 
 function openAdvancedBuilder() {
-  const builderSection = document.getElementById("section-builder");
-  if (!builderSection) return;
+  const builder = $("section-builder");
+  if (!builder) return;
 
-  builderSection.style.display = "block";
-  builderSection.scrollIntoView({ behavior: "smooth", block: "start" });
+  builder.style.display = "block";
+  builder.scrollIntoView({ behavior: "smooth", block: "start" });
   showToast("เปิด Advanced Plan Builder", "ใช้สำหรับแก้ Entry / SL / TP เองแบบละเอียด", "warning");
 }
 
@@ -347,30 +314,30 @@ function upgradeIndicatorButtons() {
   const row = document.querySelector(".indicator-toggle-row");
   if (!row) return;
 
-  if (!document.getElementById("toggleFvg")) {
+  if (!$("toggleFvg")) {
     const btn = document.createElement("button");
     btn.id = "toggleFvg";
     btn.className = "indicator-toggle";
     btn.type = "button";
     btn.onclick = () => toggleChartIndicator("fvg");
     btn.innerText = "FVG";
-    row.insertBefore(btn, document.getElementById("toggleRsi") || null);
+    row.insertBefore(btn, $("toggleRsi") || null);
   }
 
-  if (!document.getElementById("toggleSr")) {
+  if (!$("toggleSr")) {
     const btn = document.createElement("button");
     btn.id = "toggleSr";
     btn.className = "indicator-toggle";
     btn.type = "button";
     btn.onclick = () => toggleChartIndicator("sr");
     btn.innerText = "Support / Resistance";
-    row.insertBefore(btn, document.getElementById("toggleRsi") || null);
+    row.insertBefore(btn, $("toggleRsi") || null);
   }
 
   syncIndicatorButtons();
 }
 
-function updateHomeCleanSummary(s) {
+function updateHomeSummary(s) {
   setText("analysisSignal", s.signal || "-");
 
   const conf = Number(s.confidence || 0);
@@ -382,13 +349,29 @@ function updateHomeCleanSummary(s) {
   setText("analysisConfidence", confText);
   setText("analysisAiScore", s.aiScore !== undefined ? `${s.aiScore}/100` : "-");
   setText("analysisQuality", formatQuality(s.signalQuality));
-  setText("analysisVip", formatYesNo(s.vipAllowed));
-  setText("analysisAtpLock", formatPlanReason(s.activePlanReason));
+  setText("analysisVip", yesNo(s.vipAllowed));
+  setText("analysisAtpLock", planReason(s.activePlanReason));
 }
 
-/* =========================
-   SOUND
-========================= */
+function loadSoundSetting() {
+  const saved = localStorage.getItem("gold_ai_sound_enabled");
+  soundEnabled = saved !== "off";
+
+  if ($("soundIcon")) $("soundIcon").innerText = soundEnabled ? "🔊" : "🔇";
+  if ($("soundEnabledSelect")) $("soundEnabledSelect").value = soundEnabled ? "on" : "off";
+}
+
+function toggleSound() {
+  soundEnabled = !soundEnabled;
+  localStorage.setItem("gold_ai_sound_enabled", soundEnabled ? "on" : "off");
+  loadSoundSetting();
+}
+
+function applySoundSettingFromSelect() {
+  soundEnabled = getVal("soundEnabledSelect", "on") === "on";
+  localStorage.setItem("gold_ai_sound_enabled", soundEnabled ? "on" : "off");
+  loadSoundSetting();
+}
 
 function playTone(kind = "info") {
   if (!soundEnabled) return;
@@ -404,60 +387,18 @@ function playTone(kind = "info") {
     osc.connect(gain);
     gain.connect(ctx.destination);
 
-    if (kind === "success") osc.frequency.value = 880;
-    else if (kind === "danger") osc.frequency.value = 320;
-    else osc.frequency.value = 620;
-
+    osc.frequency.value = kind === "success" ? 880 : kind === "danger" ? 320 : 620;
     gain.gain.value = 0.001;
     osc.start();
 
     gain.gain.exponentialRampToValueAtTime(0.03, ctx.currentTime + 0.02);
     gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.25);
-
     osc.stop(ctx.currentTime + 0.28);
-  } catch (e) {
-    console.log("Sound blocked:", e);
-  }
+  } catch (e) {}
 }
-
-function loadSoundSetting() {
-  const saved = localStorage.getItem("gold_ai_sound_enabled");
-  soundEnabled = saved !== "off";
-
-  const icon = document.getElementById("soundIcon");
-  const select = document.getElementById("soundEnabledSelect");
-
-  if (icon) icon.innerText = soundEnabled ? "🔊" : "🔇";
-  if (select) select.value = soundEnabled ? "on" : "off";
-}
-
-function toggleSound() {
-  soundEnabled = !soundEnabled;
-  localStorage.setItem("gold_ai_sound_enabled", soundEnabled ? "on" : "off");
-  loadSoundSetting();
-
-  showToast(
-    soundEnabled ? "เปิดเสียงแจ้งเตือน" : "ปิดเสียงแจ้งเตือน",
-    soundEnabled ? "ระบบจะมีเสียงเบา ๆ เมื่อเกิด event สำคัญ" : "ระบบจะเงียบทั้งหมด",
-    "warning"
-  );
-}
-
-function applySoundSettingFromSelect() {
-  const select = document.getElementById("soundEnabledSelect");
-  if (!select) return;
-
-  soundEnabled = select.value === "on";
-  localStorage.setItem("gold_ai_sound_enabled", soundEnabled ? "on" : "off");
-  loadSoundSetting();
-}
-
-/* =========================
-   ADMIN
-========================= */
 
 function getAdminKey() {
-  return getSettingValue("adminKey", "").trim();
+  return getVal("adminKey", "").trim();
 }
 
 function requireAdminKey() {
@@ -472,45 +413,22 @@ function requireAdminKey() {
 }
 
 function toggleAdminPanel() {
-  const panel = document.getElementById("adminPanel");
+  const panel = $("adminPanel");
   if (!panel) return;
 
-  const isHidden = panel.style.display === "none" || panel.style.display === "";
-  panel.style.display = isHidden ? "block" : "none";
-
-  if (isHidden) {
-    showToast("เปิด Admin Panel", "ตั้งค่า Price Calibration / Telegram / VIP ได้ที่นี่", "warning");
-  }
+  panel.style.display =
+    panel.style.display === "none" || panel.style.display === "" ? "block" : "none";
 }
 
 function toggleAdminKey() {
-  const input = document.getElementById("adminKey");
-  if (!input) return;
-  input.type = input.type === "password" ? "text" : "password";
-}
-
-/* =========================
-   COUNTDOWN
-========================= */
-
-function updateApiCountdown() {
-  const el = document.getElementById("autoRefreshStatus");
-  const miniEl = document.getElementById("refreshCountdown");
-
-  if (!nextApiUpdateAt) return;
-
-  const remainMs = nextApiUpdateAt - Date.now();
-  const text = formatCountdown(remainMs);
-
-  if (el) el.innerText = `Next API update in ${text} | TV-Calibrated Proxy`;
-  if (miniEl) miniEl.innerText = text;
-
-  if (remainMs <= 0) loadSignal();
+  const input = $("adminKey");
+  if (input) input.type = input.type === "password" ? "text" : "password";
 }
 
 function setNextApiUpdate(value) {
   if (value) {
     const t = new Date(value).getTime();
+
     if (!isNaN(t)) {
       nextApiUpdateAt = t;
       updateApiCountdown();
@@ -522,9 +440,17 @@ function setNextApiUpdate(value) {
   updateApiCountdown();
 }
 
-/* =========================
-   API
-========================= */
+function updateApiCountdown() {
+  if (!nextApiUpdateAt) return;
+
+  const remainMs = nextApiUpdateAt - Date.now();
+  const text = formatCountdown(remainMs);
+
+  setText("autoRefreshStatus", `Next API update in ${text} | TV-Calibrated Proxy`);
+  setText("refreshCountdown", text);
+
+  if (remainMs <= 0) loadSignal();
+}
 
 async function loadSignal() {
   try {
@@ -542,7 +468,6 @@ async function loadSignal() {
 
     render(data);
     setNextApiUpdate(data.nextApiUpdate || data.signal?.nextCheck || data.currentAnalysis?.nextCheck);
-
   } catch (err) {
     console.error("Signal error:", err);
     setText("marketStatus", "ERROR");
@@ -551,15 +476,17 @@ async function loadSignal() {
 }
 
 async function sendVipSignal() {
-  const statusEl = document.getElementById("vipAlertStatus");
   const adminKey = requireAdminKey();
   if (!adminKey) return;
 
-  const minConf = getSettingValue("minConfidence", "75");
-  const cooldown = getSettingValue("cooldownMinutes", "30");
+  const minConf = getVal("minConfidence", "75");
+  const cooldown = getVal("cooldownMinutes", "30");
+  const statusEl = $("vipAlertStatus");
 
   try {
-    if (statusEl) statusEl.innerText = `VIP Alert: checking signal... | Min ${minConf}% | Cooldown ${cooldown}m`;
+    if (statusEl) {
+      statusEl.innerText = `VIP Alert: checking signal... | Min ${minConf}% | Cooldown ${cooldown}m`;
+    }
 
     const url =
       `${API_URL}?mode=${currentMode}` +
@@ -590,7 +517,7 @@ async function sendVipSignal() {
     render(data);
     setNextApiUpdate(data.nextApiUpdate || data.signal?.nextCheck || data.currentAnalysis?.nextCheck);
 
-    const reasonText = formatTelegramReason(data.telegramReason);
+    const reasonText = telegramReason(data.telegramReason);
 
     if (data.telegram === true) {
       if (statusEl) statusEl.innerText = `VIP Alert: ✅ sent | Min ${minConf}% | Cooldown ${cooldown}m`;
@@ -600,7 +527,6 @@ async function sendVipSignal() {
       if (statusEl) statusEl.innerText = "VIP Alert: " + reasonText;
       showToast("ยังไม่ส่ง Telegram", reasonText, "warning");
     }
-
   } catch (err) {
     console.error("VIP alert error:", err);
     if (statusEl) statusEl.innerText = "VIP Alert: ❌ connection error";
@@ -610,21 +536,25 @@ async function sendVipSignal() {
 }
 
 async function testTelegram() {
-  const statusEl = document.getElementById("telegramTestStatus");
   const adminKey = requireAdminKey();
   if (!adminKey) return;
+
+  const statusEl = $("telegramTestStatus");
 
   try {
     if (statusEl) statusEl.innerText = "Telegram: sending test...";
 
-    const res = await fetch(`${API_URL}?mode=test-telegram&admin_key=${encodeURIComponent(adminKey)}&t=${Date.now()}`, {
-      method: "GET",
-      cache: "no-store",
-      headers: {
-        "Cache-Control": "no-cache",
-        "Pragma": "no-cache"
+    const res = await fetch(
+      `${API_URL}?mode=test-telegram&admin_key=${encodeURIComponent(adminKey)}&t=${Date.now()}`,
+      {
+        method: "GET",
+        cache: "no-store",
+        headers: {
+          "Cache-Control": "no-cache",
+          "Pragma": "no-cache"
+        }
       }
-    });
+    );
 
     const data = await res.json();
 
@@ -644,7 +574,6 @@ async function testTelegram() {
       showToast("ส่ง Telegram ไม่สำเร็จ", data.reason || data.message || "unknown", "danger");
       playTone("danger");
     }
-
   } catch (err) {
     console.error("Telegram test error:", err);
     if (statusEl) statusEl.innerText = "Telegram: ❌ connection error";
@@ -654,21 +583,25 @@ async function testTelegram() {
 }
 
 async function resetActivePlan() {
-  const statusEl = document.getElementById("resetActiveStatus");
   const adminKey = requireAdminKey();
   if (!adminKey) return;
+
+  const statusEl = $("resetActiveStatus");
 
   try {
     if (statusEl) statusEl.innerText = "Active Plan Reset: resetting...";
 
-    const res = await fetch(`${API_URL}/reset-active-plan?admin_key=${encodeURIComponent(adminKey)}&t=${Date.now()}`, {
-      method: "GET",
-      cache: "no-store",
-      headers: {
-        "Cache-Control": "no-cache",
-        "Pragma": "no-cache"
+    const res = await fetch(
+      `${API_URL}/reset-active-plan?admin_key=${encodeURIComponent(adminKey)}&t=${Date.now()}`,
+      {
+        method: "GET",
+        cache: "no-store",
+        headers: {
+          "Cache-Control": "no-cache",
+          "Pragma": "no-cache"
+        }
       }
-    });
+    );
 
     const data = await res.json();
 
@@ -682,7 +615,6 @@ async function resetActivePlan() {
       showToast("Reset ไม่สำเร็จ", data.reason || data.message || "unknown", "danger");
       playTone("danger");
     }
-
   } catch (err) {
     console.error("Reset active plan error:", err);
     if (statusEl) statusEl.innerText = "Active Plan Reset: ❌ connection error";
@@ -690,10 +622,6 @@ async function resetActivePlan() {
     playTone("danger");
   }
 }
-
-/* =========================
-   CALIBRATION
-========================= */
 
 function updateCalibrationUiFromData(data) {
   if (!data) return;
@@ -709,8 +637,11 @@ function updateCalibrationUiFromData(data) {
 
   if (Number.isFinite(offset)) {
     setText("calibrationOffsetText", signed(offset));
-    const input = document.getElementById("calibrationOffsetInput");
-    if (input && document.activeElement !== input) input.value = offset.toFixed(2);
+
+    const input = $("calibrationOffsetInput");
+    if (input && document.activeElement !== input) {
+      input.value = offset.toFixed(2);
+    }
   }
 
   if (Number.isFinite(adjusted)) {
@@ -739,14 +670,16 @@ async function loadCalibrationInfo() {
 
     if (data.ok && data.calibration) {
       const offset = Number(data.calibration.priceOffset);
-      const input = document.getElementById("calibrationOffsetInput");
-      if (input && Number.isFinite(offset)) input.value = offset.toFixed(2);
+      const input = $("calibrationOffsetInput");
+
+      if (input && Number.isFinite(offset)) {
+        input.value = offset.toFixed(2);
+      }
 
       setText("calibrationMode", data.calibration.mode || "-");
       setText("calibrationSource", data.calibration.source || "-");
       setText("calibrationStatus", `Price Calibration: loaded offset ${signed(offset)}`);
     }
-
   } catch (err) {
     console.error("Load calibration error:", err);
     setText("calibrationStatus", "Price Calibration: load error");
@@ -754,12 +687,11 @@ async function loadCalibrationInfo() {
 }
 
 async function saveCalibrationOffset() {
-  const statusEl = document.getElementById("calibrationStatus");
   const adminKey = requireAdminKey();
   if (!adminKey) return;
 
-  const input = document.getElementById("calibrationOffsetInput");
-  const offset = Number(input?.value);
+  const statusEl = $("calibrationStatus");
+  const offset = Number($("calibrationOffsetInput")?.value);
 
   if (!Number.isFinite(offset) || offset < -50 || offset > 50) {
     showToast("Offset ไม่ถูกต้อง", "กรุณาใส่ค่าระหว่าง -50 ถึง +50", "danger");
@@ -768,7 +700,9 @@ async function saveCalibrationOffset() {
   }
 
   try {
-    if (statusEl) statusEl.innerText = `Price Calibration: saving offset ${signed(offset)}...`;
+    if (statusEl) {
+      statusEl.innerText = `Price Calibration: saving offset ${signed(offset)}...`;
+    }
 
     const url =
       `${API_URL}/calibration` +
@@ -789,33 +723,46 @@ async function saveCalibrationOffset() {
     const data = await res.json();
 
     if (data.ok === true) {
-      if (statusEl) statusEl.innerText = `Price Calibration: ✅ saved offset ${signed(offset)}`;
+      if (statusEl) {
+        statusEl.innerText = `Price Calibration: ✅ saved offset ${signed(offset)}`;
+      }
+
       showToast("บันทึก Offset สำเร็จ", `Offset ใหม่ = ${signed(offset)}`, "success");
       playTone("success");
+
       await loadSignal();
       await loadCalibrationInfo();
       return;
     }
 
-    if (statusEl) statusEl.innerText = `Price Calibration: ❌ ${data.reason || "save failed"}`;
+    if (statusEl) {
+      statusEl.innerText = `Price Calibration: ❌ ${data.reason || "save failed"}`;
+    }
+
     showToast("บันทึก Offset ไม่สำเร็จ", data.message || data.reason || "unknown", "danger");
     playTone("danger");
-
   } catch (err) {
     console.error("Save calibration error:", err);
-    if (statusEl) statusEl.innerText = "Price Calibration: ❌ connection error";
+
+    if (statusEl) {
+      statusEl.innerText = "Price Calibration: ❌ connection error";
+    }
+
     showToast("Calibration error", "เกิดปัญหาการเชื่อมต่อ", "danger");
     playTone("danger");
   }
 }
 
 async function resetCalibrationOffset() {
-  const statusEl = document.getElementById("calibrationStatus");
   const adminKey = requireAdminKey();
   if (!adminKey) return;
 
+  const statusEl = $("calibrationStatus");
+
   try {
-    if (statusEl) statusEl.innerText = "Price Calibration: resetting to +6.50...";
+    if (statusEl) {
+      statusEl.innerText = "Price Calibration: resetting to +6.50...";
+    }
 
     const url =
       `${API_URL}/calibration` +
@@ -836,10 +783,16 @@ async function resetCalibrationOffset() {
 
     if (data.ok === true) {
       const offset = Number(data.calibration?.priceOffset ?? 6.5);
-      const input = document.getElementById("calibrationOffsetInput");
-      if (input) input.value = offset.toFixed(2);
+      const input = $("calibrationOffsetInput");
 
-      if (statusEl) statusEl.innerText = `Price Calibration: ✅ reset to ${signed(offset)}`;
+      if (input) {
+        input.value = offset.toFixed(2);
+      }
+
+      if (statusEl) {
+        statusEl.innerText = `Price Calibration: ✅ reset to ${signed(offset)}`;
+      }
+
       showToast("Reset Offset สำเร็จ", `กลับไปใช้ค่า default ${signed(offset)}`, "success");
       playTone("success");
 
@@ -848,24 +801,26 @@ async function resetCalibrationOffset() {
       return;
     }
 
-    if (statusEl) statusEl.innerText = `Price Calibration: ❌ ${data.reason || "reset failed"}`;
+    if (statusEl) {
+      statusEl.innerText = `Price Calibration: ❌ ${data.reason || "reset failed"}`;
+    }
+
     showToast("Reset Offset ไม่สำเร็จ", data.message || data.reason || "unknown", "danger");
     playTone("danger");
-
   } catch (err) {
     console.error("Reset calibration error:", err);
-    if (statusEl) statusEl.innerText = "Price Calibration: ❌ connection error";
+
+    if (statusEl) {
+      statusEl.innerText = "Price Calibration: ❌ connection error";
+    }
+
     showToast("Calibration reset error", "เกิดปัญหาการเชื่อมต่อ", "danger");
     playTone("danger");
   }
 }
 
-/* =========================
-   ANIMATION / MODE
-========================= */
-
 function applyPriceAnimation(newPrice) {
-  const priceEl = document.getElementById("price");
+  const priceEl = $("price");
   if (!priceEl) return;
 
   priceEl.classList.remove("flash-up", "flash-down");
@@ -877,8 +832,11 @@ function applyPriceAnimation(newPrice) {
 
   const current = Number(newPrice);
 
-  if (current > previousPrice) priceEl.classList.add("flash-up");
-  else if (current < previousPrice) priceEl.classList.add("flash-down");
+  if (current > previousPrice) {
+    priceEl.classList.add("flash-up");
+  } else if (current < previousPrice) {
+    priceEl.classList.add("flash-down");
+  }
 
   setTimeout(() => {
     priceEl.classList.remove("flash-up", "flash-down");
@@ -888,20 +846,27 @@ function applyPriceAnimation(newPrice) {
 }
 
 function applySignalAnimation(signal) {
-  const el = document.getElementById("signal");
+  const el = $("signal");
   if (!el) return;
 
   el.classList.remove("signal-buy", "signal-sell", "signal-wait", "signal-pop");
 
-  if (signal === "BUY") el.classList.add("signal-buy");
-  else if (signal === "SELL") el.classList.add("signal-sell");
-  else el.classList.add("signal-wait");
+  if (signal === "BUY") {
+    el.classList.add("signal-buy");
+  } else if (signal === "SELL") {
+    el.classList.add("signal-sell");
+  } else {
+    el.classList.add("signal-wait");
+  }
 
   if (previousSignal !== null && previousSignal !== signal) {
     el.classList.add("signal-pop");
     showToast("Signal changed", `${previousSignal} → ${signal}`, "warning");
 
-    if (signal === "BUY" || signal === "SELL") playTone("info");
+    if (signal === "BUY" || signal === "SELL") {
+      playTone("info");
+    }
+
     setTimeout(() => el.classList.remove("signal-pop"), 300);
   }
 
@@ -909,9 +874,9 @@ function applySignalAnimation(signal) {
 }
 
 function updateModeLabel() {
-  const label = document.getElementById("modeLabel");
-  const title = document.getElementById("modeInfoTitle");
-  const text = document.getElementById("modeInfoText");
+  const label = $("modeLabel");
+  const title = $("modeInfoTitle");
+  const text = $("modeInfoText");
 
   if (currentMode === "fast") {
     if (label) label.innerText = "⚡ Scalping";
@@ -935,7 +900,7 @@ function setMode(mode) {
     btn.classList.remove("active");
   });
 
-  const activeBtn = document.getElementById(`mode-${mode}`);
+  const activeBtn = $(`mode-${mode}`);
   if (activeBtn) activeBtn.classList.add("active");
 
   updateModeLabel();
@@ -948,10 +913,6 @@ function setMode(mode) {
 
   loadSignal();
 }
-
-/* =========================
-   MAIN RENDER
-========================= */
 
 function render(data) {
   const s = data.currentAnalysis || data.signal || {};
@@ -973,11 +934,11 @@ function render(data) {
   setText("engine", s.engine || "-");
   setText("signalQuality", formatQuality(s.signalQuality));
   setText("aiScore", s.aiScore !== undefined ? `${s.aiScore}/100` : "-");
-  setText("vipAllowed", formatYesNo(s.vipAllowed));
+  setText("vipAllowed", yesNo(s.vipAllowed));
   setText("riskReward", s.riskReward ?? "-");
-  setText("activePlanReason", formatPlanReason(s.activePlanReason));
+  setText("activePlanReason", planReason(s.activePlanReason));
 
-  updateHomeCleanSummary(s);
+  updateHomeSummary(s);
 
   setText("trend", s.trend);
   setText("rsi", s.rsi);
@@ -988,7 +949,7 @@ function render(data) {
   setText("fibZone", s.fibZone);
   setText("trap", s.trap);
   setText("customMomentumIndex", s.customMomentumIndex ?? "-");
-  setText("nearestFvg", formatFvg(s.nearestFvg));
+  setText("nearestFvg", formatFvgText(s.nearestFvg));
 
   setText("entry", s.entry);
   setText("sl", s.sl || "-");
@@ -1006,31 +967,31 @@ function render(data) {
 
   setText("confidence", confText);
 
-  setText("signalTime", formatThaiDateTime(s.signalTime || data.updated));
-  setText("validUntil", formatThaiDateTime(s.validUntil));
-  setText("nextCheck", formatThaiDateTime(s.nextCheck || data.nextApiUpdate));
+  setText("signalTime", thaiTime(s.signalTime || data.updated));
+  setText("validUntil", thaiTime(s.validUntil));
+  setText("nextCheck", thaiTime(s.nextCheck || data.nextApiUpdate));
   setText("candleInterval", s.candleInterval || "15min");
-  setText("signalSource", formatSource(s.source || data.source));
-  setText("priceSource", formatSource(data.priceSource || data.source));
-  setText("chartSource", formatSource(data.chartSource || data.source));
+  setText("signalSource", sourceName(s.source || data.source));
+  setText("priceSource", sourceName(data.priceSource || data.source));
+  setText("chartSource", sourceName(data.chartSource || data.source));
   setText("lastCandleTime", s.candleTime || "-");
-  setText("nextApiUpdate", formatThaiDateTime(data.nextApiUpdate || s.nextCheck));
+  setText("nextApiUpdate", thaiTime(data.nextApiUpdate || s.nextCheck));
 
-  const validNote = document.getElementById("validNote");
+  const validNote = $("validNote");
   if (validNote) {
     validNote.innerText =
       s.validNote ||
       "ระบบอัปเดตข้อมูลตามรอบ API และใช้ข้อมูลจริงจาก Binance Futures PAXGUSDT + Offset";
   }
 
-  const chartSourceText = document.getElementById("chartSourceText");
+  const chartSourceText = $("chartSourceText");
   if (chartSourceText) {
     chartSourceText.innerText =
       data.dataNotice ||
       "กราฟนี้วาดจาก Binance Futures PAXGUSDT 15m candles + Offset";
   }
 
-  const sourceNotice = document.getElementById("sourceNotice");
+  const sourceNotice = $("sourceNotice");
   if (sourceNotice) {
     sourceNotice.innerText =
       data.proxyNotice ||
@@ -1053,7 +1014,7 @@ function render(data) {
     learning.winRate === null || learning.winRate === undefined ? "-" : `${learning.winRate}%`
   );
 
-  const learningNote = document.getElementById("learningNote");
+  const learningNote = $("learningNote");
   if (learningNote) {
     learningNote.innerText =
       learning.note || "Learning จะเริ่มมีผลเมื่อมีข้อมูลย้อนหลังมากพอ";
@@ -1064,24 +1025,18 @@ function render(data) {
 
   updateManualAtpByPrice(Number(data.price));
   renderManualAtp();
-
-  // ถ้า modal เปิดอยู่ ให้รีเฟรชกราฟ/ข้อมูลด้วย
   refreshOpenModalsIfNeeded();
 }
 
 function refreshOpenModalsIfNeeded() {
-  if (document.getElementById("atpEditorModal")) {
+  if ($("atpEditorModal")) {
     refreshEditorPreview();
   }
 
-  if (document.getElementById("atpDetailModal")) {
+  if ($("atpDetailModal")) {
     redrawOpenDetailChart();
   }
 }
-
-/* =========================
-   AI ACTIVE PLAN RENDER
-========================= */
 
 function renderActivePlan(plan) {
   if (!plan) {
@@ -1122,20 +1077,31 @@ function renderActivePlan(plan) {
   setText("activeTp2", plan.tp2 ?? "-");
   setText("activeTp3", plan.tp3 ?? "-");
   setText("activeLastPrice", plan.lastPrice ?? "-");
-  setText("activeCreatedAt", formatThaiDateTime(plan.createdAt));
-  setText("activeExpiresAt", formatThaiDateTime(plan.expiresAt));
-  setText("activeClosedAt", formatThaiDateTime(plan.closedAt));
+  setText("activeCreatedAt", thaiTime(plan.createdAt));
+  setText("activeExpiresAt", thaiTime(plan.expiresAt));
+  setText("activeClosedAt", thaiTime(plan.closedAt));
   setText("activeResult", plan.result || "-");
   setText("activeHitType", plan.hitType || "-");
   setText("activeHitPrice", plan.hitPrice ?? "-");
 }
 
-/* =========================
-   INDICATORS / CHART UTILS
-========================= */
+function formatFvgText(fvg) {
+  if (!fvg) return "-";
+
+  const type =
+    fvg.type === "bullish" ? "Bullish" :
+    fvg.type === "bearish" ? "Bearish" :
+    fvg.type;
+
+  const status = fvg.status ? ` | ${fvg.status}` : "";
+  const distance = fvg.distanceFromPrice !== undefined ? ` | Δ ${fvg.distanceFromPrice}` : "";
+
+  return `${type} ${fvg.bottom}-${fvg.top}${status}${distance}`;
+}
 
 function toggleChartIndicator(name) {
   if (!Object.prototype.hasOwnProperty.call(chartIndicators, name)) return;
+
   chartIndicators[name] = !chartIndicators[name];
   syncIndicatorButtons();
   drawApiChart(latestChartData);
@@ -1152,7 +1118,7 @@ function syncIndicatorButtons() {
   };
 
   Object.entries(map).forEach(([id, active]) => {
-    const btn = document.getElementById(id);
+    const btn = $(id);
     if (btn) btn.classList.toggle("active", active);
   });
 }
@@ -1202,6 +1168,7 @@ function rsiSeries(values, period = 14) {
 
     for (let j = i - period + 1; j <= i; j++) {
       const diff = values[j] - values[j - 1];
+
       if (diff > 0) gains += diff;
       else losses += Math.abs(diff);
     }
@@ -1288,6 +1255,35 @@ function normalizeCandles(candles) {
     );
 }
 
+function prepareHiDpiCanvas(canvas) {
+  const dpr = Math.max(1, window.devicePixelRatio || 1);
+  const rect = canvas.getBoundingClientRect();
+
+  let cssW = Math.round(rect.width || canvas.clientWidth || canvas.width || 1000);
+  let cssH = Math.round(rect.height || canvas.clientHeight || canvas.height || 420);
+
+  if (cssW < 20) cssW = Number(canvas.getAttribute("width")) || 1000;
+  if (cssH < 20) cssH = Number(canvas.getAttribute("height")) || 420;
+
+  const targetW = Math.max(1, Math.round(cssW * dpr));
+  const targetH = Math.max(1, Math.round(cssH * dpr));
+
+  if (canvas.width !== targetW || canvas.height !== targetH) {
+    canvas.width = targetW;
+    canvas.height = targetH;
+  }
+
+  const ctx = canvas.getContext("2d", { alpha: false });
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.imageSmoothingEnabled = false;
+
+  return { ctx, w: cssW, h: cssH, dpr };
+}
+
+function crisp(v) {
+  return Math.round(v) + 0.5;
+}
+
 function drawSeriesLine(ctx, series, helper, strokeStyle, width = 1.5, dash = [], basePrice = null) {
   ctx.save();
   ctx.strokeStyle = strokeStyle;
@@ -1336,10 +1332,12 @@ function getChartRange(candles, indicators = chartIndicators, plan = null) {
 
   if (indicators.bollinger) {
     const bb = bollingerSeries(closes, 20, 2);
+
     bb.upper.forEach(v => {
       const safe = safePrice(v, lastPrice);
       if (safe !== null) max = Math.max(max, safe);
     });
+
     bb.lower.forEach(v => {
       const safe = safePrice(v, lastPrice);
       if (safe !== null) min = Math.min(min, safe);
@@ -1349,6 +1347,7 @@ function getChartRange(candles, indicators = chartIndicators, plan = null) {
   if (indicators.sr) {
     const support = safePrice(latestAnalysis?.support, lastPrice);
     const resistance = safePrice(latestAnalysis?.resistance, lastPrice);
+
     if (support !== null) min = Math.min(min, support);
     if (resistance !== null) max = Math.max(max, resistance);
   }
@@ -1356,6 +1355,7 @@ function getChartRange(candles, indicators = chartIndicators, plan = null) {
   if (indicators.fvg && latestAnalysis?.nearestFvg) {
     const top = safePrice(latestAnalysis.nearestFvg.top, lastPrice);
     const bottom = safePrice(latestAnalysis.nearestFvg.bottom, lastPrice);
+
     if (top !== null) max = Math.max(max, top);
     if (bottom !== null) min = Math.min(min, bottom);
   }
@@ -1363,6 +1363,7 @@ function getChartRange(candles, indicators = chartIndicators, plan = null) {
   if (plan && indicators.levels) {
     [plan.entry, plan.sl, plan.tp1, plan.tp2, plan.tp3].forEach(v => {
       const safe = safePrice(v, lastPrice);
+
       if (safe !== null) {
         min = Math.min(min, safe);
         max = Math.max(max, safe);
@@ -1371,7 +1372,8 @@ function getChartRange(candles, indicators = chartIndicators, plan = null) {
   }
 
   let range = Math.max(8, max - min);
-  const pad = range * 0.12;
+  const pad = range * 0.11;
+
   min -= pad;
   max += pad;
   range = Math.max(8, max - min);
@@ -1379,12 +1381,8 @@ function getChartRange(candles, indicators = chartIndicators, plan = null) {
   return { min, max, range, lastPrice };
 }
 
-/* =========================
-   MAIN CLEAN CHART
-========================= */
-
 function drawApiChart(rawCandles) {
-  const canvas = document.getElementById("apiChartCanvas");
+  const canvas = $("apiChartCanvas");
   if (!canvas) return;
 
   drawCleanChart({
@@ -1392,7 +1390,7 @@ function drawApiChart(rawCandles) {
     rawCandles,
     indicators: chartIndicators,
     plan: null,
-    footer: "Clean Chart v36 | ATP levels hidden | Indicators ON/OFF",
+    footer: "Clean Chart v37 | Sharp HiDPI | ATP levels hidden",
     showLevels: false
   });
 }
@@ -1405,15 +1403,17 @@ function drawCleanChart({
   footer = "Gold AI Pro Chart",
   showLevels = false
 }) {
-  const ctx = canvas.getContext("2d");
-  const w = canvas.width;
-  const h = canvas.height;
+  const { ctx, w, h } = prepareHiDpiCanvas(canvas);
 
   ctx.clearRect(0, 0, w, h);
   ctx.fillStyle = "#080a0d";
   ctx.fillRect(0, 0, w, h);
 
-  const candles = normalizeCandles(rawCandles);
+  let candles = normalizeCandles(rawCandles);
+
+  if (candles.length > 96) {
+    candles = candles.slice(-96);
+  }
 
   if (!candles || candles.length < 5) {
     ctx.fillStyle = "#9aa3b2";
@@ -1425,13 +1425,13 @@ function drawCleanChart({
   const closes = candles.map(c => c.close);
   const { min, max, range, lastPrice } = getChartRange(candles, indicators, plan);
 
-  const padLeft = 56;
-  const padRight = 90;
-  const padTop = 24;
+  const padLeft = 44;
+  const padRight = 78;
+  const padTop = 22;
 
-  let padBottom = 42;
-  if (indicators.rsi && indicators.macd) padBottom = 170;
-  else if (indicators.rsi || indicators.macd) padBottom = 104;
+  let padBottom = 34;
+  if (indicators.rsi && indicators.macd) padBottom = 154;
+  else if (indicators.rsi || indicators.macd) padBottom = 92;
 
   const plotW = w - padLeft - padRight;
   const plotH = h - padTop - padBottom;
@@ -1446,22 +1446,22 @@ function drawCleanChart({
 
   const helper = { xAt, yAt, padLeft, padRight, padTop, padBottom, plotW, plotH, w, h };
 
-  ctx.strokeStyle = "rgba(255,255,255,0.08)";
+  ctx.strokeStyle = "rgba(255,255,255,0.075)";
   ctx.lineWidth = 1;
 
   for (let i = 0; i <= 4; i++) {
-    const y = padTop + (i / 4) * plotH;
+    const y = crisp(padTop + (i / 4) * plotH);
     ctx.beginPath();
-    ctx.moveTo(padLeft, y);
-    ctx.lineTo(w - padRight, y);
+    ctx.moveTo(crisp(padLeft), y);
+    ctx.lineTo(crisp(w - padRight), y);
     ctx.stroke();
   }
 
   for (let i = 0; i <= 6; i++) {
-    const x = padLeft + (i / 6) * plotW;
+    const x = crisp(padLeft + (i / 6) * plotW);
     ctx.beginPath();
-    ctx.moveTo(x, padTop);
-    ctx.lineTo(x, h - padBottom);
+    ctx.moveTo(x, crisp(padTop));
+    ctx.lineTo(x, crisp(h - padBottom));
     ctx.stroke();
   }
 
@@ -1475,19 +1475,20 @@ function drawCleanChart({
 
   if (indicators.bollinger) {
     const bb = bollingerSeries(closes, 20, 2);
-    drawSeriesLine(ctx, bb.upper, helper, "rgba(74, 163, 255, 0.55)", 1.25, [5, 5], lastPrice);
-    drawSeriesLine(ctx, bb.mid, helper, "rgba(245, 197, 66, 0.48)", 1.1, [3, 5], lastPrice);
-    drawSeriesLine(ctx, bb.lower, helper, "rgba(74, 163, 255, 0.55)", 1.25, [5, 5], lastPrice);
+    drawSeriesLine(ctx, bb.upper, helper, "rgba(74, 163, 255, 0.58)", 1.25, [5, 5], lastPrice);
+    drawSeriesLine(ctx, bb.mid, helper, "rgba(245, 197, 66, 0.48)", 1.15, [3, 5], lastPrice);
+    drawSeriesLine(ctx, bb.lower, helper, "rgba(74, 163, 255, 0.58)", 1.25, [5, 5], lastPrice);
   }
 
   if (indicators.ema) {
     const ema9 = emaSeries(closes, 9);
     const ema21 = emaSeries(closes, 21);
-    drawSeriesLine(ctx, ema9, helper, "rgba(255, 223, 126, 0.95)", 1.9, [], lastPrice);
-    drawSeriesLine(ctx, ema21, helper, "rgba(255, 255, 255, 0.55)", 1.55, [], lastPrice);
+    drawSeriesLine(ctx, ema9, helper, "rgba(255, 223, 126, 0.98)", 1.85, [], lastPrice);
+    drawSeriesLine(ctx, ema21, helper, "rgba(255, 255, 255, 0.60)", 1.55, [], lastPrice);
   }
 
-  const candleW = Math.max(3, Math.floor(plotW / candles.length * 0.55));
+  const space = plotW / Math.max(1, candles.length - 1);
+  const candleW = Math.max(4, Math.min(14, space * 0.78));
 
   candles.forEach((c, i) => {
     const x = xAt(i);
@@ -1501,15 +1502,22 @@ function drawCleanChart({
 
     ctx.strokeStyle = color;
     ctx.fillStyle = color;
+    ctx.lineWidth = 1.25;
 
     ctx.beginPath();
-    ctx.moveTo(x, yHigh);
-    ctx.lineTo(x, yLow);
+    ctx.moveTo(crisp(x), yHigh);
+    ctx.lineTo(crisp(x), yLow);
     ctx.stroke();
 
     const bodyTop = Math.min(yOpen, yClose);
     const bodyH = Math.max(2, Math.abs(yOpen - yClose));
-    ctx.fillRect(x - candleW / 2, bodyTop, candleW, bodyH);
+
+    ctx.fillRect(
+      Math.round(x - candleW / 2),
+      Math.round(bodyTop),
+      Math.round(candleW),
+      Math.round(bodyH)
+    );
   });
 
   if (showLevels && plan && indicators.levels) {
@@ -1519,15 +1527,16 @@ function drawCleanChart({
   const yLast = yAt(lastPrice);
 
   ctx.setLineDash([5, 5]);
-  ctx.strokeStyle = "rgba(245,197,66,0.55)";
+  ctx.strokeStyle = "rgba(245,197,66,0.56)";
+  ctx.lineWidth = 1;
   ctx.beginPath();
-  ctx.moveTo(padLeft, yLast);
-  ctx.lineTo(w - padRight, yLast);
+  ctx.moveTo(crisp(padLeft), yLast);
+  ctx.lineTo(crisp(w - padRight), yLast);
   ctx.stroke();
   ctx.setLineDash([]);
 
   ctx.fillStyle = "#f5c542";
-  ctx.fillRect(w - padRight + 8, yLast - 13, 72, 26);
+  ctx.fillRect(w - padRight + 8, yLast - 13, 70, 26);
   ctx.fillStyle = "#111";
   ctx.font = "bold 13px sans-serif";
   ctx.fillText(String(lastPrice.toFixed(2)), w - padRight + 12, yLast + 5);
@@ -1551,11 +1560,11 @@ function drawCleanChart({
 
 function drawPlanLevels(ctx, plan, helper, basePrice) {
   const levels = [
-    { label: "ENTRY", value: plan.entry, color: "rgba(245,197,66,0.9)" },
-    { label: "SL", value: plan.sl, color: "rgba(255,69,94,0.9)" },
+    { label: "ENTRY", value: plan.entry, color: "rgba(245,197,66,0.95)" },
+    { label: "SL", value: plan.sl, color: "rgba(255,69,94,0.95)" },
     { label: "TP1", value: plan.tp1, color: "rgba(0,200,83,0.95)" },
     { label: "TP2", value: plan.tp2, color: "rgba(0,200,83,0.75)" },
-    { label: "TP3", value: plan.tp3, color: "rgba(0,200,83,0.6)" }
+    { label: "TP3", value: plan.tp3, color: "rgba(0,200,83,0.60)" }
   ];
 
   ctx.save();
@@ -1567,9 +1576,10 @@ function drawPlanLevels(ctx, plan, helper, basePrice) {
     const y = helper.yAt(price);
     ctx.setLineDash([5, 5]);
     ctx.strokeStyle = level.color;
+    ctx.lineWidth = 1.1;
     ctx.beginPath();
-    ctx.moveTo(helper.padLeft, y);
-    ctx.lineTo(helper.w - helper.padRight, y);
+    ctx.moveTo(crisp(helper.padLeft), y);
+    ctx.lineTo(crisp(helper.w - helper.padRight), y);
     ctx.stroke();
 
     ctx.setLineDash([]);
@@ -1591,9 +1601,10 @@ function drawSupportResistance(ctx, supportRaw, resistanceRaw, helper, basePrice
     const y = helper.yAt(support);
     ctx.setLineDash([8, 6]);
     ctx.strokeStyle = "rgba(0,200,83,0.55)";
+    ctx.lineWidth = 1;
     ctx.beginPath();
-    ctx.moveTo(helper.padLeft, y);
-    ctx.lineTo(helper.w - helper.padRight, y);
+    ctx.moveTo(crisp(helper.padLeft), y);
+    ctx.lineTo(crisp(helper.w - helper.padRight), y);
     ctx.stroke();
 
     ctx.fillStyle = "rgba(0,200,83,0.95)";
@@ -1605,9 +1616,10 @@ function drawSupportResistance(ctx, supportRaw, resistanceRaw, helper, basePrice
     const y = helper.yAt(resistance);
     ctx.setLineDash([8, 6]);
     ctx.strokeStyle = "rgba(255,69,94,0.55)";
+    ctx.lineWidth = 1;
     ctx.beginPath();
-    ctx.moveTo(helper.padLeft, y);
-    ctx.lineTo(helper.w - helper.padRight, y);
+    ctx.moveTo(crisp(helper.padLeft), y);
+    ctx.lineTo(crisp(helper.w - helper.padRight), y);
     ctx.stroke();
 
     ctx.fillStyle = "rgba(255,69,94,0.95)";
@@ -1626,7 +1638,7 @@ function drawFvgZone(ctx, fvg, helper, basePrice) {
 
   const yTop = helper.yAt(top);
   const yBottom = helper.yAt(bottom);
-  const h = Math.max(4, Math.abs(yBottom - yTop));
+  const zoneH = Math.max(4, Math.abs(yBottom - yTop));
   const y = Math.min(yTop, yBottom);
   const bullish = fvg.type === "bullish";
 
@@ -1634,10 +1646,11 @@ function drawFvgZone(ctx, fvg, helper, basePrice) {
 
   ctx.fillStyle = bullish ? "rgba(0,200,83,0.12)" : "rgba(255,69,94,0.12)";
   ctx.strokeStyle = bullish ? "rgba(0,200,83,0.38)" : "rgba(255,69,94,0.38)";
+  ctx.lineWidth = 1;
   ctx.setLineDash([5, 5]);
 
-  ctx.fillRect(helper.padLeft, y, helper.plotW, h);
-  ctx.strokeRect(helper.padLeft, y, helper.plotW, h);
+  ctx.fillRect(helper.padLeft, y, helper.plotW, zoneH);
+  ctx.strokeRect(crisp(helper.padLeft), crisp(y), helper.plotW, zoneH);
 
   ctx.setLineDash([]);
   ctx.fillStyle = bullish ? "rgba(0,200,83,0.95)" : "rgba(255,69,94,0.95)";
@@ -1660,7 +1673,8 @@ function drawRsiPanel(ctx, candles, helper) {
   ctx.fillRect(helper.padLeft, top, helper.plotW, panelH);
 
   ctx.strokeStyle = "rgba(255,255,255,0.10)";
-  ctx.strokeRect(helper.padLeft, top, helper.plotW, panelH);
+  ctx.lineWidth = 1;
+  ctx.strokeRect(crisp(helper.padLeft), crisp(top), helper.plotW, panelH);
 
   function yRsi(v) {
     return top + ((100 - v) / 100) * panelH;
@@ -1671,8 +1685,8 @@ function drawRsiPanel(ctx, candles, helper) {
     ctx.setLineDash(level === 50 ? [2, 4] : [4, 5]);
     ctx.strokeStyle = level === 50 ? "rgba(255,255,255,.16)" : "rgba(245,197,66,.22)";
     ctx.beginPath();
-    ctx.moveTo(helper.padLeft, y);
-    ctx.lineTo(helper.w - helper.padRight, y);
+    ctx.moveTo(crisp(helper.padLeft), y);
+    ctx.lineTo(crisp(helper.w - helper.padRight), y);
     ctx.stroke();
 
     ctx.fillStyle = "#9aa3b2";
@@ -1688,6 +1702,7 @@ function drawRsiPanel(ctx, candles, helper) {
 
   values.forEach((v, i) => {
     if (!Number.isFinite(Number(v))) return;
+
     const x = helper.xAt(i);
     const y = yRsi(Number(v));
 
@@ -1728,12 +1743,13 @@ function drawMacdPanel(ctx, candles, helper, indicators) {
   ctx.fillRect(helper.padLeft, top, helper.plotW, panelH);
 
   ctx.strokeStyle = "rgba(255,255,255,0.10)";
-  ctx.strokeRect(helper.padLeft, top, helper.plotW, panelH);
+  ctx.lineWidth = 1;
+  ctx.strokeRect(crisp(helper.padLeft), crisp(top), helper.plotW, panelH);
 
   ctx.strokeStyle = "rgba(255,255,255,0.18)";
   ctx.beginPath();
-  ctx.moveTo(helper.padLeft, zeroY);
-  ctx.lineTo(helper.w - helper.padRight, zeroY);
+  ctx.moveTo(crisp(helper.padLeft), zeroY);
+  ctx.lineTo(crisp(helper.w - helper.padRight), zeroY);
   ctx.stroke();
 
   function yMacd(v) {
@@ -1742,12 +1758,18 @@ function drawMacdPanel(ctx, candles, helper, indicators) {
 
   m.hist.forEach((v, i) => {
     if (!Number.isFinite(Number(v))) return;
+
     const x = helper.xAt(i);
     const y = yMacd(v);
     const up = v >= 0;
 
     ctx.fillStyle = up ? "rgba(0,200,83,.55)" : "rgba(255,69,94,.55)";
-    ctx.fillRect(x - 2, Math.min(y, zeroY), 4, Math.max(1, Math.abs(y - zeroY)));
+    ctx.fillRect(
+      Math.round(x - 2),
+      Math.round(Math.min(y, zeroY)),
+      4,
+      Math.round(Math.max(1, Math.abs(y - zeroY)))
+    );
   });
 
   const macdHelper = { ...helper, yAt: yMacd };
@@ -1761,10 +1783,6 @@ function drawMacdPanel(ctx, candles, helper, indicators) {
 
   ctx.restore();
 }
-
-/* =========================
-   THAI GOLD
-========================= */
 
 async function loadThaiGold() {
   try {
@@ -1784,19 +1802,15 @@ async function loadThaiGold() {
     setText("thai_sell", g.barSell || "-");
     setText("thai_buy_jewelry", g.jewelryBuy || "-");
     setText("thai_sell_jewelry", g.jewelrySell || "-");
-
   } catch (e) {
     console.log("Thai gold error:", e);
+
     setText("thai_buy", "-");
     setText("thai_sell", "-");
     setText("thai_buy_jewelry", "-");
     setText("thai_sell_jewelry", "-");
   }
 }
-
-/* =========================
-   ATP EDITOR FLOW
-========================= */
 
 function quickCreateAtp(side) {
   const price = getCurrentPrice();
@@ -1822,8 +1836,13 @@ function buildSuggestedPlan(side, mode = currentMode, entryStyle = "current") {
   let entry = price;
 
   if (entryStyle === "support_resistance") {
-    if (side === "BUY" && Number.isFinite(support)) entry = Math.max(support + 1, price - risk * 0.35);
-    if (side === "SELL" && Number.isFinite(resistance)) entry = Math.min(resistance - 1, price + risk * 0.35);
+    if (side === "BUY" && Number.isFinite(support)) {
+      entry = Math.max(support + 1, price - risk * 0.35);
+    }
+
+    if (side === "SELL" && Number.isFinite(resistance)) {
+      entry = Math.min(resistance - 1, price + risk * 0.35);
+    }
   }
 
   if (entryStyle === "fvg" && nearestFvg && Number.isFinite(Number(nearestFvg.midpoint))) {
@@ -1878,34 +1897,34 @@ function getBuilderRiskByMode(mode) {
 function openAtpEditorModal(plan) {
   closeAtpEditorModal();
 
-  editorIndicatorState = { ...editorIndicatorState, ...(plan.indicators || {}) };
+  editorIndicatorState = { ...editorIndicatorState, ...(plan.indicators || {}), levels: true };
 
   const modal = document.createElement("div");
   modal.id = "atpEditorModal";
-  modal.className = "atp-modal-backdrop-v36";
+  modal.className = "atp-modal-backdrop-v37";
 
   modal.innerHTML = `
-    <div class="atp-modal-v36">
-      <div class="atp-modal-head-v36">
+    <div class="atp-modal-v37">
+      <div class="atp-modal-head-v37">
         <div>
-          <div class="atp-modal-title-v36">
+          <div class="atp-modal-title-v37">
             <span class="atp-badge ${plan.side === "BUY" ? "buy" : "sell"}">${plan.side}</span>
             <h2>ATP Editor</h2>
           </div>
           <p>เลือก BUY / SELL แล้ว ปรับแผนเองก่อนกด Lock Plan</p>
         </div>
-        <button class="atp-modal-close-v36" type="button" onclick="closeAtpEditorModal()">ปิด</button>
+        <button class="atp-modal-close-v37" type="button" onclick="closeAtpEditorModal()">ปิด</button>
       </div>
 
-      <div class="atp-chart-panel-v36">
+      <div class="atp-chart-panel-v37">
         <canvas id="atpEditorChart" width="1280" height="480"></canvas>
       </div>
 
-      <div class="atp-indicator-row-v36" id="editorIndicatorRow">
+      <div class="atp-indicator-row-v37" id="editorIndicatorRow">
         ${renderIndicatorButtonsHtml("editor")}
       </div>
 
-      <div class="atp-form-grid-v36 atp-form-grid-top">
+      <div class="atp-form-grid-v37 atp-form-grid-top">
         <label>
           <span>Side</span>
           <select id="editorSide" onchange="recalculateEditorFromInputs()">
@@ -1944,7 +1963,7 @@ function openAtpEditorModal(plan) {
         </label>
       </div>
 
-      <div class="atp-form-grid-v36 atp-form-grid-levels">
+      <div class="atp-form-grid-v37 atp-form-grid-levels">
         <label><span>Entry</span><input id="editorEntry" type="number" step="0.01" value="${money(plan.entry)}" oninput="refreshEditorPreview()" /></label>
         <label><span>SL</span><input id="editorSl" type="number" step="0.01" value="${money(plan.sl)}" oninput="refreshEditorPreview()" /></label>
         <label><span>TP1</span><input id="editorTp1" type="number" step="0.01" value="${money(plan.tp1)}" oninput="refreshEditorPreview()" /></label>
@@ -1952,31 +1971,31 @@ function openAtpEditorModal(plan) {
         <label><span>TP3</span><input id="editorTp3" type="number" step="0.01" value="${money(plan.tp3)}" oninput="refreshEditorPreview()" /></label>
       </div>
 
-      <label class="atp-note-label-v36">
+      <label class="atp-note-label-v37">
         <span>Note</span>
-        <input id="editorNote" type="text" placeholder="บันทึกเหตุผลหรือราคาปัจจุบัน" value="${escapeHtml(plan.note || "")}" />
+        <input id="editorNote" type="text" placeholder="บันทึกเหตุผลหรือราคาปัจจุบัน" value="${esc(plan.note || "")}" />
       </label>
 
-      <div class="atp-score-grid-v36">
-        <div class="atp-stat-card-v36"><span>Plan Score</span><b id="editorPlanScore">-</b></div>
-        <div class="atp-stat-card-v36"><span>Quality</span><b id="editorPlanQuality">-</b></div>
-        <div class="atp-stat-card-v36"><span>RR TP1</span><b id="editorRr1">-</b></div>
-        <div class="atp-stat-card-v36"><span>RR TP3</span><b id="editorRr3">-</b></div>
+      <div class="atp-score-grid-v37">
+        <div class="atp-stat-card-v37"><span>Plan Score</span><b id="editorPlanScore">-</b></div>
+        <div class="atp-stat-card-v37"><span>Quality</span><b id="editorPlanQuality">-</b></div>
+        <div class="atp-stat-card-v37"><span>RR TP1</span><b id="editorRr1">-</b></div>
+        <div class="atp-stat-card-v37"><span>RR TP3</span><b id="editorRr3">-</b></div>
       </div>
 
-      <div class="atp-insight-grid-v36">
-        <div class="atp-insight-card-v36">
+      <div class="atp-insight-grid-v37">
+        <div class="atp-insight-card-v37">
           <h3>บทเรียน</h3>
-          <div id="editorLessonList">${renderBulletListHtml([], "กำลังวิเคราะห์...")}</div>
+          <div id="editorLessonList">${bullets([], "กำลังวิเคราะห์...")}</div>
         </div>
 
-        <div class="atp-insight-card-v36">
+        <div class="atp-insight-card-v37">
           <h3>ข้อเสนอแนะ</h3>
-          <div id="editorAdviceList">${renderBulletListHtml([], "กำลังวิเคราะห์...")}</div>
+          <div id="editorAdviceList">${bullets([], "กำลังวิเคราะห์...")}</div>
         </div>
       </div>
 
-      <div class="atp-detail-actions-v36">
+      <div class="atp-detail-actions-v37">
         <button class="btn-main ghost" type="button" onclick="recalculateEditorFromInputs()">คำนวณใหม่</button>
         <button class="btn-main" type="button" onclick="lockEditorPlan()">🔒 Lock Plan</button>
       </div>
@@ -1984,11 +2003,11 @@ function openAtpEditorModal(plan) {
   `;
 
   document.body.appendChild(modal);
-  refreshEditorPreview();
+  requestAnimationFrame(refreshEditorPreview);
 }
 
 function closeAtpEditorModal() {
-  const old = document.getElementById("atpEditorModal");
+  const old = $("atpEditorModal");
   if (old) old.remove();
 }
 
@@ -2022,61 +2041,63 @@ function renderIndicatorButtonsHtml(scope) {
 function toggleModalIndicator(scope, key) {
   if (scope === "detail") {
     detailIndicatorState[key] = !detailIndicatorState[key];
-    const btn = document.getElementById(`detailInd_${key}`);
+
+    const btn = $(`detailInd_${key}`);
     if (btn) btn.classList.toggle("active", detailIndicatorState[key]);
+
     redrawOpenDetailChart();
     return;
   }
 
   editorIndicatorState[key] = !editorIndicatorState[key];
-  const btn = document.getElementById(`editorInd_${key}`);
+
+  const btn = $(`editorInd_${key}`);
   if (btn) btn.classList.toggle("active", editorIndicatorState[key]);
+
   refreshEditorPreview();
 }
 
 function getEditorPlanFromInputs() {
   return {
-    side: getSettingValue("editorSide", "BUY"),
-    mode: getSettingValue("editorMode", currentMode),
-    entryStyle: getSettingValue("editorEntryStyle", "current"),
-    expireHours: getNumberValue("editorExpireHours", 24),
-    entry: getNumberValue("editorEntry", NaN),
-    sl: getNumberValue("editorSl", NaN),
-    tp1: getNumberValue("editorTp1", NaN),
-    tp2: getNumberValue("editorTp2", NaN),
-    tp3: getNumberValue("editorTp3", NaN),
-    note: getSettingValue("editorNote", ""),
+    side: getVal("editorSide", "BUY"),
+    mode: getVal("editorMode", currentMode),
+    entryStyle: getVal("editorEntryStyle", "current"),
+    expireHours: getNum("editorExpireHours", 24),
+    entry: getNum("editorEntry", NaN),
+    sl: getNum("editorSl", NaN),
+    tp1: getNum("editorTp1", NaN),
+    tp2: getNum("editorTp2", NaN),
+    tp3: getNum("editorTp3", NaN),
+    note: getVal("editorNote", ""),
     indicators: { ...editorIndicatorState, levels: true }
   };
 }
 
 function setEditorPlanToInputs(plan) {
-  const side = document.getElementById("editorSide");
-  const mode = document.getElementById("editorMode");
-  const entryStyle = document.getElementById("editorEntryStyle");
+  if ($("editorSide")) $("editorSide").value = plan.side;
+  if ($("editorMode")) $("editorMode").value = plan.mode;
+  if ($("editorEntryStyle")) $("editorEntryStyle").value = plan.entryStyle;
 
-  if (side) side.value = plan.side;
-  if (mode) mode.value = plan.mode;
-  if (entryStyle) entryStyle.value = plan.entryStyle;
-
-  setInputValue("editorEntry", money(plan.entry));
-  setInputValue("editorSl", money(plan.sl));
-  setInputValue("editorTp1", money(plan.tp1));
-  setInputValue("editorTp2", money(plan.tp2));
-  setInputValue("editorTp3", money(plan.tp3));
+  setInput("editorEntry", money(plan.entry));
+  setInput("editorSl", money(plan.sl));
+  setInput("editorTp1", money(plan.tp1));
+  setInput("editorTp2", money(plan.tp2));
+  setInput("editorTp3", money(plan.tp3));
 }
 
 function recalculateEditorFromInputs() {
-  const side = getSettingValue("editorSide", "BUY");
-  const mode = getSettingValue("editorMode", currentMode);
-  const entryStyle = getSettingValue("editorEntryStyle", "current");
+  const side = getVal("editorSide", "BUY");
+  const mode = getVal("editorMode", currentMode);
+  const entryStyle = getVal("editorEntryStyle", "current");
+
   const plan = buildSuggestedPlan(side, mode, entryStyle);
+
   setEditorPlanToInputs(plan);
   refreshEditorPreview();
 }
 
 function refreshEditorPreview() {
-  const canvas = document.getElementById("atpEditorChart");
+  const canvas = $("atpEditorChart");
   if (!canvas) return;
 
   const plan = getEditorPlanFromInputs();
@@ -2104,8 +2125,8 @@ function analyzeEditorPlan(plan) {
     setText("editorPlanQuality", "-");
     setText("editorRr1", "-");
     setText("editorRr3", "-");
-    setHtml("editorLessonList", renderBulletListHtml([], "ข้อมูลไม่พอ"));
-    setHtml("editorAdviceList", renderBulletListHtml([], "ข้อมูลไม่พอ"));
+    setHtml("editorLessonList", bullets([], "ข้อมูลไม่พอ"));
+    setHtml("editorAdviceList", bullets([], "ข้อมูลไม่พอ"));
     return;
   }
 
@@ -2160,7 +2181,10 @@ function analyzeEditorPlan(plan) {
   if (editorIndicatorState.fvg && latestAnalysis?.nearestFvg) {
     const fvg = latestAnalysis.nearestFvg;
 
-    if ((plan.side === "BUY" && fvg.type === "bullish") || (plan.side === "SELL" && fvg.type === "bearish")) {
+    if (
+      (plan.side === "BUY" && fvg.type === "bullish") ||
+      (plan.side === "SELL" && fvg.type === "bearish")
+    ) {
       score += 8;
       lessons.push(`พบ ${fvg.type === "bullish" ? "Bullish" : "Bearish"} FVG สนับสนุนแผน`);
     } else {
@@ -2179,14 +2203,14 @@ function analyzeEditorPlan(plan) {
       score -= 8;
       advices.push("SELL ใกล้แนวรับเกินไป");
     } else {
-      lessons.push("ตำแหน่งราคาเทียบ Support / Resistance ยังพอใช้");
       score += 5;
+      lessons.push("ตำแหน่งราคาเทียบ Support / Resistance ยังพอใช้");
     }
   }
 
   if (editorIndicatorState.atr) {
-    lessons.push("เปิด ATR ไว้ช่วยดูระยะ SL / TP ได้ดีขึ้น");
     score += 5;
+    lessons.push("เปิด ATR ไว้ช่วยดูระยะ SL / TP ได้ดีขึ้น");
   }
 
   if (latestAnalysis?.reason?.length) {
@@ -2197,12 +2221,12 @@ function analyzeEditorPlan(plan) {
     advices.push(...latestAnalysis.filters.slice(0, 4));
   }
 
-  if (!advices.length) {
-    advices.push("แผนนี้ยังดูสมดุล แต่ควรตรวจ Entry / SL / TP อีกครั้งก่อนล็อก");
-  }
-
   if (!lessons.length) {
     lessons.push("ใช้ข้อมูลราคา + indicator ปัจจุบันประกอบการวางแผน");
+  }
+
+  if (!advices.length) {
+    advices.push("แผนนี้ยังดูสมดุล แต่ควรตรวจ Entry / SL / TP อีกครั้งก่อนล็อก");
   }
 
   score = Math.max(0, Math.min(100, Math.round(score)));
@@ -2217,8 +2241,8 @@ function analyzeEditorPlan(plan) {
   setText("editorRr1", round2(rr1));
   setText("editorRr3", round2(rr3));
 
-  setHtml("editorLessonList", renderBulletListHtml(lessons.slice(0, 6), "ไม่มี"));
-  setHtml("editorAdviceList", renderBulletListHtml(advices.slice(0, 6), "ไม่มี"));
+  setHtml("editorLessonList", bullets(lessons.slice(0, 6), "ไม่มี"));
+  setHtml("editorAdviceList", bullets(advices.slice(0, 6), "ไม่มี"));
 }
 
 function lockEditorPlan() {
@@ -2290,22 +2314,18 @@ function lockEditorPlan() {
   renderManualAtp();
   closeAtpEditorModal();
 
-  const section = document.getElementById("section-my-atp");
+  const section = $("section-my-atp");
   if (section) section.scrollIntoView({ behavior: "smooth", block: "start" });
 
   showToast("Lock Plan สำเร็จ", `${plan.side} Entry ${money(plan.entry)} เข้า My ATP แล้ว`, "success");
   playTone("success");
 }
 
-/* =========================
-   OLD BUILDER SUPPORT
-========================= */
-
 function setBuilderSide(side) {
   builderSide = side === "SELL" ? "SELL" : "BUY";
 
-  const buy = document.getElementById("builderSideBuy");
-  const sell = document.getElementById("builderSideSell");
+  const buy = $("builderSideBuy");
+  const sell = $("builderSideSell");
 
   if (buy) buy.classList.toggle("active", builderSide === "BUY");
   if (sell) sell.classList.toggle("active", builderSide === "SELL");
@@ -2316,15 +2336,15 @@ function setBuilderSide(side) {
 function generateSuggestedPlan(showNotice = true) {
   const plan = buildSuggestedPlan(
     builderSide,
-    getSettingValue("builderMode", currentMode || "balanced"),
-    getSettingValue("builderEntryStyle", "current")
+    getVal("builderMode", currentMode || "balanced"),
+    getVal("builderEntryStyle", "current")
   );
 
-  setInputValue("builderEntry", money(plan.entry));
-  setInputValue("builderSl", money(plan.sl));
-  setInputValue("builderTp1", money(plan.tp1));
-  setInputValue("builderTp2", money(plan.tp2));
-  setInputValue("builderTp3", money(plan.tp3));
+  setInput("builderEntry", money(plan.entry));
+  setInput("builderSl", money(plan.sl));
+  setInput("builderTp1", money(plan.tp1));
+  setInput("builderTp2", money(plan.tp2));
+  setInput("builderTp3", money(plan.tp3));
 
   analyzeBuilderPlan();
 
@@ -2332,10 +2352,10 @@ function generateSuggestedPlan(showNotice = true) {
 }
 
 function analyzeBuilderPlan() {
-  const entry = getNumberValue("builderEntry", NaN);
-  const sl = getNumberValue("builderSl", NaN);
-  const tp1 = getNumberValue("builderTp1", NaN);
-  const tp3 = getNumberValue("builderTp3", NaN);
+  const entry = getNum("builderEntry", NaN);
+  const sl = getNum("builderSl", NaN);
+  const tp1 = getNum("builderTp1", NaN);
+  const tp3 = getNum("builderTp3", NaN);
 
   if (![entry, sl, tp1, tp3].every(Number.isFinite)) return;
 
@@ -2366,15 +2386,14 @@ function addManualAtp() {
   openAtpEditorModal(buildSuggestedPlan(builderSide, currentMode, "current"));
 }
 
-/* =========================
-   MANUAL ATP
-========================= */
-
 function loadManualAtp() {
   try {
     const raw = localStorage.getItem(MANUAL_ATP_KEY);
     manualAtpPlans = raw ? JSON.parse(raw) : [];
-    if (!Array.isArray(manualAtpPlans)) manualAtpPlans = [];
+
+    if (!Array.isArray(manualAtpPlans)) {
+      manualAtpPlans = [];
+    }
   } catch (e) {
     manualAtpPlans = [];
   }
@@ -2390,7 +2409,9 @@ function updateManualAtpByPrice(price) {
   const now = new Date();
 
   manualAtpPlans = manualAtpPlans.map(plan => {
-    if (!["WAITING_ENTRY", "ACTIVE", "TP1_HIT", "TP2_HIT"].includes(plan.status)) return plan;
+    if (!["WAITING_ENTRY", "ACTIVE", "TP1_HIT", "TP2_HIT"].includes(plan.status)) {
+      return plan;
+    }
 
     let status = plan.status;
     let result = plan.result || "pending";
@@ -2492,11 +2513,14 @@ function getAtpBadgeClass(plan) {
 }
 
 function renderManualAtp() {
-  const list = document.getElementById("manualAtpList");
+  const list = $("manualAtpList");
   if (!list) return;
 
   const total = manualAtpPlans.length;
-  const active = manualAtpPlans.filter(p => ["WAITING_ENTRY", "ACTIVE", "TP1_HIT", "TP2_HIT"].includes(p.status)).length;
+  const active = manualAtpPlans.filter(p =>
+    ["WAITING_ENTRY", "ACTIVE", "TP1_HIT", "TP2_HIT"].includes(p.status)
+  ).length;
+
   const wins = manualAtpPlans.filter(p => String(p.result).startsWith("win")).length;
   const losses = manualAtpPlans.filter(p => String(p.result).startsWith("loss")).length;
   const partial = manualAtpPlans.filter(p => String(p.result).startsWith("partial")).length;
@@ -2532,12 +2556,12 @@ function renderManualAtp() {
       <div class="atp-v2-head">
         <div>
           <div class="atp-v2-title">
-            <span class="atp-badge ${plan.side === "BUY" ? "buy" : "sell"}">${escapeHtml(plan.side)}</span>
-            <span class="atp-badge ${getAtpBadgeClass(plan)}">${escapeHtml(plan.status)}</span>
-            <h3>${escapeHtml(plan.mode || "-")}</h3>
+            <span class="atp-badge ${plan.side === "BUY" ? "buy" : "sell"}">${esc(plan.side)}</span>
+            <span class="atp-badge ${getAtpBadgeClass(plan)}">${esc(plan.status)}</span>
+            <h3>${esc(plan.mode || "-")}</h3>
           </div>
           <div class="atp-v2-meta">
-            Created: ${escapeHtml(formatThaiDateTime(plan.createdAt))} | Expires: ${escapeHtml(formatThaiDateTime(plan.expiresAt))}
+            Created: ${esc(thaiTime(plan.createdAt))} | Expires: ${esc(thaiTime(plan.expiresAt))}
           </div>
         </div>
 
@@ -2545,10 +2569,6 @@ function renderManualAtp() {
           <button class="atp-icon-btn" type="button" onclick="openAtpDetailModalById('${plan.id}')">ดู</button>
           <button class="atp-icon-btn delete" type="button" onclick="deleteManualAtp('${plan.id}')">ลบ</button>
         </div>
-      </div>
-
-      <div class="atp-mini-chart-box">
-        <canvas class="atp-mini-chart" width="1000" height="185" data-atp-mini="${plan.id}"></canvas>
       </div>
 
       <div class="atp-level-grid">
@@ -2568,52 +2588,20 @@ function renderManualAtp() {
       </div>
 
       <div class="atp-chip-row">
-        ${indicators.length ? indicators.map(x => `<span class="atp-ind-chip">${escapeHtml(x)}</span>`).join("") : `<span class="atp-ind-chip">NO INDICATOR</span>`}
+        ${indicators.length ? indicators.map(x => `<span class="atp-ind-chip">${esc(x)}</span>`).join("") : `<span class="atp-ind-chip">NO INDICATOR</span>`}
       </div>
 
-      ${plan.note ? `<div class="note" style="margin-top:10px;">${escapeHtml(plan.note)}</div>` : ""}
+      ${plan.note ? `<div class="note" style="margin-top:10px;">${esc(plan.note)}</div>` : ""}
     `;
 
     wrap.appendChild(card);
   });
-
-  setTimeout(drawAllMiniAtpCharts, 0);
 }
-
-function drawAllMiniAtpCharts() {
-  document.querySelectorAll("[data-atp-mini]").forEach(canvas => {
-    const id = canvas.getAttribute("data-atp-mini");
-    const plan = manualAtpPlans.find(p => p.id === id);
-    if (!plan) return;
-
-    const miniIndicators = {
-      ema: false,
-      rsi: false,
-      macd: false,
-      bollinger: true,
-      fvg: false,
-      sr: false,
-      levels: true
-    };
-
-    drawCleanChart({
-      canvas,
-      rawCandles: latestChartData,
-      indicators: miniIndicators,
-      plan,
-      footer: "ATP Mini Chart",
-      showLevels: true
-    });
-  });
-}
-
-/* =========================
-   ATP DETAIL
-========================= */
 
 function openAtpDetailModalById(id) {
   const plan = manualAtpPlans.find(p => p.id === id);
   if (!plan) return;
+
   openAtpDetailModal(plan);
 }
 
@@ -2634,32 +2622,32 @@ function openAtpDetailModal(plan) {
 
   const modal = document.createElement("div");
   modal.id = "atpDetailModal";
-  modal.className = "atp-modal-backdrop-v36";
+  modal.className = "atp-modal-backdrop-v37";
   modal.setAttribute("data-plan-id", plan.id);
 
   modal.innerHTML = `
-    <div class="atp-modal-v36">
-      <div class="atp-modal-head-v36">
+    <div class="atp-modal-v37">
+      <div class="atp-modal-head-v37">
         <div>
-          <div class="atp-modal-title-v36">
-            <span class="atp-badge ${plan.side === "BUY" ? "buy" : "sell"}">${escapeHtml(plan.side)}</span>
-            <span class="atp-badge ${getAtpBadgeClass(plan)}">${escapeHtml(plan.status)}</span>
+          <div class="atp-modal-title-v37">
+            <span class="atp-badge ${plan.side === "BUY" ? "buy" : "sell"}">${esc(plan.side)}</span>
+            <span class="atp-badge ${getAtpBadgeClass(plan)}">${esc(plan.status)}</span>
             <h2>ATP Detail</h2>
           </div>
-          <p>${escapeHtml(plan.mode || "-")} • Created ${escapeHtml(formatThaiDateTime(plan.createdAt))}</p>
+          <p>${esc(plan.mode || "-")} • Created ${esc(thaiTime(plan.createdAt))}</p>
         </div>
-        <button class="atp-modal-close-v36" type="button" onclick="closeAtpDetailModal()">ปิด</button>
+        <button class="atp-modal-close-v37" type="button" onclick="closeAtpDetailModal()">ปิด</button>
       </div>
 
-      <div class="atp-chart-panel-v36">
+      <div class="atp-chart-panel-v37">
         <canvas id="atpDetailChart" width="1280" height="500"></canvas>
       </div>
 
-      <div class="atp-indicator-row-v36" id="detailIndicatorRow">
+      <div class="atp-indicator-row-v37" id="detailIndicatorRow">
         ${renderIndicatorButtonsHtml("detail")}
       </div>
 
-      <div class="atp-detail-grid-v36">
+      <div class="atp-detail-grid-v37">
         <div><span>Entry</span><b>${money(plan.entry)}</b></div>
         <div><span>SL</span><b>${money(plan.sl)}</b></div>
         <div><span>TP1</span><b>${money(plan.tp1)}</b></div>
@@ -2667,12 +2655,12 @@ function openAtpDetailModal(plan) {
         <div><span>TP3</span><b>${money(plan.tp3)}</b></div>
       </div>
 
-      <div class="atp-detail-grid-v36">
-        <div><span>Status</span><b>${escapeHtml(plan.status)}</b></div>
-        <div><span>Result</span><b>${escapeHtml(plan.result || "-")}</b></div>
+      <div class="atp-detail-grid-v37">
+        <div><span>Status</span><b>${esc(plan.status)}</b></div>
+        <div><span>Result</span><b>${esc(plan.result || "-")}</b></div>
         <div><span>Last Price</span><b>${money(plan.lastPrice)}</b></div>
-        <div><span>Expires</span><b>${escapeHtml(formatThaiDateTime(plan.expiresAt))}</b></div>
-        <div><span>Side</span><b>${escapeHtml(plan.side)}</b></div>
+        <div><span>Expires</span><b>${esc(thaiTime(plan.expiresAt))}</b></div>
+        <div><span>Side</span><b>${esc(plan.side)}</b></div>
       </div>
 
       <div class="atp-progress-row" style="margin-top:14px;">
@@ -2683,44 +2671,45 @@ function openAtpDetailModal(plan) {
         <span class="atp-progress-chip ${plan.progress?.sl ? "danger" : ""}">SL ${plan.progress?.sl ? "✓" : "-"}</span>
       </div>
 
-      <div class="atp-insight-grid-v36">
-        <div class="atp-insight-card-v36">
+      <div class="atp-insight-grid-v37">
+        <div class="atp-insight-card-v37">
           <h3>Snapshot</h3>
-          <div class="mini-bullet-item">Trend: <b>${escapeHtml(plan.snapshot?.trend || "-")}</b></div>
-          <div class="mini-bullet-item">RSI: <b>${escapeHtml(plan.snapshot?.rsi ?? "-")}</b></div>
-          <div class="mini-bullet-item">Support: <b>${escapeHtml(plan.snapshot?.support ?? "-")}</b></div>
-          <div class="mini-bullet-item">Resistance: <b>${escapeHtml(plan.snapshot?.resistance ?? "-")}</b></div>
-          <div class="mini-bullet-item">AI Score: <b>${escapeHtml(plan.snapshot?.aiScore ?? "-")}</b></div>
-          <div class="mini-bullet-item">Confidence: <b>${escapeHtml(plan.snapshot?.confidence ?? "-")}</b></div>
+          <div class="mini-bullet-item">Trend: <b>${esc(plan.snapshot?.trend || "-")}</b></div>
+          <div class="mini-bullet-item">RSI: <b>${esc(plan.snapshot?.rsi ?? "-")}</b></div>
+          <div class="mini-bullet-item">Support: <b>${esc(plan.snapshot?.support ?? "-")}</b></div>
+          <div class="mini-bullet-item">Resistance: <b>${esc(plan.snapshot?.resistance ?? "-")}</b></div>
+          <div class="mini-bullet-item">AI Score: <b>${esc(plan.snapshot?.aiScore ?? "-")}</b></div>
+          <div class="mini-bullet-item">Confidence: <b>${esc(plan.snapshot?.confidence ?? "-")}</b></div>
         </div>
 
-        <div class="atp-insight-card-v36">
+        <div class="atp-insight-card-v37">
           <h3>บทเรียน / ข้อเสนอแนะ</h3>
-          ${renderBulletListHtml([...(plan.snapshot?.reason || []).slice(0, 3), ...(plan.snapshot?.filters || []).slice(0, 3)], "ไม่มี")}
+          ${bullets([...(plan.snapshot?.reason || []).slice(0, 3), ...(plan.snapshot?.filters || []).slice(0, 3)], "ไม่มี")}
         </div>
       </div>
 
-      ${plan.note ? `<div class="atp-insight-card-v36" style="margin-top:14px;"><h3>Note</h3><div>${escapeHtml(plan.note)}</div></div>` : ""}
+      ${plan.note ? `<div class="atp-insight-card-v37" style="margin-top:14px;"><h3>Note</h3><div>${esc(plan.note)}</div></div>` : ""}
 
-      <div class="atp-detail-actions-v36">
+      <div class="atp-detail-actions-v37">
         <button class="btn-main ghost" type="button" onclick="closeAtpDetailModal()">ปิด</button>
-        <button class="btn-main ghost" type="button" onclick="editPlanFromDetail('${plan.id}')">แก้แผน</button>
         <button class="btn-main danger" type="button" onclick="deleteManualAtpFromDetail('${plan.id}')">ลบแผนนี้</button>
       </div>
     </div>
   `;
 
   document.body.appendChild(modal);
-  redrawOpenDetailChart();
+  requestAnimationFrame(redrawOpenDetailChart);
 }
 
 function redrawOpenDetailChart() {
-  const modal = document.getElementById("atpDetailModal");
-  const canvas = document.getElementById("atpDetailChart");
+  const modal = $("atpDetailModal");
+  const canvas = $("atpDetailChart");
+
   if (!modal || !canvas) return;
 
   const id = modal.getAttribute("data-plan-id");
   const plan = manualAtpPlans.find(p => p.id === id);
+
   if (!plan) return;
 
   drawCleanChart({
@@ -2734,32 +2723,8 @@ function redrawOpenDetailChart() {
 }
 
 function closeAtpDetailModal() {
-  const old = document.getElementById("atpDetailModal");
+  const old = $("atpDetailModal");
   if (old) old.remove();
-}
-
-function editPlanFromDetail(id) {
-  const plan = manualAtpPlans.find(p => p.id === id);
-  if (!plan) return;
-
-  closeAtpDetailModal();
-
-  const editable = {
-    side: plan.side,
-    mode: plan.mode,
-    entryStyle: plan.entryStyle || "current",
-    entry: plan.entry,
-    sl: plan.sl,
-    tp1: plan.tp1,
-    tp2: plan.tp2,
-    tp3: plan.tp3,
-    expireHours: 24,
-    note: plan.note || "",
-    indicators: { ...plan.indicators }
-  };
-
-  deleteManualAtp(id, false);
-  openAtpEditorModal(editable);
 }
 
 function deleteManualAtpFromDetail(id) {
@@ -2775,7 +2740,9 @@ function deleteManualAtp(id, notify = true) {
   saveManualAtp();
   renderManualAtp();
 
-  if (notify) showToast("ลบ My ATP แล้ว", "ลบแผนนี้ออกจาก Journal", "warning");
+  if (notify) {
+    showToast("ลบ My ATP แล้ว", "ลบแผนนี้ออกจาก Journal", "warning");
+  }
 }
 
 function clearClosedManualPlans() {
@@ -2798,17 +2765,14 @@ function clearAllManualPlans() {
   showToast("ลบ My ATP ทั้งหมดแล้ว", "เริ่ม Journal ใหม่ได้เลย", "warning");
 }
 
-/* =========================
-   MODAL CSS
-========================= */
-
-function injectModalCssV36() {
-  if (document.getElementById("modalCssV36")) return;
+function injectCssV37() {
+  if ($("modalCssV37")) return;
 
   const style = document.createElement("style");
-  style.id = "modalCssV36";
+  style.id = "modalCssV37";
+
   style.innerHTML = `
-    .atp-modal-backdrop-v36 {
+    .atp-modal-backdrop-v37 {
       position: fixed;
       inset: 0;
       z-index: 999999;
@@ -2820,7 +2784,7 @@ function injectModalCssV36() {
       padding: 18px;
     }
 
-    .atp-modal-v36 {
+    .atp-modal-v37 {
       width: min(1180px, 100%);
       max-height: 94vh;
       overflow: auto;
@@ -2834,7 +2798,7 @@ function injectModalCssV36() {
       color: #fff;
     }
 
-    .atp-modal-head-v36 {
+    .atp-modal-head-v37 {
       display: flex;
       align-items: flex-start;
       justify-content: space-between;
@@ -2842,24 +2806,24 @@ function injectModalCssV36() {
       margin-bottom: 16px;
     }
 
-    .atp-modal-title-v36 {
+    .atp-modal-title-v37 {
       display: flex;
       align-items: center;
       gap: 8px;
       flex-wrap: wrap;
     }
 
-    .atp-modal-title-v36 h2 {
+    .atp-modal-title-v37 h2 {
       margin: 0;
       font-size: 28px;
     }
 
-    .atp-modal-head-v36 p {
+    .atp-modal-head-v37 p {
       margin: 8px 0 0;
       color: #9aa3b2;
     }
 
-    .atp-modal-close-v36 {
+    .atp-modal-close-v37 {
       min-width: 76px;
       min-height: 42px;
       border-radius: 14px;
@@ -2870,7 +2834,7 @@ function injectModalCssV36() {
       cursor: pointer;
     }
 
-    .atp-chart-panel-v36 {
+    .atp-chart-panel-v37 {
       border: 1px solid rgba(255,255,255,.08);
       border-radius: 18px;
       overflow: hidden;
@@ -2878,20 +2842,20 @@ function injectModalCssV36() {
       margin-bottom: 14px;
     }
 
-    .atp-chart-panel-v36 canvas {
+    .atp-chart-panel-v37 canvas {
       width: 100%;
       height: auto;
       display: block;
     }
 
-    .atp-indicator-row-v36 {
+    .atp-indicator-row-v37 {
       display: flex;
       flex-wrap: wrap;
       gap: 10px;
       margin: 12px 0 16px;
     }
 
-    .atp-form-grid-v36 {
+    .atp-form-grid-v37 {
       display: grid;
       gap: 12px;
       margin-bottom: 12px;
@@ -2905,26 +2869,26 @@ function injectModalCssV36() {
       grid-template-columns: repeat(5, 1fr);
     }
 
-    .atp-form-grid-v36 label {
+    .atp-form-grid-v37 label {
       padding: 12px;
       border-radius: 18px;
       background: rgba(255,255,255,.035);
       border: 1px solid rgba(255,255,255,.08);
     }
 
-    .atp-form-grid-v36 span,
-    .atp-note-label-v36 span,
-    .atp-stat-card-v36 span,
-    .atp-detail-grid-v36 span {
+    .atp-form-grid-v37 span,
+    .atp-note-label-v37 span,
+    .atp-stat-card-v37 span,
+    .atp-detail-grid-v37 span {
       display: block;
       color: #9aa3b2;
       font-size: 12px;
       margin-bottom: 6px;
     }
 
-    .atp-form-grid-v36 input,
-    .atp-form-grid-v36 select,
-    .atp-note-label-v36 input {
+    .atp-form-grid-v37 input,
+    .atp-form-grid-v37 select,
+    .atp-note-label-v37 input {
       width: 100%;
       border: 1px solid rgba(255,255,255,.10);
       background: rgba(0,0,0,.25);
@@ -2935,7 +2899,7 @@ function injectModalCssV36() {
       font-weight: 800;
     }
 
-    .atp-note-label-v36 {
+    .atp-note-label-v37 {
       display: block;
       margin: 0 0 12px;
       padding: 12px;
@@ -2944,36 +2908,36 @@ function injectModalCssV36() {
       border: 1px solid rgba(255,255,255,.08);
     }
 
-    .atp-score-grid-v36 {
+    .atp-score-grid-v37 {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
       gap: 12px;
       margin: 12px 0;
     }
 
-    .atp-stat-card-v36,
-    .atp-insight-card-v36,
-    .atp-detail-grid-v36 div {
+    .atp-stat-card-v37,
+    .atp-insight-card-v37,
+    .atp-detail-grid-v37 div {
       padding: 14px;
       border-radius: 18px;
       border: 1px solid rgba(255,255,255,.08);
       background: rgba(255,255,255,.035);
     }
 
-    .atp-stat-card-v36 b,
-    .atp-detail-grid-v36 b {
+    .atp-stat-card-v37 b,
+    .atp-detail-grid-v37 b {
       color: #fff;
       font-size: 18px;
     }
 
-    .atp-insight-grid-v36 {
+    .atp-insight-grid-v37 {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 12px;
       margin-top: 12px;
     }
 
-    .atp-insight-card-v36 h3 {
+    .atp-insight-card-v37 h3 {
       margin: 0 0 10px;
       color: #f5c542;
       font-size: 20px;
@@ -2989,14 +2953,14 @@ function injectModalCssV36() {
       color: #9aa3b2;
     }
 
-    .atp-detail-grid-v36 {
+    .atp-detail-grid-v37 {
       display: grid;
       grid-template-columns: repeat(5, 1fr);
       gap: 12px;
       margin-top: 12px;
     }
 
-    .atp-detail-actions-v36 {
+    .atp-detail-actions-v37 {
       display: flex;
       gap: 12px;
       margin-top: 16px;
@@ -3005,27 +2969,27 @@ function injectModalCssV36() {
     @media (max-width: 980px) {
       .atp-form-grid-top,
       .atp-form-grid-levels,
-      .atp-score-grid-v36,
-      .atp-detail-grid-v36,
-      .atp-insight-grid-v36 {
+      .atp-score-grid-v37,
+      .atp-detail-grid-v37,
+      .atp-insight-grid-v37 {
         grid-template-columns: 1fr 1fr;
       }
     }
 
     @media (max-width: 640px) {
-      .atp-modal-v36 {
+      .atp-modal-v37 {
         padding: 14px;
       }
 
       .atp-form-grid-top,
       .atp-form-grid-levels,
-      .atp-score-grid-v36,
-      .atp-detail-grid-v36,
-      .atp-insight-grid-v36 {
+      .atp-score-grid-v37,
+      .atp-detail-grid-v37,
+      .atp-insight-grid-v37 {
         grid-template-columns: 1fr;
       }
 
-      .atp-detail-actions-v36 {
+      .atp-detail-actions-v37 {
         display: grid;
       }
     }
@@ -3033,10 +2997,6 @@ function injectModalCssV36() {
 
   document.head.appendChild(style);
 }
-
-/* =========================
-   INIT
-========================= */
 
 function startAutoRefresh() {
   if (autoRefreshTimer) clearInterval(autoRefreshTimer);
